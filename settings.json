@@ -23,9 +23,11 @@
       "Bash(uv sync:*)",
       "WebSearch",
       "mcp__plugin_context7_context7__query-docs",
-      "mcp__plugin_context7_context7__resolve-library-id"
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__serena__read_memory",
+      "mcp__serena__list_dir"
     ],
-    "defaultMode": "plan"
+    "defaultMode": "default"
   },
   "statusLine": {
     "type": "command",
