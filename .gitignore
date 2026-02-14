@@ -3,6 +3,8 @@
 
 # Track these
 !.gitignore
+!LICENSE
+!README.md
 !CLAUDE.md
 !settings.json
 !skills/
