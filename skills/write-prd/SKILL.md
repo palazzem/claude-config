@@ -1,5 +1,5 @@
 ---
-name: writing-prd
+name: write-prd
 description: Use when creating product requirements documents, defining feature specs, or when user asks for a PRD - enforces multi-phase brainstorming before writing and prohibits implementation details
 ---
 

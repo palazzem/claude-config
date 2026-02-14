@@ -1,5 +1,5 @@
 ---
-name: writing-bug-report
+name: write-bug-report
 description: Use when documenting bugs, defects, or unexpected behavior - handles reproducible bugs, partially known issues, and investigation-needed problems with structured discovery phases
 ---
 
