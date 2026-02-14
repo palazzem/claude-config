@@ -1,0 +1,9 @@
+# Ignore everything
+*
+
+# Track these
+!.gitignore
+!CLAUDE.md
+!settings.json
+!skills/
+!skills/**
