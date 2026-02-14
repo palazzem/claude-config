@@ -7,7 +7,7 @@ description: Use when code changes are ready for review, after completing a feat
 
 ## Overview
 
-Dispatch **6 parallel subagents**, each focused on a single review aspect, for deep specialized feedback. Present findings in a structured table with scores.
+Dispatch **7 parallel subagents**, each focused on a single review aspect, for deep specialized feedback. Present findings in a structured table with scores.
 
 **Core principle:** One reviewer per concern. Parallel execution. Structured output.
 
@@ -17,11 +17,11 @@ Dispatch **6 parallel subagents**, each focused on a single review aspect, for d
 
 Use `git diff main --name-only` (or appropriate base). Read changed files to provide context to reviewers.
 
-### Step 2: Dispatch 6 Parallel Reviewer Subagents
+### Step 2: Dispatch 7 Parallel Reviewer Subagents
 
-Launch **all 6 in a single message** using the Task tool with `feature-dev:code-reviewer` type. Each gets: changed file contents, the diff, and ONE focused mandate.
+Launch **all 7 in a single message** using the Task tool with `feature-dev:code-reviewer` type. Each gets: changed file contents, the diff, and ONE focused mandate.
 
-**IMPORTANT:** All 6 MUST be dispatched in **one message** with 6 parallel Task calls. Never sequentially.
+**IMPORTANT:** All 7 MUST be dispatched in **one message** with 7 parallel Task calls. Never sequentially.
 
 #### Review Mandates
 
@@ -45,9 +45,12 @@ Each subagent reviews ONLY its focus area. Score 1-5 with file:line references.
 **6. No Workarounds**
 > Linting rules disabled or suppressed without justification, tests skipped without reason, coverage exclusions hiding untested code, pre-commit or CI checks bypassed, any code that exists solely to satisfy a linter or build rather than fixing the underlying issue.
 
+**7. Performance Implications**
+> Unnecessary allocations in hot paths, O(n^2) or worse algorithms where better alternatives exist, missing pagination on unbounded queries, synchronous blocking where async is available, N+1 query patterns, large data structures copied instead of referenced, missing caching for repeated expensive operations, unbatched I/O calls in loops.
+
 ### Step 3: Present Results
 
-After all 6 complete, build this **exact table**:
+After all 7 complete, build this **exact table**:
 
 ```
 | # | Review Area            | Score | Key Findings Summary           | Handle? |
@@ -58,6 +61,7 @@ After all 6 complete, build this **exact table**:
 | 4 | Implementation Quality | 4/5   | Missing docstring on public API | Yes     |
 | 5 | Test Quality           | 4/5   | Duplicate assertion in test_foo | Optional|
 | 6 | No Workarounds         | 5/5   | No workarounds detected         | No      |
+| 7 | Performance            | 4/5   | N+1 query in user loader       | Yes     |
 ```
 
 **Handle? values:** `Yes` (should fix), `No` (no issues), `Optional` (minor, up to user).
@@ -74,6 +78,6 @@ Wait for the user's response before making any changes.
 
 - Do NOT run a single monolithic review covering all aspects
 - Do NOT run reviewers sequentially (they are independent)
-- Do NOT skip any of the 6 review areas (include 5/5 areas in the table)
+- Do NOT skip any of the 7 review areas (include 5/5 areas in the table)
 - Do NOT auto-fix findings without asking the user first
 - Do NOT fabricate scores — every score must come from a subagent
