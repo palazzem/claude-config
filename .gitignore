@@ -6,6 +6,8 @@
 !CLAUDE.md
 !LICENSE
 !README.md
+!agents/
+!agents/**
 !settings.json
 !skills/
 !skills/**
