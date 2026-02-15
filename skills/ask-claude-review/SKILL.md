@@ -19,9 +19,9 @@ Use `git diff main --name-only` (or appropriate base). Read changed files to pro
 
 ### Step 2: Dispatch 7 Parallel Reviewer Subagents
 
-Launch **all 7 in a single message** using the Task tool with `feature-dev:code-reviewer` type. Each gets: changed file contents, the diff, and ONE focused mandate.
+Launch **all 7 in a single message** using the Task tool with `code-reviewer` agent type. Each gets: changed file contents, the diff, and ONE focused mandate.
 
-**IMPORTANT:** All 7 MUST be dispatched in **one message** with 7 parallel Task calls. Never sequentially.
+**IMPORTANT:** All 7 MUST be dispatched in parallel, never sequentially. Do NOT set the `model` parameter, the `code-reviewer` agent defines its own model.
 
 #### Review Mandates
 
@@ -76,6 +76,7 @@ Wait for the user's response before making any changes.
 
 ## Red Flags
 
+- Do NOT set the `model` parameter for the `code-reviewer` agent
 - Do NOT run a single monolithic review covering all aspects
 - Do NOT run reviewers sequentially (they are independent)
 - Do NOT skip any of the 7 review areas (include 5/5 areas in the table)
