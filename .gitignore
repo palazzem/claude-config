@@ -1,11 +1,12 @@
 # Ignore everything
 *
+!.gitignore
 
 # Track these
-!.gitignore
+!CLAUDE.md
 !LICENSE
 !README.md
-!CLAUDE.md
 !settings.json
 !skills/
 !skills/**
+!statusline.sh
