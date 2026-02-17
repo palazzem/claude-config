@@ -13,13 +13,9 @@ Dispatch **7 parallel subagents**, each focused on a single review aspect, for d
 
 ## Process
 
-### Step 1: Identify Changed Files
+### Step 1: Dispatch 7 Parallel Reviewer Subagents
 
-Use `git diff main --name-only` (or appropriate base). Read changed files to provide context to reviewers.
-
-### Step 2: Dispatch 7 Parallel Reviewer Subagents
-
-Launch **all 7 in a single message** using the Task tool with `code-reviewer` agent type. Each gets: changed file contents, the diff, and ONE focused mandate.
+Launch **all 7 in a single message** using the Task tool with `code-reviewer` agent type. Each gets ONE focused mandate. Subagents autonomously retrieve the diff and read files — do NOT gather context for them.
 
 **IMPORTANT:** All 7 MUST be dispatched in parallel, never sequentially. Do NOT set the `model` parameter, the `code-reviewer` agent defines its own model.
 
@@ -48,7 +44,7 @@ Each subagent reviews ONLY its focus area. Score 1-5 with file:line references.
 **7. Performance Implications**
 > Unnecessary allocations in hot paths, O(n^2) or worse algorithms where better alternatives exist, missing pagination on unbounded queries, synchronous blocking where async is available, N+1 query patterns, large data structures copied instead of referenced, missing caching for repeated expensive operations, unbatched I/O calls in loops.
 
-### Step 3: Present Results
+### Step 2: Present Results
 
 After all 7 complete, build this **exact table**:
 
@@ -68,7 +64,7 @@ After all 7 complete, build this **exact table**:
 
 Below the table, provide **detailed findings** for areas scoring below 5/5, with file:line references.
 
-### Step 4: Ask the User
+### Step 3: Ask the User
 
 > "Which findings would you like me to address? You can select by number (e.g., 1, 3, 4) or say 'all'."
 
