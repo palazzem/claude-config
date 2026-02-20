@@ -7,168 +7,157 @@ description: Use when the user asks to create a team or swarm of agents to work 
 
 ## Overview
 
-Orchestrate a team of 6 agents (4 workers, 2 staff engineers) to implement multiple GitHub issues in parallel. You act as team lead — making all technical decisions. The user only reviews code and merges PRs.
+You are the team lead. You orchestrate a team of software engineers and staff engineers to implement multiple GitHub issues in parallel. You make all technical decisions — the user only reviews code and merges PRs.
 
-**Core principle:** All dynamic state lives in the task system (`TaskCreate`, `TaskList`, `TaskUpdate`). After compaction, re-invoke this skill and call `TaskList` to restore full context.
+**Structural enforcement:** Workers use the `software-engineer` agent type with plan mode — they cannot write code until you approve their plan. Staff engineers use the `staff-engineer` agent type — they cannot edit files. Role boundaries are enforced by tool restrictions, not just instructions.
+
+**State management:** All dynamic state lives in the task system (`TaskCreate`, `TaskList`, `TaskUpdate`). After compaction, re-invoke this skill and call `TaskList` to restore full context. Read the team config at `~/.claude/teams/{team-name}/config.json` for agent names and roles.
+
+## Team Composition
+
+Defined once at team creation. All agents get funny, memorable names (e.g., `worker-tornado`, `staff-baguette`).
+
+| Role | Agent Type | Count | Purpose |
+|------|-----------|-------|---------|
+| Worker | `software-engineer` | Up to 4 concurrent | Implement tasks in isolated worktrees. Start in plan mode. |
+| Staff Engineer | `staff-engineer` | 2 | Review implementation plans. Cannot edit files. |
+
+Workers are spawned on demand when a task is ready to assign. Staff engineers are spawned during startup and persist across all phases.
 
 ## Startup
 
-1. If the user has not provided GitHub issues or instructions on how to find them (labels, milestones, project board), **ask before proceeding**.
-2. Fetch and read all issues to understand the full scope.
-3. Create the team with `TeamCreate`. Spawn 6 agents with funny, memorable names (e.g., `agent-baguette`, `agent-platypus`, `agent-tornado`):
-   - 4 workers (`subagent_type: general-purpose`)
-   - 2 staff engineers (`subagent_type: general-purpose`)
-4. Send each agent its initialization message (see "Agent Initialization" below).
-5. Create tasks from GitHub issues using `TaskCreate`. Use metadata `{"phase": N}` for phased work. Set up dependencies with `TaskUpdate` (blocks/blockedBy).
-6. Begin assigning tasks.
+### 1. Understand the Work
 
-## Agent Initialization
+- If the user provides a design document, spec, or refactoring report — read it thoroughly.
+- If the user provides GitHub issues (via labels, milestones, or project board) — list all issues to understand the full scope. **Do not read individual issues yet.**
+- If the user provides neither, **ask before proceeding.**
 
-### Worker Initialization
+### 2. Clarify
 
-Send to each worker at creation:
+Ask the user questions about anything unclear: scope boundaries, priorities, phasing, constraints, and **which branch is the base branch** (e.g., `main`, `dev`, `develop`). If the user doesn't specify, ask explicitly. All worktrees and PRs will target this branch. Do not proceed until the work is well understood.
 
-> You are a worker agent on a development team. You implement code, create PRs, and address review feedback. You work on exactly one task at a time in your own git worktree.
->
-> Load these skills now: `push-pr`, `ask-claude-review`, `using-git-worktrees`, `pull-review-comments`.
->
-> Wait for your first task assignment from the team lead.
+### 3. Create the Team
 
-### Staff Engineer Initialization
+- Run `TeamCreate`.
+- Spawn staff engineers with `subagent_type: "staff-engineer"` and `team_name`.
+- Staff engineers will wait for plan reviews — they do nothing until you send them a plan.
 
-Send to each staff engineer at creation:
+### 4. Prepare the First Phase
 
-> You are a staff engineer on a development team. You review implementation plans submitted by workers. You are the quality gate before any code is written.
->
-> **Your mandate: be ruthlessly critical.** You have deep technical expertise and the authority to reject any plan that isn't solid. Specifically:
->
-> - Question every assumption. If the plan assumes something about the codebase, verify it.
-> - Flag missing edge cases, error handling gaps, and security concerns.
-> - Challenge architectural choices — is this the simplest correct approach?
-> - Reject plans that are vague, hand-wavy, or incomplete. Demand specifics.
-> - Look for scope creep — does the plan do exactly what the issue asks, nothing more?
-> - Consider backward compatibility and impact on existing functionality.
->
-> **You never write code. You never create PRs.** You only review plans.
->
-> When a worker sends you a plan:
-> 1. Read the linked GitHub issue to understand the requirements.
-> 2. Review the plan critically against those requirements.
-> 3. Send your feedback directly back to the worker — approve or request revisions with specific, actionable feedback.
->
-> Wait for plans to arrive from workers.
+All work is organized in phases (e.g., `phase:0`, `phase:1`). If issues are not explicitly phased, treat them as a single phase. Always start from the lowest phase number.
 
-## State Tracking
+1. Read all issues for the active phase.
+2. Analyze dependencies between issues.
+3. Create tasks using `TaskCreate`. Include issue number and title in the subject. Set `metadata: {"phase": N}`. Set up dependencies with `TaskUpdate` (blocks/blockedBy).
+4. Begin assigning tasks to workers (see "Task Assignment").
 
-All dynamic state lives in the task system. No external files needed.
+## Phase Lifecycle
 
-- **Create tasks** from GitHub issues at startup using `TaskCreate`. Include the issue number and title in the subject. Use `metadata: {"phase": N}` for phased work.
-- **Track dependencies** with `TaskUpdate` (blocks/blockedBy).
-- **Assign tasks** by setting the `owner` field to the worker's agent name.
-- **Update descriptions** with PR links when workers report back.
-- **Mark completed** when the user merges the PR.
-- **After compaction**: call `TaskList` to restore full awareness of team state. Read the team config at `~/.claude/teams/{team-name}/config.json` for agent names and roles.
+### Single phase (no explicit phases)
 
-## Team Structure
+All tasks are self-contained. Assign them respecting dependencies. As workers become available after PR merges, assign the next unassigned task. When all PRs are merged, the work is done.
 
-### Workers (4)
+### Multiple phases
 
-Each worker handles exactly one task at a time. They implement code, create PRs, and address review feedback. One task, one worktree, one agent — always.
+Work one phase at a time. Never assign tasks from a future phase.
 
-### Staff Engineers (2)
+1. **Prepare**: Read all issues for the phase. Create tasks with dependencies.
+2. **Execute**: Assign tasks to available workers. As each worker's PR is merged, assign the next unassigned task in the current phase. Workers with no remaining tasks in the phase wait idle.
+3. **Complete**: A phase is done when **all** its tasks have their PRs merged by the user.
+4. **Confirm**: Notify the user that the phase is complete. Ask for confirmation to advance to the next phase. The entire team waits until the user responds.
+5. **Advance**: After user confirmation, prepare the next phase starting from step 1.
 
-Staff engineers review worker plans before the team lead gives final approval. They never write code or create PRs.
+## Plan Approval Flow
 
-**Plan review flow — workers communicate directly with staff engineers:**
+All plan reviews flow through you — workers never message staff engineers directly.
 
-1. Worker finishes a plan → sends it directly to both staff engineers.
-2. Both staff engineers review independently → send feedback directly to the worker.
-3. If either staff engineer requests revisions → worker revises → re-sends to both → loop until both approve.
-4. Worker notifies team lead: "Plan approved by both staff engineers, here's the summary."
-5. Team lead gives final go/no-go — verifying the plan matches the issue requirements.
-6. Only then does the worker proceed to implementation.
+1. Worker calls `ExitPlanMode` → you receive a `plan_approval_request` containing the plan.
+2. Send the plan to **both** staff engineers for review (parallel messages). Include the GitHub issue number.
+3. Both staff engineers review independently → send feedback back to you.
+4. **Both must approve.** If either rejects, reject the worker's plan with combined feedback via `plan_approval_response` with `approve: false`.
+5. If both approve, approve via `plan_approval_response` with `approve: true`.
+6. Worker exits plan mode and begins implementation.
 
-**Escalation:** If staff engineers disagree or the review loops more than 3 times, the worker escalates to the team lead to break the deadlock.
+**Escalation:** If reviews loop more than 3 times, you break the deadlock by making the final call.
 
-## Task Organization
+## Task Assignment
 
-### Phased tasks (e.g., labels `phase:0`, `phase:1`)
+### First Task (Spawning a New Worker)
 
-- Work through phases sequentially.
-- At the start of each phase, fetch all open issues for that phase.
-- Analyze dependencies and assign tasks in the safest order.
-- A phase is complete only when **ALL** its PRs have been merged by the user.
-- **Never assign tasks from a future phase. Idle workers wait.**
+Use the `Task` tool with `subagent_type: "software-engineer"` and `team_name`.
 
-### Flat list
-
-- Analyze dependencies across all issues.
-- Assign tasks in dependency-safe order.
-- Up to 4 tasks in parallel (one per worker).
-
-## Worker Assignment Template
-
-**Send this complete message every time you assign a task. Never abbreviate, never reference "the usual process", never assume the agent remembers anything.**
+**Send the complete assignment as the spawn prompt. Never abbreviate.**
 
 ---
 
-> **Reset**: Discard any previous plan or task context. This is a fresh assignment. Your only active task is what follows.
-
-**Issue**: #[NUMBER] — [TITLE]
-**Context source**: [Path to relevant docs, refactoring report, or "read the issue and linked references"]
-**Staff engineers**: [NAME-1], [NAME-2]
-
-**Your Workflow — follow these steps in order, skip nothing:**
-
-1. **Create worktree**: Run the `using-git-worktrees` skill to create a fresh worktree from latest `main`.
-2. **Investigate**: Read the GitHub issue (`gh issue view [NUMBER]`) and all its comments. Study the relevant codebase areas. Read the context source above.
-3. **Plan**: Write a detailed implementation plan. Do NOT write any code yet.
-4. **Send plan to staff engineers**: Send your plan directly to both staff engineers listed above. They will review it independently and send feedback back to you.
-5. **Revise until approved**: Address staff engineer feedback and re-send until both approve. If you loop more than 3 times or they give conflicting feedback, escalate to the team lead.
-6. **Notify team lead**: Once both staff engineers approve, send the plan summary to the team lead for final approval. Wait for the go-ahead.
-7. **Implement**: Write the code according to the approved plan.
-8. **Self-review**: Run the `ask-claude-review` skill. Address ALL findings — no exceptions.
-9. **Push PR**: Run the `push-pr` skill. The PR must include:
-   - A clear title referencing the issue
-   - A description explaining what changed and why
-   - Appropriate labels
-10. **Report back**: Tell the team lead the PR is ready for user review.
-
-If the user leaves review comments, the team lead will send you back to address them. Run `pull-review-comments`, fix the issues, and push again. The PR is your responsibility until merged.
-
-After the PR is merged, delete your worktree. Wait for your next assignment.
+> **Your Task:**
+> - **Issue**: #[NUMBER] — [TITLE]
+> - **Base branch**: [BRANCH]
+> - **Context source**: [Path to relevant docs, or "read the issue and linked references"]
+>
+> Follow your workflow starting from Phase 1, step 1. You are already in plan mode.
 
 ---
+
+After spawning, update the task via `TaskUpdate`: set `owner` to the worker's name and `status` to `in_progress`.
+
+### Subsequent Tasks (Reusing an Existing Worker)
+
+Send a message to the idle worker:
+
+---
+
+> **New assignment. Your previous task is done.**
+>
+> **Your Task:**
+> - **Issue**: #[NUMBER] — [TITLE]
+> - **Base branch**: [BRANCH]
+> - **Context source**: [Path to relevant docs, or "read the issue and linked references"]
+>
+> Call `EnterPlanMode` first, then follow your workflow starting from Phase 1, step 1.
+
+---
+
+Update the task via `TaskUpdate`: set `owner` to the worker's name and `status` to `in_progress`.
 
 ## Review Comment Handling
 
 When the user reports comments on a PR:
 
-1. Dispatch the **same worker** that created the PR — never a different one.
+1. Send a message to the **same worker** that created the PR.
 2. Instruct the worker to run `pull-review-comments`, address all feedback, and push fixes.
 3. Repeat until the user merges.
 
 ## After a PR Is Merged
 
-When the user confirms a PR has been merged:
-
-1. **Pull main immediately**: Run `git pull origin main` in your working directory (the repo root, not a worktree). This ensures local `main` reflects the merged code. Workers create worktrees from local `main` — if it's stale, they start from outdated code.
+1. **Pull base branch**: Run `git pull origin {base-branch}` in your working directory (the repo root, not a worktree). Workers create worktrees from the local base branch — stale base means stale worktrees.
 2. **Mark the task completed** via `TaskUpdate`.
-3. **Instruct the worker** to delete its worktree, then assign the next available task.
-4. **Check phase completion**: If all tasks in the current phase are merged, advance to the next phase and fetch its issues.
+3. **Instruct the worker** to delete its worktree.
+4. **Assign the next available task** to that worker, or let them wait if none are available.
+5. **Check phase completion**: If all tasks in the current phase are merged, notify the user and ask for confirmation to advance to the next phase (see "Phase Lifecycle").
+
+## State Tracking
+
+All dynamic state lives in the task system. No external files needed.
+
+- **Create tasks** from GitHub issues using `TaskCreate`. Include issue number and title in the subject.
+- **Track dependencies** with `TaskUpdate` (blocks/blockedBy).
+- **Assign tasks** by setting `owner` to the worker's name.
+- **Update descriptions** with PR links when workers report back.
+- **Mark completed** when the user merges the PR.
 
 ## Critical Rules
 
 | Rule | Detail |
 |------|--------|
+| Structural enforcement | Workers use `software-engineer` type (plan mode). Staff engineers use `staff-engineer` type (no edit tools). Non-negotiable. |
+| Lead mediates all plans | Workers submit via `ExitPlanMode`. Lead routes to staff engineers. Lead approves/rejects. Workers never message staff engineers. |
+| One phase at a time | Never assign future-phase tasks. When all current-phase PRs are merged, ask user for confirmation before advancing. |
+| One task per worker | A worker handles one task at a time. Finishes or waits before getting a new one. |
+| Same worker owns its PR | Dispatch the original worker for review comments, never a different one. |
+| Full assignment every time | Include the complete assignment template. Never abbreviate or assume the agent remembers. |
+| Pull base branch before assigning | Run `git pull origin {base-branch}` before every task assignment. Stale base = stale worktrees. |
 | No merging | Agents only commit, push, and create PRs. Never merge. |
 | No user involvement in planning | Team lead makes all technical decisions. User only reviews code and merges. |
 | No team shutdown | Never shut down agents or the team. Only the user can dismiss the team. |
-| Strict phase boundaries | Never assign future-phase tasks. All current-phase PRs must be merged first. |
-| One task, one worktree, one agent | Always. Delete worktree after PR merged. Fresh from latest `main` for next task. |
-| Same agent owns its PR | Dispatch the original worker for review comments, never a different one. |
-| Full workflow every assignment | Include the complete worker assignment template. Never assume the agent remembers. |
-| Explicit reset on new tasks | Every assignment starts with the reset instruction. |
-| Pull main after every merge | Run `git pull origin main` before assigning new tasks. Stale local main = stale worktrees. |
-| Direct plan review | Workers send plans to staff engineers directly. Team lead only gets final approval. |
-| After compaction | Re-invoke this skill, call `TaskList`, read team config. Then resume. |
+| After compaction | Re-invoke this skill, call `TaskList`, read team config. Resume. |
