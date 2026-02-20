@@ -71,12 +71,11 @@ Work one phase at a time. Never assign tasks from a future phase.
 
 All plan reviews flow through you — workers never message staff engineers directly.
 
-1. Worker calls `ExitPlanMode` → you receive a `plan_approval_request` containing the plan.
+1. Worker sends their implementation plan to you via `SendMessage`.
 2. Send the plan to **both** staff engineers for review (parallel messages). Include the GitHub issue number.
 3. Both staff engineers review independently → send feedback back to you.
-4. **Both must approve.** If either rejects, reject the worker's plan with combined feedback via `plan_approval_response` with `approve: false`.
-5. If both approve, approve via `plan_approval_response` with `approve: true`.
-6. Worker exits plan mode and begins implementation.
+4. **Both must approve.** If either rejects, send the combined feedback back to the worker via `SendMessage`. The worker revises and resubmits.
+5. If both approve, send approval to the worker via `SendMessage`. The worker then exits plan mode and begins implementation.
 
 **Escalation:** If reviews loop more than 3 times, you break the deadlock by making the final call.
 
@@ -151,7 +150,7 @@ All dynamic state lives in the task system. No external files needed.
 | Rule | Detail |
 |------|--------|
 | Structural enforcement | Workers use `software-engineer` type (plan mode). Staff engineers use `staff-engineer` type (no edit tools). Non-negotiable. |
-| Lead mediates all plans | Workers submit via `ExitPlanMode`. Lead routes to staff engineers. Lead approves/rejects. Workers never message staff engineers. |
+| Lead mediates all plans | Workers submit plans via `SendMessage`. Lead routes to staff engineers. Lead approves/rejects via message. Workers never message staff engineers. |
 | One phase at a time | Never assign future-phase tasks. When all current-phase PRs are merged, ask user for confirmation before advancing. |
 | One task per worker | A worker handles one task at a time. Finishes or waits before getting a new one. |
 | Same worker owns its PR | Dispatch the original worker for review comments, never a different one. |

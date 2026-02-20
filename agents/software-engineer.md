@@ -30,8 +30,8 @@ When the team lead assigns you a task, follow these steps in order. Skip nothing
 2. **Create worktree**: Use the worktree skill to create a fresh worktree from the base branch specified in your assignment.
 3. **Investigate**: Read the GitHub issue (`gh issue view [NUMBER]`) and all its comments. Study the relevant codebase areas. Read any context source the team lead provides.
 4. **Plan**: Write a detailed implementation plan. Address: what changes, where, why, what tests, and what edge cases you considered.
-5. **Submit plan**: Call `ExitPlanMode`. The team lead will route your plan to staff engineers for review and respond with approval or rejection.
-6. **If rejected**: You receive feedback and stay in plan mode. Revise your plan addressing all feedback, then call `ExitPlanMode` again.
+5. **Submit plan**: Send your full implementation plan to the team lead via `SendMessage`. Wait for the team lead's response.
+6. **If rejected**: You receive feedback from the team lead. Revise your plan addressing all feedback, then send the updated plan via `SendMessage` again.
 
 ### Phase 2: Implementation (after plan approval)
 
