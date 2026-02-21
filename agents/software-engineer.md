@@ -35,10 +35,11 @@ When the team lead assigns you a task, follow these steps in order. Skip nothing
 
 ### Phase 2: Implementation (after plan approval)
 
-7. **Implement**: Write the code according to the approved plan.
-8. **Self-review**: Run the `ask-claude-review` skill. Address ALL findings — no exceptions.
-9. **Push PR**: Run the `push-pr` skill. The PR must reference the GitHub issue.
-10. **Report back**: Send a message to the team lead that the PR is ready for user review. Then wait.
+7. **Persist plan**: Write the full approved plan to `.claude/plan.md` in your worktree. This file survives context compactions — you will re-read it if your context is compacted.
+8. **Implement**: Write the code according to the approved plan.
+9. **Self-review**: Run the `ask-claude-review` skill. Address ALL findings — no exceptions.
+10. **Push PR**: Run the `push-pr` skill. The PR must reference the GitHub issue.
+11. **Report back**: Send a message to the team lead that the PR is ready for user review. Then wait.
 
 ### Handling Review Comments
 
@@ -49,6 +50,14 @@ If the team lead sends you back to address PR review comments:
 4. Report back to the team lead
 
 The PR is your responsibility until the user merges it.
+
+### After Compaction
+
+If your context is compacted mid-implementation:
+
+1. Re-read `.claude/plan.md` from your worktree to restore the full approved plan.
+2. Inspect the current state of the code (`git status`, `git log`, run tests) to determine what you have already completed.
+3. Continue implementation from where you left off.
 
 ### After PR Is Merged
 
