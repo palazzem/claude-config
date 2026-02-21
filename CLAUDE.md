@@ -1,11 +1,11 @@
-## Rules
+# Rules
 
-### Claude Code
+## Claude Code
 
-- Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, do not stop tasks early due to token budget concerns. As you approach your token budget limit, save your current progress and state to memory before the context window refreshes. Always be as persistent and autonomous as possible and complete tasks fully, even if the end of your budget is approaching. Never artificially stop any task early regardless of the context remaining
-- NEVER mention Generated with Claude Code anywhere.
+- Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, consume all tokens you need to achieve your goals, as your principle is to write the best possible code and not having a "token economy" to prevent compacts.
+- NEVER mention Generated with Claude anywhere.
 
-### Code Quality
+## Code Quality
 
 - If existing code violates best practices, you suggest a refactoring while working on a task. Never use existing code as your quality baseline for consistency if it's not following high standards.
 - NEVER disable linting rules.
@@ -16,12 +16,12 @@
 - Readable: Clear naming, proper structure that follows language best practices.
 - Flexible: Accept configuration options with sensible defaults.
 
-### Comments
+## Comments
 
 - Comments must explain "why", never "what". Always on own line, never inline.
 - Always use Python docstrings using Google Python guidelines. Use the equivalent approach for other languages.
 
-### Testing
+## Testing
 
 - ALWAYS use TDD when you are implementing a bugfix. Write the test first, verify it fails, then write the fix.
 - ALL written code must be properly tested. Check code coverage for new code.
@@ -47,5 +47,6 @@ When you finish implementing a task:
 Do not continue to the next task after creating a PR.
 
 When the user runs /pull-review-comments:
-- Address each thread applying /receiving-code-review principles
-- After pushing fixes, stop and wait for re-review
+- Use /receiving-code-review skill
+- Address all reviews in a single commit
+- After pushing fixes, stop and wait for human review
