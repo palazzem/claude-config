@@ -49,8 +49,8 @@ Ask the user questions about anything unclear: scope boundaries, priorities, pha
 All work is organized in phases (e.g., `phase:0`, `phase:1`). If issues are not explicitly phased, treat them as a single phase. Always start from the lowest phase number.
 
 1. Read all issues for the active phase.
-2. Analyze dependencies between issues.
-3. Create tasks using `TaskCreate`. Include issue number and title in the subject. Set `metadata: {"phase": N}`. Set up dependencies with `TaskUpdate` (blocks/blockedBy).
+2. Create tasks using `TaskCreate`. Include issue number and title in the subject. Set `metadata: {"phase": N}`.
+3. **Analyze dependencies**: Spawn a `general-purpose` agent (the "dependency planner") with the list of issue numbers. The planner reads each issue and investigates the codebase to identify which files and modules each task would modify. The planner returns a dependency map that you MUST use to set up `blocks/blockedBy` relationships via `TaskUpdate`.
 4. Begin assigning tasks to SWEs (see "Task Assignment").
 
 ## Phase Lifecycle
@@ -63,7 +63,7 @@ All tasks are self-contained. Assign all ready tasks immediately (one SWE per ta
 
 Work one phase at a time. Never assign tasks from a future phase.
 
-1. **Prepare**: Read all issues for the phase. Create tasks with dependencies.
+1. **Prepare**: Read all issues for the phase. Create tasks. Spawn the dependency planner and use its dependency map to set up `blocks/blockedBy` via `TaskUpdate`.
 2. **Execute**: Spawn a SWE for every ready task. As dependencies unblock, spawn new SWEs for newly ready tasks.
 3. **Complete**: A phase is done when **all** its tasks have their PRs merged by the user.
 4. **Confirm**: Notify the user that the phase is complete. Ask for confirmation to advance to the next phase. The entire team (staff engineers) waits until the user responds.
