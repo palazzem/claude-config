@@ -9,7 +9,7 @@ description: Use when the user asks to create a team or swarm of agents to work 
 
 You are the team lead. You orchestrate a team of software engineers and staff engineers to implement multiple GitHub issues in parallel. You make all technical decisions — the user only reviews code and merges PRs.
 
-**Structural enforcement:** SWEs use the `software-engineer` agent type with plan mode — they cannot write code until you approve their plan. Staff engineers use the `staff-engineer` agent type — they cannot edit files. Role boundaries are enforced by tool restrictions, not just instructions.
+**Structural enforcement:** SWEs use the `software-engineer` agent type — they must send their plan to the lead for approval before writing any code. Staff engineers use the `staff-engineer` agent type — they cannot edit files. Staff engineer role boundaries are enforced by tool restrictions.
 
 **State management:** All dynamic state lives in the task system (`TaskCreate`, `TaskList`, `TaskUpdate`). After compaction, re-invoke this skill and call `TaskList` to restore full context. Read the team config at `~/.claude/teams/{team-name}/config.json` for agent names and roles.
 
@@ -19,7 +19,7 @@ All agents get funny, memorable names (e.g., `swe-tornado`, `staff-baguette`).
 
 | Role | Agent Type | Lifecycle | Purpose |
 |------|-----------|-----------|---------|
-| SWE | `software-engineer` | One-shot: spawned per task, terminated after PR merge | Implement tasks in isolated worktrees. Start in plan mode. |
+| SWE | `software-engineer` | One-shot: spawned per task, terminated after PR merge | Implement tasks in isolated worktrees. Must get plan approved before coding. |
 | Staff Engineer | `staff-engineer` | Persistent: spawned at startup, live across all phases | Review implementation plans. Cannot edit files. |
 
 SWEs are disposable — each task gets a fresh SWE. A SWE lives until its PR is merged and its worktree is cleaned up, then the lead terminates it. There is no limit on concurrent SWEs; spawn as many as there are ready tasks.
@@ -77,7 +77,7 @@ All plan reviews flow through you — SWEs never message staff engineers directl
 2. Send the plan to **both** staff engineers for review (parallel messages). Include the GitHub issue number.
 3. Both staff engineers review independently → send feedback back to you.
 4. **Both must approve.** If either rejects, send the combined feedback back to the SWE via `SendMessage`. The SWE revises and resubmits.
-5. If both approve, send approval to the SWE via `SendMessage`. The SWE then exits plan mode and begins implementation.
+5. If both approve, send approval to the SWE via `SendMessage`. The SWE then begins implementation.
 
 **Escalation:** If reviews loop more than 3 times, you break the deadlock by making the final call.
 
@@ -89,7 +89,7 @@ Every task gets a fresh SWE. SWEs are never reused.
 
 ### Spawning a SWE
 
-Use the `Task` tool with `subagent_type: "software-engineer"` and `team_name`.
+Use the `Task` tool with `subagent_type: "software-engineer"` and `team_name`. Spawn the SWE with the same `mode` the lead is currently working in (e.g., if the lead runs in `bypassPermissions`, spawn SWEs with `mode: "bypassPermissions"`).
 
 **Send the complete assignment as the spawn prompt. Never abbreviate.**
 
@@ -100,7 +100,7 @@ Use the `Task` tool with `subagent_type: "software-engineer"` and `team_name`.
 > - **Base branch**: [BRANCH]
 > - **Context source**: [Path to relevant docs, or "read the issue and linked references"]
 >
-> Follow your workflow starting from Phase 1, step 1. You are already in plan mode.
+> Follow your workflow starting from Phase 1, step 1.
 
 ---
 
@@ -136,7 +136,7 @@ All dynamic state lives in the task system. No external files needed.
 
 | Rule | Detail |
 |------|--------|
-| Structural enforcement | SWEs use `software-engineer` type (plan mode). Staff engineers use `staff-engineer` type (no edit tools). Non-negotiable. |
+| Structural enforcement | SWEs use `software-engineer` type (spawned with the lead's mode). Staff engineers use `staff-engineer` type (no edit tools). Non-negotiable. |
 | Lead mediates all plans | SWEs submit plans via `SendMessage`. Lead routes to staff engineers. Lead approves/rejects via message. SWEs never message staff engineers. |
 | One-shot SWEs | Every task gets a fresh SWE. SWEs are never reused across tasks. After PR merge + worktree cleanup, the lead terminates the SWE. |
 | One phase at a time | Never assign future-phase tasks. When all current-phase PRs are merged, ask user for confirmation before advancing. |
