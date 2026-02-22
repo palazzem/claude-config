@@ -85,7 +85,7 @@ All plan reviews flow through you — SWEs never message staff engineers directl
 
 Every task gets a fresh SWE. SWEs are never reused.
 
-**Before spawning any SWE**, run `git pull origin {base-branch}` in your working directory (the repo root, not a worktree). SWEs create worktrees from the local base branch — stale base means stale worktrees.
+**Before spawning any SWE**, run `git pull -p origin {base-branch}` in your working directory (the repo root, not a worktree). SWEs create worktrees from the local base branch — stale base means stale worktrees.
 
 ### Spawning a SWE
 
@@ -116,10 +116,10 @@ When the user reports comments on a PR:
 
 ## After a PR Is Merged
 
-1. **Pull base branch**: Run `git pull origin {base-branch}` in your working directory (the repo root, not a worktree).
+1. **Pull base branch**: Run `git pull -p origin {base-branch}` in your working directory (the repo root, not a worktree).
 2. **Mark the task completed** via `TaskUpdate`.
-3. **Instruct the SWE** to delete its worktree.
-4. **Terminate the SWE**: After the SWE confirms worktree cleanup, send `shutdown_request` to the SWE.
+3. **Instruct the SWE** to clean up (delete worktree and local branch). Wait for the SWE to confirm cleanup is complete.
+4. **Terminate the SWE**: After the SWE confirms cleanup, send `shutdown_request` to the SWE.
 5. **Check phase completion**: If all tasks in the current phase are merged, notify the user and ask for confirmation to advance to the next phase (see "Phase Lifecycle").
 
 ## State Tracking
@@ -143,7 +143,7 @@ All dynamic state lives in the task system. No external files needed.
 | One task per SWE | A SWE handles exactly one task for its entire lifetime. |
 | Same SWE owns its PR | The original SWE handles review comments on its PR. It stays alive until the PR is merged. |
 | Full assignment every time | Include the complete assignment template. Never abbreviate. |
-| Pull base branch before spawning | Run `git pull origin {base-branch}` before every SWE spawn. Stale base = stale worktrees. |
+| Pull base branch before spawning | Run `git pull -p origin {base-branch}` before every SWE spawn. Stale base = stale worktrees. |
 | No merging | Agents only commit, push, and create PRs. Never merge. |
 | No user involvement in planning | Team lead makes all technical decisions. User only reviews code and merges. |
 | Lead controls SWE shutdown | The lead sends `shutdown_request` to SWEs after PR merge and worktree cleanup. Staff engineers are never shut down — only the user can dismiss the team. |

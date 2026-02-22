@@ -58,4 +58,5 @@ If your context is compacted mid-implementation:
 
 When the team lead tells you the PR is merged:
 1. Delete your worktree
-2. Wait for your next task assignment
+2. Delete the local branch
+3. Notify the team lead that cleanup is complete
