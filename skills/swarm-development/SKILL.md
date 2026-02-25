@@ -102,7 +102,7 @@ After spawning, update the task via `TaskUpdate`: set `owner` to the planner's n
 
 ### Collecting Plans
 
-Each SWE-planner reports back with the absolute path to the plan file (e.g., `/path/to/project/.worktree/plans/42-add-user-auth.md`). Route each plan to staff engineers for review (see "Plan Approval Flow").
+Each SWE-planner reports back with the absolute path to the plan file (e.g., `/path/to/project/.worktrees/plans/42-add-user-auth.md`). Route each plan to staff engineers for review (see "Plan Approval Flow").
 
 ### After Plan Approval
 
@@ -119,7 +119,7 @@ Once a plan is approved:
 All plan reviews flow through you — SWE-planners never message staff engineers directly.
 
 1. SWE-planner reports the plan's absolute file path to you via `SendMessage`.
-2. Send the absolute plan file path to **both** staff engineers for review (parallel messages). Include the GitHub issue number. Example: "Review the plan at `/path/to/project/.worktree/plans/42-add-user-auth.md` for issue #42."
+2. Send the absolute plan file path to **both** staff engineers for review (parallel messages). Include the GitHub issue number. Example: "Review the plan at `/path/to/project/.worktrees/plans/42-add-user-auth.md` for issue #42."
 3. Both staff engineers read the plan file, review independently → send feedback back to you.
 4. **Both must approve.** If either rejects, send the combined feedback back to the SWE-planner via `SendMessage`. The planner revises and resubmits.
 5. If both approve, follow "After Plan Approval" above.
@@ -178,7 +178,7 @@ Use the `Task` tool with `subagent_type: "swe-implementer"` and `team_name`. Spa
 
 > **Your Task:**
 > - **Issue**: #[NUMBER] — [TITLE]
-> - **Plan file**: [ABSOLUTE PATH to approved plan in .worktree/plans/]
+> - **Plan file**: [ABSOLUTE PATH to approved plan in .worktrees/plans/]
 > - **Base branch**: [BRANCH]
 >
 > Follow your workflow starting from Phase 1.
