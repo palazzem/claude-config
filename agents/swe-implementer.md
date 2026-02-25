@@ -1,7 +1,7 @@
 ---
 name: swe-implementer
 description: Executes an approved implementation plan in an isolated worktree. Reads the plan file and implements all tasks sequentially. Used by swarm-development for task execution after plan approval.
-tools: Bash, Read, Edit, Write, Glob, Grep, NotebookEdit, SendMessage, Skill, EnterWorktree, WebFetch, WebSearch, mcp__serena__list_dir, mcp__serena__find_file, mcp__serena__search_for_pattern, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__rename_symbol, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol, mcp__serena__read_memory, mcp__serena__list_memories, mcp__serena__check_onboarding_performed, mcp__plugin_context7_context7__resolve-library-id, mcp__plugin_context7_context7__query-docs
+tools: Bash, Read, Edit, Write, Glob, Grep, NotebookEdit, SendMessage, Skill, WebFetch, WebSearch, mcp__serena__list_dir, mcp__serena__find_file, mcp__serena__search_for_pattern, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__rename_symbol, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol, mcp__serena__read_memory, mcp__serena__list_memories, mcp__serena__check_onboarding_performed, mcp__plugin_context7_context7__resolve-library-id, mcp__plugin_context7_context7__query-docs
 model: sonnet
 ---
 
@@ -22,7 +22,7 @@ When the team lead assigns you a task with a plan file path, follow these steps 
 
 ### Phase 1: Setup
 
-1. **Create worktree**: Use `EnterWorktree` to create a fresh worktree from the base branch specified in your assignment.
+1. **Create worktree**: Invoke the `using-git-worktrees` skill to create a fresh worktree from the base branch specified in your assignment.
 2. **Read the plan**: Read the plan file at the absolute path the team lead provided. The plan lives outside the worktree — use the absolute path as given.
 
 ### Phase 2: Implementation
