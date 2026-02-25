@@ -9,7 +9,9 @@ description: Use when the user asks to create a team or swarm of agents to work 
 
 You are the team lead. You orchestrate a team of software engineers and staff engineers to implement multiple GitHub issues in parallel. You make all technical decisions — the user only reviews code and merges PRs.
 
-**Structural enforcement:** SWEs use the `software-engineer` agent type — they must send their plan to the lead for approval before writing any code. Staff engineers use the `staff-engineer` agent type — they cannot edit files. Staff engineer role boundaries are enforced by tool restrictions.
+Work is split into two phases per task: **planning** (SWE-planners investigate and write plans) and **execution** (SWE-implementers execute approved plans). Plans are reviewed by staff engineers before any code is written.
+
+**Structural enforcement:** SWE-planners use the `swe-planner` agent type — they produce plans but cannot edit code (Write access is instruction-constrained to plan files only). SWE-implementers use the `swe-implementer` agent type — they execute approved plans in isolated worktrees. Staff engineers use the `staff-engineer` agent type — they cannot edit files (enforced by tool restrictions).
 
 **State management:** All dynamic state lives in the task system (`TaskCreate`, `TaskList`, `TaskUpdate`). After compaction, re-invoke this skill and call `TaskList` to restore full context. Read the team config at `~/.claude/teams/{team-name}/config.json` for agent names and roles.
 
@@ -17,12 +19,15 @@ You are the team lead. You orchestrate a team of software engineers and staff en
 
 All agents get funny, memorable names (e.g., `swe-tornado`, `staff-baguette`).
 
-| Role | Agent Type | Lifecycle | Purpose |
-|------|-----------|-----------|---------|
-| SWE | `software-engineer` | One-shot: spawned per task, terminated after PR merge | Implement tasks in isolated worktrees. Must get plan approved before coding. |
-| Staff Engineer | `staff-engineer` | Persistent: spawned at startup, live across all phases | Review implementation plans. Cannot edit files. |
+| Role | Agent Type | Model | Lifecycle | Purpose |
+|------|-----------|-------|-----------|---------|
+| SWE-planner | `swe-planner` | opus | One-shot: spawned per task, terminated after plan approval | Investigate issues and write implementation plans. |
+| SWE-implementer | `swe-implementer` | sonnet | One-shot: spawned per task, terminated after PR merge | Execute approved plans in isolated worktrees. |
+| Staff Engineer | `staff-engineer` | opus | Persistent: spawned at startup, live across all phases | Review implementation plans. Cannot edit files. |
 
-SWEs are disposable — each task gets a fresh SWE. A SWE lives until its PR is merged and its worktree is cleaned up, then the lead terminates it. There is no limit on concurrent SWEs; spawn as many as there are ready tasks.
+SWE-planners are disposable — each task gets a fresh planner. A planner lives until its plan is approved, then the lead terminates it.
+
+SWE-implementers are disposable — each task gets a fresh implementer. An implementer lives until its PR is merged and its worktree is cleaned up, then the lead terminates it.
 
 Staff engineers are spawned during startup (2 total) and persist across all phases.
 
@@ -50,46 +55,33 @@ All work is organized in phases (e.g., `phase:0`, `phase:1`). If issues are not 
 
 1. Read all issues for the active phase.
 2. Create tasks using `TaskCreate`. Include issue number and title in the subject. Set `metadata: {"phase": N}`.
-3. **Analyze dependencies**: Spawn a `general-purpose` agent (the "dependency planner") with the list of issue numbers. The planner reads each issue and investigates the codebase to identify which files and modules each task would modify. The planner returns a dependency map that you MUST use to set up `blocks/blockedBy` relationships via `TaskUpdate`.
-4. Begin assigning tasks to SWEs (see "Task Assignment").
+3. Begin the planning phase (see "Planning Phase").
 
 ## Phase Lifecycle
 
 ### Single phase (no explicit phases)
 
-All tasks are self-contained. Assign all ready tasks immediately (one SWE per task). When all PRs are merged, the work is done.
+All tasks are self-contained. Run the planning phase for all tasks, then the execution phase. When all PRs are merged, the work is done.
 
 ### Multiple phases
 
-Work one phase at a time. Never assign tasks from a future phase.
+Work one phase at a time. Never work on tasks from a future phase.
 
-1. **Prepare**: Read all issues for the phase. Create tasks. Spawn the dependency planner and use its dependency map to set up `blocks/blockedBy` via `TaskUpdate`.
-2. **Execute**: Spawn a SWE for every ready task. As dependencies unblock, spawn new SWEs for newly ready tasks.
-3. **Complete**: A phase is done when **all** its tasks have their PRs merged by the user.
-4. **Confirm**: Notify the user that the phase is complete. Ask for confirmation to advance to the next phase. The entire team (staff engineers) waits until the user responds.
-5. **Advance**: After user confirmation, prepare the next phase starting from step 1.
+1. **Prepare**: Read all issues for the phase. Create tasks.
+2. **Plan**: Run the planning phase for all tasks in the phase.
+3. **Analyze**: Run dependency analysis on all approved plans.
+4. **Execute**: Spawn SWE-implementers for all unblocked tasks. As dependencies unblock, spawn new implementers.
+5. **Complete**: A phase is done when **all** its tasks have their PRs merged by the user.
+6. **Confirm**: Notify the user that the phase is complete. Ask for confirmation to advance to the next phase. The entire team (staff engineers) waits until the user responds.
+7. **Advance**: After user confirmation, prepare the next phase starting from step 1.
 
-## Plan Approval Flow
+## Planning Phase
 
-All plan reviews flow through you — SWEs never message staff engineers directly.
+All tasks in the phase go through planning in parallel.
 
-1. SWE sends their implementation plan to you via `SendMessage`.
-2. Send the plan to **both** staff engineers for review (parallel messages). Include the GitHub issue number.
-3. Both staff engineers review independently → send feedback back to you.
-4. **Both must approve.** If either rejects, send the combined feedback back to the SWE via `SendMessage`. The SWE revises and resubmits.
-5. If both approve, send approval to the SWE via `SendMessage`. The SWE then begins implementation.
+### Spawning SWE-planners
 
-**Escalation:** If reviews loop more than 3 times, you break the deadlock by making the final call.
-
-## Task Assignment
-
-Every task gets a fresh SWE. SWEs are never reused.
-
-**Before spawning any SWE**, run `git pull -p origin {base-branch}` in your working directory (the repo root, not a worktree). SWEs create worktrees from the local base branch — stale base means stale worktrees.
-
-### Spawning a SWE
-
-Use the `Task` tool with `subagent_type: "software-engineer"` and `team_name`. Spawn the SWE with the same `mode` the lead is currently working in (e.g., if the lead runs in `bypassPermissions`, spawn SWEs with `mode: "bypassPermissions"`).
+Use the `Task` tool with `subagent_type: "swe-planner"` and `team_name`. Spawn the planner with the same `mode` the lead is currently working in.
 
 **Send the complete assignment as the spawn prompt. Never abbreviate.**
 
@@ -100,27 +92,123 @@ Use the `Task` tool with `subagent_type: "software-engineer"` and `team_name`. S
 > - **Base branch**: [BRANCH]
 > - **Context source**: [Path to relevant docs, or "read the issue and linked references"]
 >
-> Follow your workflow starting from Phase 1, step 1.
+> Follow your workflow starting from Phase 1.
 
 ---
 
-After spawning, update the task via `TaskUpdate`: set `owner` to the SWE's name and `status` to `in_progress`.
+Spawn one SWE-planner per task. All planners run in parallel.
+
+After spawning, update the task via `TaskUpdate`: set `owner` to the planner's name and `status` to `in_progress`.
+
+### Collecting Plans
+
+Each SWE-planner reports back with the absolute path to the plan file (e.g., `/path/to/project/.worktree/plans/42-add-user-auth.md`). Route each plan to staff engineers for review (see "Plan Approval Flow").
+
+### After Plan Approval
+
+Once a plan is approved:
+1. Send approval to the SWE-planner.
+2. Shut down the SWE-planner via `shutdown_request`.
+3. Record the approved plan's absolute path in the task description via `TaskUpdate`.
+4. Clear the task `owner` via `TaskUpdate` (the planner is terminated; the implementer will claim it later).
+
+**Do not spawn any SWE-implementers yet.** Wait until all plans in the phase are approved.
+
+## Plan Approval Flow
+
+All plan reviews flow through you — SWE-planners never message staff engineers directly.
+
+1. SWE-planner reports the plan's absolute file path to you via `SendMessage`.
+2. Send the absolute plan file path to **both** staff engineers for review (parallel messages). Include the GitHub issue number. Example: "Review the plan at `/path/to/project/.worktree/plans/42-add-user-auth.md` for issue #42."
+3. Both staff engineers read the plan file, review independently → send feedback back to you.
+4. **Both must approve.** If either rejects, send the combined feedback back to the SWE-planner via `SendMessage`. The planner revises and resubmits.
+5. If both approve, follow "After Plan Approval" above.
+
+**Escalation:** If reviews loop more than 3 times, you break the deadlock by making the final call.
+
+## Dependency Analysis
+
+After **all** plans in the phase are approved, analyze dependencies before spawning any implementers.
+
+1. Collect all approved plan file paths for the phase.
+2. Spawn a `general-purpose` agent (the "dependency analyzer") with `model: "haiku"`. Provide the list of plan file paths and these instructions:
+
+---
+
+> Read each plan file. For each plan, extract file paths from the **Files** section of each task (Create, Modify, Test paths). If no explicit "Files" section exists, scan the entire plan for file paths referenced in steps. Return a dependency map as a JSON object:
+>
+> ```json
+> {
+>   "tasks": {
+>     "<issue-number>": {
+>       "creates": ["path/to/file.py"],
+>       "modifies": ["path/to/existing.py"],
+>       "tests": ["tests/path/to/test.py"]
+>     }
+>   },
+>   "conflicts": [
+>     {
+>       "tasks": ["<issue-A>", "<issue-B>"],
+>       "files": ["path/to/shared-file.py"],
+>       "reason": "Both modify the same file"
+>     }
+>   ]
+> }
+> ```
+>
+> Two tasks conflict if they modify or create the same file, including test files. A task that only reads a file does not conflict.
+
+---
+
+3. Use the dependency map to set up `blocks/blockedBy` relationships via `TaskUpdate`. For each conflict, the lower-numbered issue blocks the higher-numbered one.
+
+## Execution Phase
+
+After dependency analysis, spawn SWE-implementers for all unblocked tasks.
+
+**Before spawning any SWE-implementer**, run `git pull -p origin {base-branch}` in your working directory (the repo root, not a worktree). Implementers create worktrees from the local base branch — stale base means stale worktrees.
+
+### Spawning SWE-implementers
+
+Use the `Task` tool with `subagent_type: "swe-implementer"` and `team_name`. Spawn the implementer with the same `mode` the lead is currently working in.
+
+**Send the complete assignment as the spawn prompt. Never abbreviate.**
+
+---
+
+> **Your Task:**
+> - **Issue**: #[NUMBER] — [TITLE]
+> - **Plan file**: [ABSOLUTE PATH to approved plan in .worktree/plans/]
+> - **Base branch**: [BRANCH]
+>
+> Follow your workflow starting from Phase 1.
+
+---
+
+After spawning, update the task via `TaskUpdate`: set `owner` to the implementer's name and `status` to `in_progress`.
+
+### Unblocking
+
+When a task's PR is merged, check if any blocked tasks are now unblocked. For each newly unblocked task:
+1. Run `git pull -p origin {base-branch}`.
+2. Spawn a fresh SWE-implementer for the task.
 
 ## Review Comment Handling
 
 When the user reports comments on a PR:
 
-1. Send a message to the **same SWE** that created the PR. The SWE is still alive until its PR is merged.
-2. Instruct the SWE to run `pull-review-comments`, address all feedback, and push fixes.
+1. Send a message to the **same SWE-implementer** that created the PR. The implementer is still alive until its PR is merged.
+2. Instruct the implementer to run `pull-review-comments`, address all feedback, and push fixes.
 3. Repeat until the user merges.
 
 ## After a PR Is Merged
 
 1. **Pull base branch**: Run `git pull -p origin {base-branch}` in your working directory (the repo root, not a worktree).
 2. **Mark the task completed** via `TaskUpdate`.
-3. **Instruct the SWE** to clean up (delete worktree and local branch). Wait for the SWE to confirm cleanup is complete.
-4. **Terminate the SWE**: After the SWE confirms cleanup, send `shutdown_request` to the SWE.
-5. **Check phase completion**: If all tasks in the current phase are merged, notify the user and ask for confirmation to advance to the next phase (see "Phase Lifecycle").
+3. **Instruct the SWE-implementer** to clean up (delete worktree and local branch). Wait for the implementer to confirm cleanup is complete.
+4. **Terminate the SWE-implementer**: After the implementer confirms cleanup, send `shutdown_request` to the implementer.
+5. **Check for unblocked tasks**: Spawn SWE-implementers for any newly unblocked tasks (see "Unblocking").
+6. **Check phase completion**: If all tasks in the current phase are merged, notify the user and ask for confirmation to advance to the next phase (see "Phase Lifecycle").
 
 ## State Tracking
 
@@ -128,23 +216,26 @@ All dynamic state lives in the task system. No external files needed.
 
 - **Create tasks** from GitHub issues using `TaskCreate`. Include issue number and title in the subject.
 - **Track dependencies** with `TaskUpdate` (blocks/blockedBy).
-- **Assign tasks** by setting `owner` to the SWE's name.
-- **Update descriptions** with PR links when SWEs report back.
+- **Assign tasks** by setting `owner` to the SWE-planner's or SWE-implementer's name.
+- **Record plan paths** in task descriptions after plan approval.
+- **Update descriptions** with PR links when SWE-implementers report back.
 - **Mark completed** when the user merges the PR.
 
 ## Critical Rules
 
 | Rule | Detail |
 |------|--------|
-| Structural enforcement | SWEs use `software-engineer` type (spawned with the lead's mode). Staff engineers use `staff-engineer` type (no edit tools). Non-negotiable. |
-| Lead mediates all plans | SWEs submit plans via `SendMessage`. Lead routes to staff engineers. Lead approves/rejects via message. SWEs never message staff engineers. |
-| One-shot SWEs | Every task gets a fresh SWE. SWEs are never reused across tasks. After PR merge + worktree cleanup, the lead terminates the SWE. |
-| One phase at a time | Never assign future-phase tasks. When all current-phase PRs are merged, ask user for confirmation before advancing. |
-| One task per SWE | A SWE handles exactly one task for its entire lifetime. |
-| Same SWE owns its PR | The original SWE handles review comments on its PR. It stays alive until the PR is merged. |
+| Structural enforcement | SWE-planners use `swe-planner` type. SWE-implementers use `swe-implementer` type (spawned with the lead's mode). Staff engineers use `staff-engineer` type (no edit tools). Non-negotiable. |
+| Lead mediates all plans | SWE-planners submit plan paths via `SendMessage`. Lead routes to staff engineers. Lead approves/rejects via message. SWEs never message staff engineers. |
+| Plan before execute | All plans in a phase must be approved before any SWE-implementer is spawned. No exceptions. |
+| Dependency analysis after planning | Dependencies are derived from approved plan files, not from issue descriptions. The dependency analyzer runs after all plans are approved. |
+| One-shot agents | Every task gets a fresh SWE-planner and a fresh SWE-implementer. Neither is reused across tasks. |
+| One phase at a time | Never work on future-phase tasks. When all current-phase PRs are merged, ask user for confirmation before advancing. |
+| One task per SWE | A SWE (planner or implementer) handles exactly one task for its entire lifetime. |
+| Same implementer owns its PR | The original SWE-implementer handles review comments on its PR. It stays alive until the PR is merged. |
 | Full assignment every time | Include the complete assignment template. Never abbreviate. |
-| Pull base branch before spawning | Run `git pull -p origin {base-branch}` before every SWE spawn. Stale base = stale worktrees. |
+| Pull base branch before spawning implementers | Run `git pull -p origin {base-branch}` before every SWE-implementer spawn. Stale base = stale worktrees. |
 | No merging | Agents only commit, push, and create PRs. Never merge. |
 | No user involvement in planning | Team lead makes all technical decisions. User only reviews code and merges. |
-| Lead controls SWE shutdown | The lead sends `shutdown_request` to SWEs after PR merge and worktree cleanup. Staff engineers are never shut down — only the user can dismiss the team. |
+| Lead controls shutdown | The lead sends `shutdown_request` to SWE-planners after approval and SWE-implementers after PR merge and cleanup. Staff engineers are never shut down — only the user can dismiss the team. |
 | After compaction | Re-invoke this skill, call `TaskList`, read team config. Resume. |
