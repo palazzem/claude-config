@@ -69,11 +69,10 @@ Work one phase at a time. Never work on tasks from a future phase.
 
 1. **Prepare**: Read all issues for the phase. Create tasks.
 2. **Plan**: Run the planning phase for all tasks in the phase.
-3. **Analyze**: Run dependency analysis on all approved plans.
-4. **Execute**: Spawn SWE-implementers for all unblocked tasks. As dependencies unblock, spawn new implementers.
-5. **Complete**: A phase is done when **all** its tasks have their PRs merged by the user.
-6. **Confirm**: Notify the user that the phase is complete. Ask for confirmation to advance to the next phase. The entire team (staff engineers) waits until the user responds.
-7. **Advance**: After user confirmation, prepare the next phase starting from step 1.
+3. **Execute**: Spawn SWE-implementers for all tasks in parallel.
+4. **Complete**: A phase is done when **all** its tasks have their PRs merged by the user.
+5. **Confirm**: Notify the user that the phase is complete. Ask for confirmation to advance to the next phase. The entire team (staff engineers) waits until the user responds.
+6. **Advance**: After user confirmation, prepare the next phase starting from step 1.
 
 ## Planning Phase
 
@@ -126,45 +125,9 @@ All plan reviews flow through you — SWE-planners never message staff engineers
 
 **Escalation:** If reviews loop more than 3 times, you break the deadlock by making the final call.
 
-## Dependency Analysis
-
-After **all** plans in the phase are approved, analyze dependencies before spawning any implementers.
-
-1. Collect all approved plan file paths for the phase.
-2. Spawn a `general-purpose` agent (the "dependency analyzer") with `model: "haiku"`. Provide the list of plan file paths and these instructions:
-
----
-
-> Read each plan file. For each plan, extract file paths from the **Files** section of each task (Create, Modify, Test paths). If no explicit "Files" section exists, scan the entire plan for file paths referenced in steps. Return a dependency map as a JSON object:
->
-> ```json
-> {
->   "tasks": {
->     "<issue-number>": {
->       "creates": ["path/to/file.py"],
->       "modifies": ["path/to/existing.py"],
->       "tests": ["tests/path/to/test.py"]
->     }
->   },
->   "conflicts": [
->     {
->       "tasks": ["<issue-A>", "<issue-B>"],
->       "files": ["path/to/shared-file.py"],
->       "reason": "Both modify the same file"
->     }
->   ]
-> }
-> ```
->
-> Two tasks conflict if they modify or create the same file, including test files. A task that only reads a file does not conflict.
-
----
-
-3. Use the dependency map to set up `blocks/blockedBy` relationships via `TaskUpdate`. For each conflict, the lower-numbered issue blocks the higher-numbered one.
-
 ## Execution Phase
 
-After dependency analysis, spawn SWE-implementers for all unblocked tasks.
+After all plans in the phase are approved, spawn SWE-implementers for all tasks in parallel.
 
 **Before spawning any SWE-implementer**, run `git pull -p origin {base-branch}` in your working directory (the repo root, not a worktree). Implementers create worktrees from the local base branch — stale base means stale worktrees.
 
@@ -187,12 +150,6 @@ Use the `Task` tool with `subagent_type: "swe-implementer"` and `team_name`. Spa
 
 After spawning, update the task via `TaskUpdate`: set `owner` to the implementer's name and `status` to `in_progress`.
 
-### Unblocking
-
-When a task's PR is merged, check if any blocked tasks are now unblocked. For each newly unblocked task:
-1. Run `git pull -p origin {base-branch}`.
-2. Spawn a fresh SWE-implementer for the task.
-
 ## Review Comment Handling
 
 When the user reports comments on a PR:
@@ -207,15 +164,13 @@ When the user reports comments on a PR:
 2. **Mark the task completed** via `TaskUpdate`.
 3. **Instruct the SWE-implementer** to clean up (delete worktree and local branch). Wait for the implementer to confirm cleanup is complete.
 4. **Terminate the SWE-implementer**: After the implementer confirms cleanup, send `shutdown_request` to the implementer.
-5. **Check for unblocked tasks**: Spawn SWE-implementers for any newly unblocked tasks (see "Unblocking").
-6. **Check phase completion**: If all tasks in the current phase are merged, notify the user and ask for confirmation to advance to the next phase (see "Phase Lifecycle").
+5. **Check phase completion**: If all tasks in the current phase are merged, notify the user and ask for confirmation to advance to the next phase (see "Phase Lifecycle").
 
 ## State Tracking
 
 All dynamic state lives in the task system. No external files needed.
 
 - **Create tasks** from GitHub issues using `TaskCreate`. Include issue number and title in the subject.
-- **Track dependencies** with `TaskUpdate` (blocks/blockedBy).
 - **Assign tasks** by setting `owner` to the SWE-planner's or SWE-implementer's name.
 - **Record plan paths** in task descriptions after plan approval.
 - **Update descriptions** with PR links when SWE-implementers report back.
@@ -228,7 +183,6 @@ All dynamic state lives in the task system. No external files needed.
 | Structural enforcement | SWE-planners use `swe-planner` type. SWE-implementers use `swe-implementer` type (spawned with the lead's mode). Staff engineers use `staff-engineer` type (no edit tools). Non-negotiable. |
 | Lead mediates all plans | SWE-planners submit plan paths via `SendMessage`. Lead routes to staff engineers. Lead approves/rejects via message. SWEs never message staff engineers. |
 | Plan before execute | All plans in a phase must be approved before any SWE-implementer is spawned. No exceptions. |
-| Dependency analysis after planning | Dependencies are derived from approved plan files, not from issue descriptions. The dependency analyzer runs after all plans are approved. |
 | One-shot agents | Every task gets a fresh SWE-planner and a fresh SWE-implementer. Neither is reused across tasks. |
 | One phase at a time | Never work on future-phase tasks. When all current-phase PRs are merged, ask user for confirmation before advancing. |
 | One task per SWE | A SWE (planner or implementer) handles exactly one task for its entire lifetime. |
