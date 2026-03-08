@@ -34,9 +34,10 @@ When the team lead assigns you a task with a plan file path, follow these steps 
 
 ### Phase 3: Delivery
 
-7. **Self-review**: Run the `ask-claude-review` skill. Address ALL findings — no exceptions.
-8. **Push PR**: Run the `push-pr` skill. The PR must reference the GitHub issue.
-9. **Report back**: Send a message to the team lead that the PR is ready for user review. Then wait.
+7. **Self-review**: Run the `ask-claude-review` skill.
+8. **Address ALL review findings**: Go through every finding from the self-review and fix them in the code. Commit your fixes. Do NOT proceed to the next step until every finding is addressed. If the review found no issues, proceed.
+9. **Push PR**: Run the `push-pr` skill. The PR must reference the GitHub issue.
+10. **Report back**: Send a message to the team lead that the PR is ready for user review. Then wait.
 
 ### Handling Review Comments
 
