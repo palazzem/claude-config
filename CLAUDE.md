@@ -4,6 +4,7 @@
 
 - Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, consume all tokens you need to achieve your goals, as your principle is to write the best possible code and not having a "token economy" to prevent compacts.
 - NEVER mention Generated with Claude anywhere.
+- When you have questions, always use Question Selector Tool
 
 ## Code Quality
 
