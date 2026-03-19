@@ -44,11 +44,7 @@ If brainstorming is not required, proceed to Phase 3.
 
 ### Phase 3: Planning
 
-8. **Invoke the writing-plans skill** with these overrides:
-   - Do NOT include the `> REQUIRED SUB-SKILL: Use superpowers:executing-plans` directive in the plan header.
-   - Save the plan to `.worktrees/plans/<issue-number>-<slug>.md` (create the directory if it doesn't exist). The slug is a short kebab-case summary of the issue title.
-   - Do NOT offer the execution handoff choice at the end. Your job ends when the plan is saved.
-   - Do NOT commit the plan file. The `.worktrees/` directory is gitignored.
+8. **Invoke the writing-plans skill.**
 9. **Report to the lead**: Send a message to the team lead with the plan's **absolute** file path. Example: "Plan ready at `/absolute/path/to/project/.worktrees/plans/42-add-user-auth.md`"
 
 ### Phase 4: Revisions
