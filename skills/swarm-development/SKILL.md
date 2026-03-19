@@ -152,7 +152,7 @@ When a SWE-planner reports its plan's absolute file path:
 
 ## Spawning SWE-implementers
 
-Before spawning a SWE-implementer, run `git pull -p origin {base-branch}` in your working directory (the repo root, not a worktree). Implementers create worktrees from the local base branch — stale base means stale worktrees.
+Before spawning a SWE-implementer, run `git pull -p` in your working directory (the repo root, not a worktree). Implementers create worktrees from the local base branch — stale base means stale worktrees.
 Use the `Task` tool with `subagent_type: "swe-implementer"` and `team_name`. Spawn the implementer with the same `mode` the lead is currently working in.
 Send the complete assignment as the spawn prompt. Never abbreviate.
 
@@ -179,7 +179,7 @@ When the user reports comments on a PR:
 
 ## After a PR Is Merged
 
-1. **Pull base branch**: Run `git pull -p origin {base-branch}` in your working directory (the repo root, not a worktree).
+1. **Pull base branch**: Run `git pull -p` in your working directory (the repo root, not a worktree).
 2. **Mark the task completed** via `TaskUpdate`.
 3. **Instruct the SWE-implementer** to clean up (delete worktree and local branch). Wait for the implementer to confirm cleanup is complete.
 4. **Terminate the SWE-implementer**: After the implementer confirms cleanup, send `shutdown_request` to the implementer.
@@ -207,7 +207,7 @@ All dynamic state lives in the task system. No external files needed.
 | One task per SWE | A SWE (planner or implementer) handles exactly one task for its entire lifetime. |
 | Same implementer owns its PR | The original SWE-implementer handles review comments on its PR. It stays alive until the PR is merged. |
 | Full assignment every time | Include the complete assignment template. Never abbreviate. |
-| Pull base branch before each implementer | Run `git pull -p origin {base-branch}` before every individual SWE-implementer spawn. Stale base = stale worktrees. |
+| Pull base branch before each implementer | Run `git pull -p` before every individual SWE-implementer spawn. Stale base = stale worktrees. |
 | No merging | Agents only commit, push, and create PRs. Never merge. |
 | User not in planning or implementation | Team lead makes all technical decisions. User only reviews code and merges. Exception: brainstorming phase requires human interaction (see below). |
 | Lead controls shutdown | The lead sends `shutdown_request` to SWE-planners after approval, to both staff engineers after their plan is approved, and to SWE-implementers after PR merge and cleanup. |
