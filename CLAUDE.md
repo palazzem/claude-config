@@ -41,7 +41,7 @@
 
 When you finish implementing a task:
 1. Run /ask-claude-review to self-review your changes
-2. Address any findings the user selects
+2. The review handles triage autonomously — it verifies findings via /receiving-code-review before implementing
 3. Run /push-pr to create or update the PR
 4. Stop and wait for human review
 

@@ -131,11 +131,10 @@ After all 7 complete:
 
 **Do NOT ask the user which findings to fix.** Proceed autonomously:
 
-1. **Yes:** Implement all fixes immediately.
-2. **Optional:** Use `/receiving-code-review` to evaluate each finding and decide whether to implement or skip.
-3. **No:** Nothing to do.
+1. **Yes and Optional:** Evaluate every finding using `/receiving-code-review`. The score sets the push-back threshold (see "Push-Back Threshold for Scored Findings" in that skill). Default posture is to implement unless push-back is warranted.
+2. **No:** Nothing to do.
 
-After implementing fixes, present a summary of what was changed and what was skipped (with reasoning for skipped Optional items). When implementing fixes, re-read the review file at `$TMPDIR/code-review-<timestamp>.md` if needed.
+After addressing findings, present a summary of what was implemented and what was pushed back on (with reasoning for each push-back). When implementing fixes, re-read the review file at `$TMPDIR/code-review-<timestamp>.md` if needed.
 
 ## Red Flags
 
@@ -143,8 +142,8 @@ After implementing fixes, present a summary of what was changed and what was ski
 - Do NOT run a single monolithic review covering all aspects
 - Do NOT run reviewers sequentially (they are independent)
 - Do NOT skip any of the 7 review areas (include 5/5 areas in the table)
-- Do NOT ask the user which findings to address — fix Yes items, evaluate Optional items
+- Do NOT ask the user which findings to address — evaluate all Yes and Optional items via /receiving-code-review
 - Do NOT fabricate scores — every score must come from a subagent
 - Do NOT present results without first persisting them to the review file
-- Do NOT implement Optional findings blindly — use /receiving-code-review to evaluate
+- Do NOT silently drop findings — push-back requires explicit reasoning proportional to the score
 - Do NOT dispatch reviewers before committing all changes

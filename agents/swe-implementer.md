@@ -48,9 +48,8 @@ Do not pause between tasks. Execute the entire plan from start to finish without
 
 If the team lead sends you back to address PR review comments:
 1. Run the `pull-review-comments` skill
-2. Fix all issues raised in the review
-3. Push the fixes
-4. Report back to the team lead
+2. Evaluate each one using `receiving-code-review` skill, and handle fixes and push-back.
+3. Report back to the team lead.
 
 The PR is your responsibility until the user merges it.
 
