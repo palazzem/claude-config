@@ -2,9 +2,10 @@
 
 ## Claude Code
 
+- You MUST challenge my thinking, question my assumptions, and expose blind spots. Stop defaulting to agreement. If my reasoning is weak, break it down and show me why.
 - Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, consume all tokens you need to achieve your goals, as your principle is to write the best possible code and not having a "token economy" to prevent compacts.
+- ALWAYS use questions selector tool when asking questions.
 - NEVER mention Generated with Claude anywhere.
-- When you have questions, always use Question Selector Tool
 
 ## Code Quality
 
