@@ -1,13 +1,13 @@
 ---
 name: swarm-development
-description: Use when the user asks to create a team or swarm of agents to work on multiple GitHub issues in parallel, or when facing batch implementation requiring coordinated agent teams
+description: Use when the user asks to create a team or swarm of agents to work on multiple tasks in parallel, or when facing batch implementation requiring coordinated agent teams
 ---
 
 # Swarm Development
 
 ## Overview
 
-You are the team lead. You orchestrate a team of software engineers and staff engineers to implement multiple GitHub issues in parallel. You make all technical decisions — the user only reviews code and merges PRs.
+You are the team lead. You orchestrate a team of software engineers and staff engineers to implement multiple tasks in parallel. You make all technical decisions — the user only reviews code and merges PRs. Exception: brainstorming phases require human interaction (the SWE-planner waits in its tmux session for the human).
 
 Each task flows through **planning** (SWE-planner investigates and writes a plan) → **review** (2 dedicated staff engineers review the plan) → **execution** (SWE-implementer executes the approved plan). Tasks progress independently — as soon as a plan is approved, its implementer is spawned without waiting for other tasks.
 
@@ -21,7 +21,7 @@ All agents get funny, memorable names (e.g., `swe-tornado`, `staff-baguette`).
 
 | Role | Agent Type | Model | Lifecycle | Purpose |
 |------|-----------|-------|-----------|---------|
-| SWE-planner | `swe-planner` | opus | One-shot: spawned per task, terminated after plan approval | Investigate issues and write implementation plans. |
+| SWE-planner | `swe-planner` | opus | One-shot: spawned per task, terminated after plan approval | Investigate tasks and write implementation plans. May invoke brainstorming skill for underspecified tasks (interactive with human in tmux). Spawns staff-engineer subagent for spec review during brainstorming. |
 | SWE-implementer | `swe-implementer` | opus | One-shot: spawned per task, terminated after PR merge | Execute approved plans in isolated worktrees. |
 | Staff Engineer | `staff-engineer` | opus | One-shot: 2 spawned per plan review, terminated after plan approval | Review implementation plans. Cannot edit files. |
 
@@ -35,13 +35,23 @@ Staff engineers are spawned in pairs — 2 per plan when review is needed. They 
 
 ### 1. Understand the Work
 
-- If the user provides a design document, spec, or refactoring report — read it thoroughly.
-- If the user provides GitHub issues (via labels, milestones, or project board) — list all issues to understand the full scope. **Do not read individual issues yet.**
-- If the user provides neither, **ask before proceeding.**
+Accept any input format:
+- **GitHub issues**: by label, milestone, or project board — list all issues to understand the full scope. **Do not read individual issues yet.**
+- **Linear tasks**: by project, label, or direct task IDs
+- **Direct user requests**: tasks described in chat (e.g., "fix bug where X does Y", "add feature that does Z")
+- **Design docs or specs**: read them thoroughly
+- **Any MCP-provided task source**: adapt to the tracker the user provides
+
+Examples:
+- "Implement issues labeled `v2.0`"
+- "Work on these: a) fix bug where X does Y, b) implement #56, c) add feature that does Z"
+- "Here are 3 Linear tasks: LIN-101, LIN-102, LIN-103"
+
+If the user provides none of the above, **ask before proceeding.**
 
 ### 2. Clarify
 
-Ask the user questions about anything unclear: scope boundaries, priorities, phasing, constraints, and **which branch is the base branch** (e.g., `main`, `dev`, `develop`). If the user doesn't specify, ask explicitly. All worktrees and PRs will target this branch. Do not proceed until the work is well understood.
+Ask the user questions about anything unclear: scope boundaries, priorities, phasing, constraints, **which branch is the base branch** (e.g., `main`, `dev`, `develop`), and **tracking system preference** (default: GitHub issues — ask if they want a different system). If the user doesn't specify the base branch, ask explicitly. All worktrees and PRs will target this branch. Do not proceed until the work is well understood.
 
 ### 3. Create the Team
 
@@ -50,11 +60,15 @@ Ask the user questions about anything unclear: scope boundaries, priorities, pha
 
 ### 4. Prepare the First Phase
 
-All work is organized in phases (e.g., `phase:1`, `phase:2`). If issues are not explicitly phased, treat them as a single phase.
+All work is organized in phases (e.g., `phase:1`, `phase:2`). If tasks are not explicitly phased, treat them as a single phase.
 
-1. Read all issues for the active phase.
-2. Create tasks using `TaskCreate`. Include issue number and title in the subject. Set `metadata: {"phase": N}`.
-3. Begin the planning phase.
+1. Normalize all inputs into internal tasks:
+   - For GitHub issues: read all issues for the active phase.
+   - For direct user requests: capture the full description as the task specification.
+   - For other trackers: read task details from the source system.
+2. Create tasks using `TaskCreate`. Include a descriptive title in the subject. For GitHub issues, include the issue number. Set `metadata: {"phase": N}`.
+3. **Brainstorming triage**: Review all task descriptions. Identify tasks that appear underspecified (no clear requirements, vague descriptions, missing acceptance criteria). Ask the user: "These tasks appear underspecified and may benefit from brainstorming: [list]. Which ones should go through brainstorming with you? The rest will go straight to planning." Mark the user's selections.
+4. Begin the planning phase.
 
 ## Phase Lifecycle
 
@@ -62,12 +76,14 @@ All work is organized in phases (e.g., `phase:1`, `phase:2`). If issues are not 
 
 All tasks are self-contained. Run the planning phase for all tasks. As each plan is approved, its SWE-implementer is spawned immediately — planning and execution overlap. When all PRs are merged, the work is done.
 
+Brainstorming-required tasks will block on human interaction. The SWE-planner waits in its tmux session for the human. Non-brainstorming planners run autonomously in parallel. The human switches between tmux sessions to brainstorm at their own pace.
+
 ### Multiple phases
 
 Work one phase at a time. Never work on tasks from a future phase.
 
-1. **Prepare**: Read all issues for the phase. Create tasks.
-2. **Plan & Execute**: Run the planning phase for all tasks. As each plan is approved, its SWE-implementer is spawned immediately — planning and execution overlap.
+1. **Prepare**: Read all task details for the phase. Create tasks.
+2. **Plan & Execute**: Run the planning phase for all tasks. As each plan is approved, its SWE-implementer is spawned immediately — planning and execution overlap. Brainstorming-required tasks block on human interaction in their tmux sessions.
 3. **Complete**: A phase is done when **all** its tasks have their PRs merged by the user.
 4. **Confirm**: Notify the user that the phase is complete. Ask for confirmation to advance to the next phase. All agents wait until the user responds.
 5. **Advance**: After user confirmation, prepare the next phase starting from step 1.
@@ -85,9 +101,13 @@ Use the `Task` tool with `subagent_type: "swe-planner"` and `team_name`. Spawn t
 ---
 
 > **Your Task:**
-> - **Issue**: #[NUMBER] — [TITLE]
+> - **Title**: [TITLE]
+> - **Source**: [GitHub issue #NUMBER | Linear LIN-NUMBER | Direct request]
+> - **Description**: [Full task description or "read the tracking issue"]
+> - **Tracking issue**: [URL if exists, or "create GitHub issue"]
+> - **Brainstorming required**: [yes | no]
 > - **Base branch**: [BRANCH]
-> - **Context source**: [Path to relevant docs, or "read the issue and linked references"]
+> - **Context source**: [Path to relevant docs, or "read the tracking issue and linked references"]
 >
 > Follow your workflow starting from Phase 1.
 
@@ -119,7 +139,7 @@ All plan reviews flow through you — SWE-planners never message staff engineers
 When a SWE-planner reports its plan's absolute file path:
 
 1. **Spawn 2 fresh staff engineers** with `subagent_type: "staff-engineer"` and `team_name`. Give them funny names. These 2 staff engineers are exclusively assigned to this plan for its entire review lifecycle.
-2. Send the absolute plan file path to **both** staff engineers for review (parallel messages). Include the GitHub issue number. Example: "Review the plan at `/path/to/project/.worktrees/plans/42-add-user-auth.md` for issue #42."
+2. Send the absolute plan file path to **both** staff engineers for review (parallel messages). Include the task title and tracking issue (if any). Example: "Review the plan at `/path/to/project/.worktrees/plans/42-add-user-auth.md` for task: Add user auth (#42)."
 
 ### Review Cycle
 
@@ -169,7 +189,7 @@ When the user reports comments on a PR:
 
 All dynamic state lives in the task system. No external files needed.
 
-- **Create tasks** from GitHub issues using `TaskCreate`. Include issue number and title in the subject.
+- **Create tasks** from inputs using `TaskCreate`. Include a descriptive title in the subject. For GitHub issues, include the issue number.
 - **Assign tasks** by setting `owner` to the SWE-planner's or SWE-implementer's name.
 - **Record plan paths** in task descriptions after plan approval.
 - **Update descriptions** with PR links when SWE-implementers report back.
@@ -189,7 +209,9 @@ All dynamic state lives in the task system. No external files needed.
 | Full assignment every time | Include the complete assignment template. Never abbreviate. |
 | Pull base branch before each implementer | Run `git pull -p origin {base-branch}` before every individual SWE-implementer spawn. Stale base = stale worktrees. |
 | No merging | Agents only commit, push, and create PRs. Never merge. |
-| No user involvement in planning | Team lead makes all technical decisions. User only reviews code and merges. |
+| User not in planning or implementation | Team lead makes all technical decisions. User only reviews code and merges. Exception: brainstorming phase requires human interaction (see below). |
 | Lead controls shutdown | The lead sends `shutdown_request` to SWE-planners after approval, to both staff engineers after their plan is approved, and to SWE-implementers after PR merge and cleanup. |
 | Staff engineers are per-plan | 2 staff engineers are spawned per plan review. They stay assigned to that plan through all revision cycles. Never reassign staff engineers to a different plan. Shut them down after approval. |
+| Brainstorming is interactive | SWE-planners doing brainstorming require human participation in their tmux session. The human is the gate for spec approval. |
+| SWE-planner spawns spec reviewers | During brainstorming, the SWE-planner spawns a single staff-engineer subagent for spec review. Team lead spawns staff engineers only for plan reviews. |
 | After compaction | Re-invoke this skill, call `TaskList`, read team config. Resume. |
