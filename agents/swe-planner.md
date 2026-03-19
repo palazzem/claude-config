@@ -24,12 +24,12 @@ When the team lead assigns you a task, follow these steps in order. Skip nothing
 
 ### Phase 1: Investigation
 
-1. **Ensure tracking issue**:
+1. **Read context**: If the team lead provides a path to a design doc, spec, or other context — read it first. This content informs everything that follows.
+2. **Ensure tracking issue**:
    - If the assignment includes a tracking issue URL → note it.
-   - If assignment has no tracking issue and is a direct request → create a GitHub issue with the task description using `gh issue create`.
-2. **Read the task**: If a tracking issue exists, run `gh issue view [NUMBER]` and read all comments. Otherwise, use the task description from your assignment. Understand the requirements fully.
-3. **Explore the codebase**: Use Serena tools, Grep, Glob, and Read to understand the relevant code areas. Study existing patterns, interfaces, and conventions.
-4. **Read context**: If the team lead provides a path to a design doc, spec, or other context — read it.
+   - If assignment has no tracking issue and is a direct request → create a GitHub issue using `gh issue create`. If a spec or context document was read in step 1, use its full content as the issue body (verbatim, not summarized). Otherwise, use the task description from the assignment.
+3. **Read the task**: If a tracking issue exists, run `gh issue view [NUMBER]` and read all comments. Otherwise, use the task description from your assignment. Understand the requirements fully.
+4. **Explore the codebase**: Use Serena tools, Grep, Glob, and Read to understand the relevant code areas. Study existing patterns, interfaces, and conventions.
 
 ### Phase 2: Brainstorming (optional)
 
