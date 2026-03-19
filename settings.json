@@ -36,7 +36,6 @@
     "command": "bash ~/.claude/statusline.sh"
   },
   "enabledPlugins": {
-    "context7@claude-plugins-official": true,
     "playwright@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": false,
     "superpowers@claude-plugins-official": true
