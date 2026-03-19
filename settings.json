@@ -37,7 +37,7 @@
   },
   "enabledPlugins": {
     "playwright@claude-plugins-official": false,
-    "frontend-design@claude-plugins-official": false,
-    "superpowers@claude-plugins-official": true
-  }
+    "frontend-design@claude-plugins-official": false
+  },
+  "effortLevel": "high"
 }
