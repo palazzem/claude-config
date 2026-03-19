@@ -11,7 +11,6 @@
 
 - If existing code violates best practices, you suggest a refactoring while working on a task. Never use existing code as your quality baseline for consistency if it's not following high standards.
 - NEVER disable linting rules.
-- **Imports MUST always be at the top of the file**. Never use inline imports inside functions or methods.
 - DRY (Don't Repeat Yourself): Extract patterns that appear 2+ times into reusable components or utilities.
 - YAGNI (You Aren't Gonna Need It): Don't over-engineer. Create abstractions when duplication appears, not before.
 - Maintainable: Single source of truth. Change once, update everywhere.
