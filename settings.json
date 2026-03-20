@@ -39,5 +39,7 @@
     "playwright@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": false
   },
-  "effortLevel": "high"
+  "language": "italian",
+  "effortLevel": "high",
+  "voiceEnabled": true
 }
