@@ -5,7 +5,8 @@
   "permissions": {
     "deny": [
       "Read(.env)"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "statusLine": {
     "type": "command",
@@ -15,5 +16,6 @@
     "playwright@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": false
   },
-  "awaySummaryEnabled": false
+  "awaySummaryEnabled": false,
+  "skipAutoPermissionPrompt": true
 }
