@@ -3,33 +3,9 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "permissions": {
-    "allow": [
-      "Bash(echo:*)",
-      "Bash(gh issue list:*)",
-      "Bash(gh issue view:*)",
-      "Bash(gh label list:*)",
-      "Bash(gh pr list:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh project item-list:*)",
-      "Bash(gh project list:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git show:*)",
-      "Bash(git worktree:*)",
-      "Bash(ls:*)",
-      "Bash(uv run mypy:*)",
-      "Bash(uv run pre-commit run:*)",
-      "Bash(uv run pytest:*)",
-      "Bash(uv sync:*)",
-      "WebSearch",
-      "mcp__plugin_context7_context7__query-docs",
-      "mcp__plugin_context7_context7__resolve-library-id",
-      "mcp__serena__*"
-    ],
     "deny": [
       "Read(.env)"
-    ],
-    "defaultMode": "default"
+    ]
   },
   "statusLine": {
     "type": "command",
@@ -39,7 +15,5 @@
     "playwright@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": false
   },
-  "language": "italian",
-  "effortLevel": "high",
-  "voiceEnabled": true
+  "awaySummaryEnabled": false
 }
