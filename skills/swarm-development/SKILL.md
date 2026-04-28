@@ -7,7 +7,7 @@ description: Use when the user asks to create a team or swarm of agents to work 
 
 ## Overview
 
-You are the team lead. You dispatch and manage agents to get the work done. You NEVER implement, write code, or do an agent's work. When decisions exceed your scope (architecture disputes, scope changes, unresolvable failures), escalate to the user. The user reviews code, merges PRs, and resolves escalations. Brainstorming phases require human interaction — the SWE-planner waits in its tmux session for the human.
+You are the team lead. You dispatch and manage agents to get the work done. You NEVER implement, write code, or do an agent's work. All questions to the user go through question selector tool — agents route their questions through you via SendMessage, never directly to the user. When decisions exceed your scope (architecture disputes, scope changes, unresolvable failures), escalate to the user. The user reviews code, merges PRs, and resolves escalations.
 
 Each task flows through **planning** (SWE-planner investigates and writes a plan) → **review** (2 dedicated staff engineers review the plan) → **execution** (SWE-implementer executes the approved plan). Tasks progress independently — as soon as a plan is approved, its implementer is spawned without waiting for other tasks.
 
@@ -76,7 +76,7 @@ All work is organized in phases (e.g., `phase:1`, `phase:2`). If tasks are not e
 
 All tasks are self-contained. Run the planning phase for all tasks. As each plan is approved, its SWE-implementer is spawned immediately — planning and execution overlap. When all PRs are merged, the work is done.
 
-Brainstorming-required tasks will block on human interaction. The SWE-planner waits in its tmux session for the human. Non-brainstorming planners run autonomously in parallel. The human switches between tmux sessions to brainstorm at their own pace.
+Brainstorming-required tasks will block on human interaction. The SWE-planner routes questions through you via SendMessage, and you relay them to the user via question selector tool. Non-brainstorming planners run autonomously in parallel.
 
 ### Multiple phases
 
@@ -148,7 +148,7 @@ When a SWE-planner reports its plan's absolute file path:
 5. When the planner resubmits, route the revised plan to the **same 2 staff engineers**. Never reassign a plan to different staff engineers.
 6. If both approve, follow "After Plan Approval" steps.
 
-**Escalation:** If reviews loop more than 2 times, escalate to the user via question selector tool. Present the plan, the reviewers' objections, and the planner's revisions. The user makes the final call. Shut down both staff engineers regardless after the user decides.
+**Escalation:** If reviews loop more than 2 times, escalate to the user. Present the plan, the reviewers' objections, and the planner's revisions. The user makes the final call. Shut down both staff engineers regardless after the user decides.
 
 ## Spawning SWE-implementers
 
@@ -186,7 +186,7 @@ The lead MUST NEVER do an agent's work. When an agent is stuck, unresponsive, or
 1. **Terminate** the stuck agent.
 2. **Respawn** a fresh replacement agent with the same assignment template. One-shot agents are disposable — this is their design purpose.
 3. If the replacement also fails, **respawn once more** (maximum 2 respawn attempts per task).
-4. If the second replacement also fails, **escalate to the user** via question selector tool. Report: which task, what the agent attempted, and how it failed. Wait for the user's decision.
+4. If the second replacement also fails, **escalate to the user**. Report: which task, what the agent attempted, and how it failed. Wait for the user's decision.
 
 Never skip steps. Never "just do it quickly." The lead orchestrates — agents execute.
 
@@ -226,6 +226,6 @@ All dynamic state lives in the task system. No external files needed.
 | Lead controls shutdown | The lead sends `shutdown_request` to SWE-planners after approval, to both staff engineers after their plan is approved, and to SWE-implementers after PR merge and cleanup. |
 | Staff engineers are per-plan | 2 staff engineers are spawned per plan review. They stay assigned to that plan through all revision cycles. Never reassign staff engineers to a different plan. Shut them down after approval. |
 | Lead never implements | The lead MUST NEVER write code, edit files, create worktrees, run tests, or implement tasks. If a task needs doing, an agent does it. If an agent fails, respawn or escalate to the user — never substitute yourself. |
-| Brainstorming is interactive | SWE-planners doing brainstorming require human participation in their tmux session. The human is the gate for spec approval. |
+| Brainstorming is interactive | SWE-planners doing brainstorming route questions through the team lead. The human is the gate for spec approval. |
 | SWE-planner spawns spec reviewers | During brainstorming, the SWE-planner spawns a single staff-engineer subagent for spec review. Team lead spawns staff engineers only for plan reviews. |
 | After compaction | Re-invoke this skill, call `TaskList`, read team config. Resume. |

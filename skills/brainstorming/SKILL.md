@@ -131,6 +131,7 @@ Wait for the user's response. If they request changes, make them and re-run the 
 
 ## Key Principles
 
+- **Question selector tool** - Always use question selector tool when asking the user questions
 - **One question at a time** - Don't overwhelm with multiple questions
 - **Multiple choice preferred** - Easier to answer than open-ended when possible
 - **YAGNI ruthlessly** - Remove unnecessary features from all designs
