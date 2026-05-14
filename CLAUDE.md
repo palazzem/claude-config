@@ -33,7 +33,6 @@
 ## External Tools / MCP
 
 - **context7**: ALWAYS use Context7 MCP when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask. ALWAYS spawn a subagent to delegate context7 calls.
-- **serena**: ALWAYS use at conversation start, call `read_memory` with `project_overview` to load project context. Use symbolic tools for code navigation instead of reading entire files.
 - **push-pr**: ALWAYS use push-pr skill when asked to create a PR for a branch.
 - **gh**: ALWAYS use for all GitHub interactions
 
