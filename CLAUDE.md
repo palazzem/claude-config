@@ -19,7 +19,9 @@
 
 ## Comments
 
-- Comments must explain "why", never "what". Always on own line, never inline.
+- Default: write no comment. Add one only when removing it would leave a future maintainer confused about a non-obvious WHY (hidden constraint, subtle invariant, workaround). If it restates the code, delete it.
+- When a comment is warranted, explain WHY, never WHAT. Always on its own line, never inline.
+- Library choice, version pin, and other design rationale go in the commit body and PR description, not in code comments.
 - Always use Python docstrings using Google Python guidelines. Use the equivalent approach for other languages.
 
 ## Testing
