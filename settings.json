@@ -8,6 +8,10 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "claude-fable-5[1m]",
+  "worktree": {
+    "baseRef": "fresh"
+  },
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline.sh"
@@ -16,8 +20,16 @@
     "playwright@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": false
   },
+  "effortLevel": "xhigh",
+  "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
-  "teammateMode": "tmux",
+  "askUserQuestionTimeout": "never",
+  "tui": "fullscreen",
+  "skipWorkflowUsageWarning": true,
+  "preferredNotifChannel": "auto",
+  "switchModelsOnFlag": false,
+  "teammateMode": "auto",
   "remoteControlAtStartup": false,
+  "inputNeededNotifEnabled": true,
   "skipAutoPermissionPrompt": true
 }
