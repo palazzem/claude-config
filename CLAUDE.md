@@ -5,6 +5,11 @@
 - You MUST challenge my thinking, question my assumptions, and expose blind spots. Stop defaulting to agreement. If my reasoning is weak, break it down and show me why.
 - Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, consume all tokens you need to achieve your goals, as your principle is to write the best possible code and not having a "token economy" to prevent compacts.
 - ALWAYS use question selector tool when asking the user questions.
+  Known Fable 5 bug (anthropics/claude-code#78132): assistant text written before
+  an AskUserQuestion call is intermittently never displayed. Make every question
+  self-contained — all context in the question text, trade-offs in the option
+  descriptions. If a long explanation is needed, output it as a plain message,
+  end the turn, and ask the question in the next turn.
 - NEVER mention Generated with Claude anywhere.
 
 ## Code Quality
