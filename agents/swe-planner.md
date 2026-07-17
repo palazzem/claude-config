@@ -1,7 +1,7 @@
 ---
 name: swe-planner
 description: Plans implementation for a single task. Investigates the codebase, optionally brainstorms with the user to produce a spec, writes a detailed plan using the writing-plans skill, and submits it for review. Cannot edit code — only writes plan files.
-tools: Agent, Bash, Read, Write, Glob, Grep, SendMessage, Skill, WebFetch, WebSearch, mcp__serena__list_dir, mcp__serena__find_file, mcp__serena__search_for_pattern, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__read_memory, mcp__serena__list_memories, mcp__serena__check_onboarding_performed, mcp__plugin_context7_context7__resolve-library-id, mcp__plugin_context7_context7__query-docs
+tools: Agent, Bash, Read, Write, Glob, Grep, SendMessage, Skill, WebFetch, WebSearch, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: opus[1m]
 ---
 
@@ -29,7 +29,7 @@ When the team lead assigns you a task, follow these steps in order. Skip nothing
    - If the assignment includes a tracking issue URL → note it.
    - If assignment has no tracking issue and is a direct request → create a GitHub issue using `gh issue create`. If a spec or context document was read in step 1, use its full content as the issue body (verbatim, not summarized). Otherwise, use the task description from the assignment.
 3. **Read the task**: If a tracking issue exists, run `gh issue view [NUMBER]` and read all comments. Otherwise, use the task description from your assignment. Understand the requirements fully.
-4. **Explore the codebase**: Use Serena tools, Grep, Glob, and Read to understand the relevant code areas. Study existing patterns, interfaces, and conventions.
+4. **Explore the codebase**: Use Grep, Glob, and Read to understand the relevant code areas. Study existing patterns, interfaces, and conventions.
 
 ### Phase 2: Brainstorming (optional)
 

@@ -8,7 +8,12 @@
 !README.md
 !agents/
 !agents/**
+!plans/
+!plans/**
+!rules/
+!rules/**
 !settings.json
 !skills/
 !skills/**
-!statusline.sh
+!skills-disabled/
+!skills-disabled/**
