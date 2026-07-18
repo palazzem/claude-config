@@ -18,11 +18,11 @@ Full pipeline diagram and deep dive: [ARCHITECTURE.md](ARCHITECTURE.md).
 |---|---|
 | `brainstorming` | Two gated stages — Understanding then Design Overview — each red-teamed and approved by you, ending in a stored design checkpoint. Manual; auto-suggested on ambiguous or feature-sized asks, never auto-run. |
 | `implement` | Manual entry point of the build chain: authors the brief with the architecture lock, spawns the persistent builder, produces draft PRs, and owns the review loop. |
-| `push-pr` | Creates or updates a pull request (draft inside the chain) with a generated body, labels, and a Verification section. |
-| `pr-review` | Runs the blind, parallel reviewer panel with skeptic verification and posts one batched inline review plus a sticky summary. |
-| `review-triage` | Classifies every review thread into one bucket, dispatches fixes to the builder, resolves handled threads, and escalates the rest. |
-| `pr-shepherd` | Keep-green maintenance loop until merge: rebase, CI triage, lint autofix, description sync, and cleanup. |
-| `visual-evidence` | Captures per-state screenshots and interaction GIFs for frontend PRs and upserts them as an evidence comment. |
+| `push-pr` | Creates or updates a pull request (draft inside the chain, usable manually anywhere) with a generated body, labels, and a Verification section. |
+| `pr-review` | Runs the blind, parallel reviewer panel with skeptic verification and posts one batched inline review plus a sticky summary; manually runnable on any PR. |
+| `review-triage` | Classifies every review thread into one bucket, dispatches fixes to the builder, resolves handled threads, and escalates the rest; manually runnable on any PR. |
+| `pr-shepherd` | Keep-green maintenance loop until merge: rebase, CI triage, lint autofix, description sync, and cleanup; manually attachable to any PR. |
+| `visual-evidence` | Captures per-state screenshots and interaction GIFs for frontend PRs, commits them to the branch, and upserts an evidence comment. |
 | `receiving-code-review` | Behavioral discipline for handling review feedback: verify before implementing, calibrated push-back, no performative agreement. |
 | `build-design-system` | Builds a complete frontend design system from an approved design exploration. |
 | `gh-inline-comment` | Internal, agent-facing technique for posting line-anchored PR comments through the gh API. |
