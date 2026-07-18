@@ -1,0 +1,143 @@
+---
+name: visual-evidence
+description: Capture screenshots and a GIF of the key interaction as visual evidence for frontend PRs. Runs automatically inside the review loop when the repo profile says frontend: yes; invocable manually on any PR. Re-captures when the PR HEAD moves. Produces before/after pairs when behavior changed and embeds everything in one upserted PR comment.
+---
+
+# Visual Evidence for Frontend PRs
+
+Prove UI changes visually: one screenshot per reachable state of every affected
+screen, a GIF of the key interaction, before/after pairs when behavior changed.
+Evidence is committed to the PR branch and embedded in a single upserted comment.
+
+## Trigger
+
+- **Automatic**: invoked by the review loop's owner (the implement skill's
+  review-loop section, W3) for any PR whose repo profile has `frontend: yes`,
+  whenever the PR HEAD differs from the evidence manifest's `head_sha`. On first
+  encounter with a repo whose profile lacks the `frontend` field, ask the user
+  once via the question selector and persist the answer to the repo profile.
+  Unattended run with the field missing: skip capture and flag "visual evidence
+  skipped - frontend unknown" in the run report.
+- **Manual**: `/visual-evidence` on any PR, any repo, regardless of profile.
+
+## Profile fields used
+
+The repo profile is the harness's per-repo project memory: one JSON file per
+repository at `~/.claude/profiles/<owner>-<repo>.json`. "Ask once" means ask via the
+question selector and write the answer back to the profile file.
+
+| Field | Purpose | If missing |
+|---|---|---|
+| `frontend` | gates the automatic trigger | ask once / skip unattended |
+| `launch_command` | how the capture runner starts the app | ask once / skip unattended, flag in report |
+| `base_branch` | source for before/after baseline worktree | ask once / default to the repo's default branch |
+| `evidence_storage` | overrides the storage location below | use the provisional default |
+| `trust` | gates commit, push, and comment posting | read-only default: capture locally, report only |
+
+## Steps
+
+1. **Resolve inputs.** Read the repo profile. Determine PR number, current
+   `HEAD_SHA` (`gh pr view <n> --json headRefOid -q .headRefOid`), and the
+   evidence directory: `.github/pr-evidence/<pr>/<head-sha>/` (provisional
+   default; `evidence_storage` in the profile overrides it).
+
+2. **Staleness check.** If `manifest.json` already exists for an earlier SHA of
+   this PR, compare its `head_sha` with the current one. Same SHA and complete
+   manifest: stop, evidence is current. Different SHA: proceed to re-capture;
+   the superseded `<head-sha>` directory is removed in the same commit that adds
+   the new one.
+
+3. **Derive the capture plan from the diff.** Read `git diff <base_branch>...HEAD`
+   and map changed routes, pages, and components to the screens that render them.
+   For each affected screen list the states to capture: empty, loading, error,
+   populated — only where reachable (do not fabricate states the app cannot
+   enter). Pick the single key interaction the PR changes (the flow a reviewer
+   would manually click through) for the GIF. Note whether the PR CHANGES
+   existing behavior (before/after needed) or only ADDS new surface (after only).
+
+4. **Spawn the capture runner** — an agent with `model: "haiku"` (Agent tool
+   `model` param). Pass it the capture plan, the `launch_command`, and the output
+   directory. The runner:
+   1. Starts the app with the profile's `launch_command` and waits for readiness.
+   2. Drives it with playwright via npx (`npx playwright ...`; browsers are
+      expected in the local cache — run `npx playwright install chromium` if not).
+   3. Captures one screenshot per screen/state from the plan
+      (`page.screenshot`), named `<screen>-<state>.png`.
+   4. Records the key interaction with playwright video recording
+      (`recordVideo` context option), then converts the resulting webm to GIF
+      using playwright's bundled ffmpeg (locate the `ffmpeg-*` binary in the
+      playwright browsers cache; if absent, `npx playwright install ffmpeg`):
+      `ffmpeg -i interaction.webm -vf "fps=10,scale=960:-1:flags=lanczos" -loop 0 interaction.gif`
+   5. Returns the file list plus any states it could not reach (recorded in the
+      manifest, never silently dropped).
+
+5. **Before/after pairs** — only when step 3 found changed behavior. Create a
+   worktree at the base branch (`git worktree add <scratch>/base <base_branch>`),
+   run the same capture plan there via the runner (same screens/states), store as
+   `before-<screen>-<state>.png` next to the `after` shots, remove the worktree.
+
+6. **Write `manifest.json`** in the evidence directory:
+
+   ```json
+   {
+     "pr": 123,
+     "head_sha": "<HEAD_SHA>",
+     "captured_at": "<ISO timestamp>",
+     "entries": [
+       {"file": "settings-populated.png", "screen": "settings", "state": "populated", "kind": "after"},
+       {"file": "before-settings-populated.png", "screen": "settings", "state": "populated", "kind": "before"},
+       {"file": "interaction.gif", "screen": "settings", "state": "interaction", "kind": "after"}
+     ],
+     "unreachable": [{"screen": "settings", "state": "error", "reason": "no failing backend reachable"}]
+   }
+   ```
+
+   `head_sha` is the re-capture key: the review loop (W3) compares it with the
+   PR HEAD after each fix round and re-invokes this skill when they differ.
+   Re-capture ends when the loop does - after the PR flips OPEN, evidence is
+   refreshed only by a manual invocation.
+
+7. **Commit and push** (full-autonomy repos only). One commit on the PR branch
+   adding the new `<head-sha>` directory and removing the superseded one.
+   Commits made autonomously in the review loop carry the trailer
+   `Harness-Fix: true`.
+
+8. **Upsert the evidence comment.** Exactly ONE comment per PR, identified by the
+   hidden marker. Search existing comments for `<!-- visual-evidence -->`;
+   found: edit it, not found: create it. Body layout:
+
+   ```markdown
+   **Harness automated comment**
+   <!-- visual-evidence -->
+
+   Visual evidence for <short-sha>.
+
+   | Screen | State | Before | After |
+   |---|---|---|---|
+   | ... | ... | image or "-" | image |
+
+   (key-interaction GIF)
+   (unreachable states, with reasons, if any)
+   ```
+
+   Image embedding depends on repo visibility (`gh repo view --json visibility`):
+
+   - **Public repo**: embed images with commit-pinned raw URLs so they render
+     after later pushes:
+     `https://github.com/<owner>/<repo>/raw/<head-sha>/.github/pr-evidence/<pr>/<head-sha>/<file>`
+   - **Private repo**: GitHub's image proxy cannot fetch authenticated raw URLs,
+     so inline embeds render broken. Link each file as a plain blob link instead
+     (`https://github.com/<owner>/<repo>/blob/<head-sha>/.github/pr-evidence/<pr>/<head-sha>/<file>`)
+     and state in the comment that the images live in the committed evidence
+     directory; the manifest table remains the inline summary.
+
+## Rails
+
+- Read-only repos (profile `trust: read-only`): capture into the scratchpad,
+  report the file paths to the user, never commit, push, or comment.
+- Never merge, close, or modify anything beyond the evidence directory and the
+  evidence comment.
+- If the app fails to launch twice, stop retrying: report the failure and the
+  launch output instead of posting partial evidence.
+- Storage location is provisional (per design ruling): revisit at first real
+  use; the `evidence_storage` profile field is the override mechanism.

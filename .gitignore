@@ -8,6 +8,8 @@
 !README.md
 !agents/
 !agents/**
+!hooks/
+!hooks/**
 !plans/
 !plans/**
 !rules/
@@ -15,5 +17,3 @@
 !settings.json
 !skills/
 !skills/**
-!skills-disabled/
-!skills-disabled/**
