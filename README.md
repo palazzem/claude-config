@@ -49,7 +49,7 @@ This table is the single source of truth for which model runs what.
 | `visual-evidence` capture runner | haiku |
 | Everything else (main agent, panel reviewers, triage judgment, brainstorming, learning pass) | session model |
 
-Here, session model means whichever model the Claude Code session was started with. The split is deliberate cross-model verification: every artifact is checked by a model different from the one that produced it, so a hallucination shared inside one model family cannot verify itself.
+Here, session model means whichever model the Claude Code session was started with. The split is deliberate cross-model verification: every artifact is checked by a model different from the one that produced it, so a hallucination shared inside one model family cannot verify itself. Skills state the model when spawning agents (Agent tool `model` parameter).
 
 ## Lessons
 
