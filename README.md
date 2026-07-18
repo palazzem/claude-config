@@ -18,7 +18,7 @@ Full pipeline diagram and deep dive: [ARCHITECTURE.md](ARCHITECTURE.md).
 |---|---|
 | `brainstorming` | Two gated stages — Understanding then Design Overview — each red-teamed and approved by you, ending in a stored design checkpoint. Manual; auto-suggested on ambiguous or feature-sized asks, never auto-run. |
 | `implement` | Manual entry point of the build chain: authors the brief with the architecture lock, spawns the persistent builder, produces draft PRs, and owns the review loop. |
-| `push-pr` | Creates or updates a pull request (draft inside the chain, usable manually anywhere) with a generated body, labels, and a Verification section. |
+| `push-pr` | Creates or updates a pull request (draft inside the chain, usable manually anywhere) with the repo PR template filled when present (generated body otherwise), labels, and a Verification section. |
 | `pr-review` | Runs the blind, parallel reviewer panel with skeptic verification and posts one batched inline review plus a sticky summary; manually runnable on any PR. |
 | `review-triage` | Classifies every review thread into one bucket, dispatches fixes to the builder, resolves handled threads, and escalates the rest; manually runnable on any PR. |
 | `pr-shepherd` | Keep-green maintenance loop until merge: rebase, CI triage, lint autofix, description sync, and cleanup; manually attachable to any PR. |
