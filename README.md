@@ -57,13 +57,17 @@ Every human intervention becomes a lesson, committed alongside the PR that taugh
 
 ## Setup
 
-Clone into your Claude Code configuration directory:
+`~/.claude` already exists for every Claude Code user, so cloning directly over it collides with your current configuration. Clone elsewhere and copy the pieces you want:
+
+```bash
+git clone git@github.com:palazzem/claude-config.git ~/claude-config
+```
+
+On a fresh machine with no existing configuration, you can clone straight into the config directory instead:
 
 ```bash
 git clone git@github.com:palazzem/claude-config.git ~/.claude
 ```
-
-`~/.claude` already exists for every Claude Code user, so cloning directly over it will collide with your current configuration — clone elsewhere and copy the pieces you want.
 
 Prerequisites:
 
