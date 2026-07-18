@@ -10,10 +10,10 @@
 !agents/**
 !hooks/
 !hooks/**
-!plans/
-!plans/**
 !rules/
 !rules/**
 !settings.json
 !skills/
 !skills/**
+!skills-disabled/
+!skills-disabled/**

@@ -28,7 +28,7 @@ Scale ceremony to the work: for a small-but-ambiguous ask, Stage 1 may be two or
 
 ## Repo profile
 
-This skill contains zero repository-specific facts. Repo facts live in the repo profile - the harness's per-repo project memory, one JSON file per repository at `~/.claude/profiles/<owner>-<repo>.json` (fields include `trust`, `frontend`, `base_branch`, `launch_command`, `stacking`, `infrastructure`, `evidence_storage`, `spec_location`; this skill uses `infrastructure` and `spec_location`). When a needed field is missing:
+This skill contains zero repository-specific facts. Repo facts live in the repo profile - the harness's per-repo project memory, one JSON file per repository at `~/.claude/profiles/<owner>-<repo>.json` (fields include `trust`, `frontend`, `base_branch`, `launch_command`, `infrastructure`, `spec_location`; this skill uses `infrastructure` and `spec_location`). When a needed field is missing:
 
 - Interactive: ask once via the question selector tool and write the answer back to the profile file.
 - Unattended: use the safe default (treat as unknown / skip) and flag it in the report.
@@ -58,13 +58,15 @@ Present the recommended high-level architecture BEFORE any implementation. Follo
 
 1. Derive the requirements from the approved Understanding.
 2. Design the correct system as if build resources were unlimited - that design is the recommendation.
-3. Produce 2-3 genuinely different options (different architectures, not parameter tweaks of one idea). Rank ONLY by outcome quality: correctness, security, maintainability, performance, operability. Nothing else ranks.
-4. The green-field option is always present: what this would look like designed from scratch today. Lead with it when it wins on outcome quality, even when it is a big change.
+3. Produce every genuinely different option - minimum 2, maximum 4 (different architectures, not parameter tweaks of one idea). "Unlimited resources" is not one option among them: it is the design condition ALL options are designed under. The set always contains the green-field option (what this would look like designed from scratch today); when the context makes them genuinely distinct, also an option that reshapes the existing system, and at most one unconventional option (a different paradigm worth considering). Never pad to a count with fillers; never cap at 3 when a fourth genuinely distinct architecture exists. Rank ONLY by outcome quality: correctness, security, maintainability, performance, operability. Nothing else ranks.
+4. Lead with the winner on outcome quality, even when it is a big change.
 5. Name every rejected alternative and why it lost.
 6. If a genuine constraint forces a trade-down from the unlimited-resources design, present it as an explicit, named deviation for the user to approve. Never pre-trade silently.
 7. Never calibrate options to the current codebase's quality - a bad codebase is context to fix, not a baseline to match. YAGNI applies to scope, never to structure; optimal is not maximal, so speculative abstraction is itself suboptimal.
 
 **Banned ranking criteria** (they may be stated as facts, never used to demote an option): implementation time or effort, team size or skill, migration or rollout cost, review burden, "too complex to build", "MVP first / iterate later", phased delivery for effort reasons, backwards compatibility unless the user states it as a requirement.
+
+**User-stated requirements override the ban.** When the user explicitly asks for an MVP, a prototype, speed, or compatibility, that is a stated requirement: design for it as scope and say which options honor it. The ban is on YOU introducing these criteria uninvited.
 
 **Platform-context probe.** When the design touches a system boundary - messaging, storage, deployment, auth, or any external service - check the repo profile's `infrastructure` field for what actually exists (cloud provider, IaC, queues, databases, CI/CD). If unknown: interactive, ask once via the question selector tool and persist the answer to the profile; unattended, assume nothing exists, design against explicit abstractions, and record the unknown as an open question flagged in the report. A design chosen in ignorance of available infrastructure (a hand-rolled local queue where a managed pub/sub exists) is exactly the failure this stage prevents.
 

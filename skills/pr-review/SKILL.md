@@ -79,7 +79,7 @@ qa-domains floor: minimum 2 personas per run. If fewer than 2 match the diff con
 
 Orchestrator-only roster map: read `reviewers/ROSTER.md` for the overlap and convergence relationships between reviewers and personas. It informs backfill choices and Step 8's convergence handling, and it is NEVER included in - or paraphrased into - any reviewer prompt.
 
-correct-design context: locate the approved design overview and include it in correct-design's prompt only. Chain mode: the caller passes the architecture lock, or read the implement state record `~/.claude/state/implement/<owner>-<repo>-pr-<n>.json` - its `brief` file carries the approved Design Overview verbatim and its `checkpoint` links the spec. Manual runs: the PR body's or linked spec's Decisions section. Implementation drift from the approved overview is a finding; if no overview can be found, note the skipped conformance check in the terminal report.
+correct-design context: locate the approved design overview and include it in correct-design's prompt only. Chain mode: the caller passes the architecture lock (the brief at `~/.claude/state/implement/<branch-slug>/brief.md` carries the approved Design Overview verbatim; the checkpoint reference links the spec). Manual runs: the PR body's or linked spec's Decisions section. Implementation drift from the approved overview is a finding; if no overview can be found, note the skipped conformance check in the terminal report.
 
 ## Step 5: Lesson-scoped loading
 

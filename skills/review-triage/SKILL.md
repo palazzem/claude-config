@@ -302,16 +302,15 @@ the PR's full implementation context; a fresh fixer would cold-read the diff
 and lose the rationale. **Never spawn a fresh fixer for a fix round.**
 
 - Chain mode: the brief carries the builder's agent name.
-- Standalone: read `~/.claude/state/implement/<owner>-<repo>-pr-<number>.json`
-  for the builder's name and resume that agent. Only if the record is missing
-  (ad-hoc PR that never went through the implement chain), spawn ONCE with
-  the Agent tool: `subagent_type: builder` (its model comes from the agent
-  definition; do not override it), stable name `builder-<branch-slug>` - the
-  head branch lowercased with every non-alphanumeric run replaced by a single
-  hyphen - and a brief (PR number, branch, diff summary, link to the spec if
-  any). Then write the implement state record
-  (`{"builder": "builder-<branch-slug>"}`) so every later skill resumes this
-  same agent. Never spawn when a record exists - that would create the second
+- Standalone: derive the name — `builder-<branch-slug>`, the PR's head branch
+  (`gh pr view --json headRefName`) lowercased with every non-alphanumeric run
+  replaced by a single hyphen — and resume that agent. Naming is deterministic,
+  so no lookup file exists or is needed. Only if no such agent answers (ad-hoc
+  PR that never went through the implement chain), spawn ONCE with the Agent
+  tool: `subagent_type: builder` (its model comes from the agent definition; do
+  not override it), that same stable name, and a brief (PR number, branch, diff
+  summary, link to the spec if any). Every later skill derives the same name —
+  never spawn when the agent already exists; that would create the second
   builder this section forbids.
 
 Reproducers: before dispatching, read the pr-review state file

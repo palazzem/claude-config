@@ -14,7 +14,7 @@ Turns a raw request into an approved design checkpoint through two gated stages.
 
 ### W2 — BUILD (`implement`)
 
-The single manual entry point of an otherwise automatic chain. The main agent authors an implementation brief that carries the architecture lock: the approved design travels with the work, and the builder must escalate rather than silently deviate from it. One persistent builder agent (opus) is spawned per PR — it writes all code and tests, keeps its implementation rationale for the PR's entire life, and is the only agent that ever writes code for that PR, in the initial build and in every later fix round. Work lands as stacked, single-concern PRs, each with its own tests and a Verification section (exact command plus expected output). PRs are created as drafts via `push-pr`: draft while machines iterate, open only when humans enter.
+The single manual entry point of an otherwise automatic chain. The main agent authors an implementation brief that carries the architecture lock: the approved design travels with the work, and the builder must escalate rather than silently deviate from it. One persistent builder agent (opus) is spawned per PR — it writes all code and tests, keeps its implementation rationale for the PR's entire life, and is the only agent that ever writes code for that PR, in the initial build and in every later fix round. Work lands as small, single-concern PRs, each with its own tests and a Verification section (exact command plus expected output). PRs are created as drafts via `push-pr`: draft while machines iterate, open only when humans enter.
 
 ### W3 — REVIEW (`pr-review` + `review-triage`)
 
@@ -62,7 +62,7 @@ flowchart TD
 | Skill | Trigger | Purpose |
 |---|---|---|
 | `brainstorming` | Manual (auto-suggested on ambiguous or feature-sized asks; never auto-runs) | Two gated stages — Understanding, then Design Overview — each red-teamed and user-approved, ending in a stored checkpoint spec |
-| `implement` | Manual entry; the chain after it is automatic | Implementation brief with architecture lock, persistent builder per PR, stacked draft PRs, hand-off to review |
+| `implement` | Manual entry; the chain after it is automatic | Implementation brief with architecture lock, persistent builder per PR, small draft PRs, hand-off to review |
 | `push-pr` | Auto inside the implement chain (draft mode); manual anywhere | Create or update a PR via a read-only subagent: template or generated body, labels, Verification section |
 | `pr-review` | Auto inside the chain; manual on any PR | Blind parallel reviewer panel, skeptic verification with reproducers, one batched inline review plus sticky summary |
 | `review-triage` | Auto inside the chain; manual on any PR | Thread burn-down: classify every thread into one bucket, dispatch fixes to the builder, resolve silently, escalate the rest |
@@ -104,7 +104,7 @@ Capture is event-driven: triage records user push-backs and rejected findings (r
 
 ## Conventions
 
-- **Per-repo profiles.** Skills contain zero repository-specific facts. Repo facts — `trust` (full-autonomy or read-only), `frontend`, `base_branch`, `launch_command`, `stacking`, `infrastructure`, `evidence_storage`, `spec_location` — live in the harness's per-repo project memory: one JSON file per repository at `~/.claude/profiles/<owner>-<repo>.json`, asked once when first needed (question selector) and written back. Unattended runs missing a fact use the safe default (read-only / skip) and flag it in the report.
+- **Per-repo profiles.** Skills contain zero repository-specific facts. Repo facts — `trust` (full-autonomy or read-only), `frontend`, `base_branch`, `launch_command`, `infrastructure`, `spec_location` — live in the harness's per-repo project memory: one JSON file per repository at `~/.claude/profiles/<owner>-<repo>.json`, asked once when first needed (question selector) and written back. Unattended runs missing a fact use the safe default (read-only / skip) and flag it in the report.
 - **Bot identity.** Every autonomously posted GitHub comment begins with the line `**Harness automated comment**`. PR descriptions and commit messages you own never mention AI or automation.
 - **Autonomous fix commits** carry the git trailer `Harness-Fix: true`, so the panel never re-reviews its own fixes into a loop.
 - **PR lifecycle.** Draft while machines iterate; flipped to open the moment a human-facing message fires.
@@ -119,7 +119,6 @@ Capture is event-driven: triage records user push-backs and rejected findings (r
 ├── hooks/           PreToolUse guards (commit attribution)
 ├── agents/          builder, skeptic
 ├── skills/          the workflow skills listed above
-└── plans/           design documents for this harness
 ```
 
 An ignore-all `.gitignore` keeps Claude Code's runtime files (caches, history, telemetry) out of version control; only configuration is whitelisted.
@@ -138,7 +137,7 @@ Prerequisites:
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed
 - [GitHub CLI](https://cli.github.com/) (`gh`) installed and authenticated — all GitHub interactions go through `gh`
-- [Graphite](https://graphite.dev/) (`gt`) optional — enables PR stacking in the build workflow (`gt auth` once; per-repo enablement is recorded in the repo profile)
+- PR stacking is deliberately not enabled yet; `skills-disabled/prompt-graphite.md` contains the ready-to-apply prompt that reintroduces it once Graphite (`gt`) is adopted
 - [Playwright](https://playwright.dev/) — visual evidence capture runs via `npx playwright`; browsers download on first use
 
 ## License

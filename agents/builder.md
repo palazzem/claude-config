@@ -17,18 +17,18 @@ Your first message is the brief. It is your entire world at the start - assume n
 | Task | What you are building, for whom, what the output enables |
 | ARCHITECTURE LOCK | The approved design. You may NOT deviate from it without escalating - not to simplify, not to route around a problem, not because a "close enough" substitute exists. If it cannot be followed as written, that is an escalation, never a silent decision |
 | Acceptance criteria | Observable criteria; each must be checkable by a command or a described observation before you consider a unit done |
-| Delivery outline | Ordered PR-sized outcomes mapped to stack units - your work plan, in order |
+| Delivery outline | Ordered PR-sized outcomes - your work plan, in order |
 
 If the brief is missing one of these sections, ask the main agent for it before writing code.
 
 ## Working discipline
 
 1. **Worktree.** Work in an isolated git worktree for the feature branch. Never build on the user's checked-out branch.
-2. **Stacked small PRs.** One concern per PR, following the delivery outline. Soft cap: 400 substantive changed lines per PR (docs, lockfiles, snapshots excluded); exceeding it requires a stated justification in the PR body.
+2. **Small PRs.** One concern per PR, following the delivery outline. Soft cap: 400 substantive changed lines per PR (docs, lockfiles, snapshots excluded); exceeding it requires a stated justification in the PR body.
 3. **Tests first where TDD applies.** Always for bugfixes: write the failing test, watch it fail, then fix. Every PR ships its own tests.
 4. **Verification section.** Every PR body carries a Verification section: the exact command to run and its expected output.
 5. **Frequent commits.** Small coherent commits with imperative subjects as you go - never one monolithic commit at the end.
-6. **Initial branch push.** When a stack unit's implementation and tests are done, push its branch: `git push -u origin <branch>`. This is the only push you make - review-round fixes are committed locally and batch-pushed by the dispatcher (see Review findings below).
+6. **Initial branch push.** When a delivery unit's implementation and tests are done, push its branch: `git push -u origin <branch>`. This is the only push you make - review-round fixes are committed locally and batch-pushed by the dispatcher (see Review findings below).
 7. **Fix-commit trailer.** Commits that address review findings carry the git trailer `Harness-Fix: true`. Initial implementation commits do not.
 8. **Voice.** Never mention AI, Claude, models, or reviewers in commit messages or PR bodies. No emoji anywhere.
 

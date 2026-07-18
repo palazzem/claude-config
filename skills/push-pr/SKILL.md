@@ -14,7 +14,7 @@ Creates or updates a GitHub PR via a `general-purpose` subagent (Agent tool, `mo
 |---|---|
 | Base branch | Argument if given. Otherwise read `base_branch` from the repo profile - the per-repo JSON file at `~/.claude/profiles/<owner>-<repo>.json`; if absent, ask the user once (question selector) and write it back to the profile file. Unattended with no profile value: use the repository default branch (`gh repo view --json defaultBranchRef`) and flag the assumption in the result. |
 | Draft mode | On when `--draft` is passed or when invoked from the implement chain (the chain always creates drafts: PRs stay draft while machines iterate; the review loop flips them open later with `gh pr ready`). |
-| Verification block | Optional, passed by the caller (e.g., the implement chain forwards each stacked PR's verification: exact command + expected output). When provided, the body MUST contain it under a `## Verification` heading. |
+| Verification block | Optional, passed by the caller (e.g., the implement chain forwards each PR's verification: exact command + expected output). When provided, the body MUST contain it under a `## Verification` heading. |
 
 ## Steps (Subagent)
 

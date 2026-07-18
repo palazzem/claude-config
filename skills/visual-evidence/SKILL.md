@@ -7,13 +7,15 @@ description: Capture screenshots and a GIF of the key interaction as visual evid
 
 Prove UI changes visually: one screenshot per reachable state of every affected
 screen, a GIF of the key interaction, before/after pairs when behavior changed.
-Evidence is committed to the PR branch and embedded in a single upserted comment.
+Evidence is published as a Claude Code artifact — one page per PR, the SAME
+artifact URL across re-captures — and linked from a single upserted PR comment.
+Nothing is ever committed to the repository.
 
 ## Trigger
 
 - **Automatic**: invoked by the review loop's owner (the implement skill's
   review-loop section, W3) for any PR whose repo profile has `frontend: yes`,
-  whenever the PR HEAD differs from the evidence manifest's `head_sha`. On first
+  whenever the PR HEAD differs from the SHA recorded in the evidence comment. On first
   encounter with a repo whose profile lacks the `frontend` field, ask the user
   once via the question selector and persist the answer to the repo profile.
   Unattended run with the field missing: skip capture and flag "visual evidence
@@ -31,21 +33,19 @@ question selector and write the answer back to the profile file.
 | `frontend` | gates the automatic trigger | ask once / skip unattended |
 | `launch_command` | how the capture runner starts the app | ask once / skip unattended, flag in report |
 | `base_branch` | source for before/after baseline worktree | ask once / default to the repo's default branch |
-| `evidence_storage` | overrides the storage location below | use the provisional default |
-| `trust` | gates commit, push, and comment posting | read-only default: capture locally, report only |
+| `trust` | gates comment posting | read-only default: capture locally, report only |
 
 ## Steps
 
 1. **Resolve inputs.** Read the repo profile. Determine PR number, current
    `HEAD_SHA` (`gh pr view <n> --json headRefOid -q .headRefOid`), and the
-   evidence directory: `.github/pr-evidence/<pr>/<head-sha>/` (provisional
-   default; `evidence_storage` in the profile overrides it).
+   evidence working directory in the session scratchpad (capture files feed
+   the artifact; nothing lands in the repository).
 
-2. **Staleness check.** If `manifest.json` already exists for an earlier SHA of
-   this PR, compare its `head_sha` with the current one. Same SHA and complete
-   manifest: stop, evidence is current. Different SHA: proceed to re-capture;
-   the superseded `<head-sha>` directory is removed in the same commit that adds
-   the new one.
+2. **Staleness check.** Find the existing evidence comment (hidden marker
+   `<!-- visual-evidence -->`); it records the SHA it was captured for. Same
+   SHA as the current HEAD: stop, evidence is current. Different or no
+   comment: proceed to re-capture.
 
 3. **Derive the capture plan from the diff.** Read `git diff <base_branch>...HEAD`
    and map changed routes, pages, and components to the screens that render them.
@@ -76,33 +76,21 @@ question selector and write the answer back to the profile file.
    run the same capture plan there via the runner (same screens/states), store as
    `before-<screen>-<state>.png` next to the `after` shots, remove the worktree.
 
-6. **Write `manifest.json`** in the evidence directory:
+6. **Build and publish the evidence page** — one self-contained HTML file in
+   the scratchpad: per-screen sections with each state's screenshot,
+   before/after grids where behavior changed, the key-interaction GIF, and an
+   unreachable-states list with reasons. Every image embedded as a `data:` URI
+   (artifact pages block external requests). Keep it light: screenshots capped
+   at 1280px wide, GIF at 960px / 10fps / a short loop — compress before
+   embedding. Publish with the Artifact tool: title `PR <n> visual evidence -
+   <repo>`, a STABLE file path per PR so every re-capture redeploys the SAME
+   artifact URL. The tool requires an emoji favicon parameter — that is a
+   browser-tab icon, exempt from the no-emoji text rule; keep it constant
+   across redeploys. Artifact pages are private to the user by default, which
+   fits the director model; on org repos other reviewers cannot open the link,
+   so the comment's text summary must stand on its own.
 
-   ```json
-   {
-     "pr": 123,
-     "head_sha": "<HEAD_SHA>",
-     "captured_at": "<ISO timestamp>",
-     "entries": [
-       {"file": "settings-populated.png", "screen": "settings", "state": "populated", "kind": "after"},
-       {"file": "before-settings-populated.png", "screen": "settings", "state": "populated", "kind": "before"},
-       {"file": "interaction.gif", "screen": "settings", "state": "interaction", "kind": "after"}
-     ],
-     "unreachable": [{"screen": "settings", "state": "error", "reason": "no failing backend reachable"}]
-   }
-   ```
-
-   `head_sha` is the re-capture key: the review loop (W3) compares it with the
-   PR HEAD after each fix round and re-invokes this skill when they differ.
-   Re-capture ends when the loop does - after the PR flips OPEN, evidence is
-   refreshed only by a manual invocation.
-
-7. **Commit and push** (full-autonomy repos only). One commit on the PR branch
-   adding the new `<head-sha>` directory and removing the superseded one.
-   Commits made autonomously in the review loop carry the trailer
-   `Harness-Fix: true`.
-
-8. **Upsert the evidence comment.** Exactly ONE comment per PR, identified by the
+7. **Upsert the evidence comment.** Exactly ONE comment per PR, identified by the
    hidden marker. Search existing comments for `<!-- visual-evidence -->`;
    found: edit it, not found: create it. Body layout:
 
@@ -110,34 +98,27 @@ question selector and write the answer back to the profile file.
    **Harness automated comment**
    <!-- visual-evidence -->
 
-   Visual evidence for <short-sha>.
+   Visual evidence for <short-sha>: <artifact URL>
 
    | Screen | State | Before | After |
    |---|---|---|---|
-   | ... | ... | image or "-" | image |
+   | ... | ... | captured / - | captured |
 
-   (key-interaction GIF)
    (unreachable states, with reasons, if any)
    ```
 
-   Image embedding depends on repo visibility (`gh repo view --json visibility`):
-
-   - **Public repo**: embed images with commit-pinned raw URLs so they render
-     after later pushes:
-     `https://github.com/<owner>/<repo>/raw/<head-sha>/.github/pr-evidence/<pr>/<head-sha>/<file>`
-   - **Private repo**: GitHub's image proxy cannot fetch authenticated raw URLs,
-     so inline embeds render broken. Link each file as a plain blob link instead
-     (`https://github.com/<owner>/<repo>/blob/<head-sha>/.github/pr-evidence/<pr>/<head-sha>/<file>`)
-     and state in the comment that the images live in the committed evidence
-     directory; the manifest table remains the inline summary.
+   The recorded `<short-sha>` is the re-capture key: the review loop (W3)
+   compares it with the PR HEAD after each fix round and re-invokes this skill
+   when they differ. Re-capture ends when the loop does — after the PR flips
+   OPEN, evidence is refreshed only by a manual invocation.
 
 ## Rails
 
-- Read-only repos (profile `trust: read-only`): capture into the scratchpad,
-  report the file paths to the user, never commit, push, or comment.
-- Never merge, close, or modify anything beyond the evidence directory and the
-  evidence comment.
+- Read-only repos (profile `trust: read-only`): capture and publish the
+  artifact, report the link to the user directly, never post the PR comment.
+- Never merge, close, or modify anything in the repository; the evidence
+  comment (and the artifact) are this skill's only outputs.
 - If the app fails to launch twice, stop retrying: report the failure and the
   launch output instead of posting partial evidence.
-- Storage location is provisional (per design ruling): revisit at first real
-  use; the `evidence_storage` profile field is the override mechanism.
+- The artifact page IS the storage (user ruling): no evidence files are ever
+  committed to the repository.
