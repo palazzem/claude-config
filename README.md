@@ -10,7 +10,7 @@ Full pipeline diagram and deep dive: [ARCHITECTURE.md](ARCHITECTURE.md).
 2. **Build** (`implement`, `push-pr`) — One persistent builder agent per PR writes all code and tests against a locked architecture and opens a draft PR. It escalates to you rather than silently deviating from the approved design.
 3. **Review** (`pr-review`, `review-triage`) — A blind reviewer panel and skeptic verifiers run on the draft PR, and triage dispatches fixes back to the builder for at most three rounds. When it converges the PR flips to open and you get one of two messages: "ready for your final review - push back or merge" or "escalated items - findings pushed back with uncertainty, your call".
 4. **Keep green** (`pr-shepherd`) — A maintenance loop rebases the open PR, triages CI, and autofixes lint until merge, pinging you with those same two message types. It never merges, closes, or reviews — final review and merge are always yours.
-5. **Learn** (lessons layer) — Every human intervention becomes a lesson committed alongside the PR that taught it, so future rounds need less of you. A merge-time pass distills anything missed.
+5. **Learn** (lessons layer) — Every human intervention becomes a lesson, so future rounds need less of you. A merge-time pass distills anything missed.
 
 ## Skills
 
