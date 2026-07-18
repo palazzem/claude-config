@@ -81,7 +81,7 @@ Capture is event-driven: triage records user push-backs and rejected findings (r
 ├── rules/           supplementary global rules
 ├── hooks/           PreToolUse guards (commit attribution)
 ├── agents/          builder, skeptic
-├── skills/          the workflow skills listed above
+├── skills/          workflow and support skills (see the README skills table)
 ```
 
 An ignore-all `.gitignore` keeps Claude Code's runtime files (caches, history, telemetry) out of version control; only configuration is whitelisted.
