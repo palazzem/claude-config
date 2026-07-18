@@ -8,7 +8,12 @@
 !README.md
 !agents/
 !agents/**
+!hooks/
+!hooks/**
+!rules/
+!rules/**
 !settings.json
 !skills/
 !skills/**
-!statusline.sh
+!skills-disabled/
+!skills-disabled/**

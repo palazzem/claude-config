@@ -11,6 +11,24 @@
   descriptions. If a long explanation is needed, output it as a plain message,
   end the turn, and ask the question in the next turn.
 - NEVER mention Generated with Claude anywhere.
+- NEVER use emoji in outward-facing or professional text (GitHub comments, PR content, commit messages, generated documents).
+- When building skills, agents, or workflows, keep them generic: never hardcode repository-specific facts (repo lists, owners, paths). When a repo-specific fact is first needed, ask once and persist it as a per-repo profile/memory; in unattended runs, default to the safe behavior and flag it.
+- State the boundaries:
+  - When I am describing a problem, asking a question, or thinking out loud rather than requesting a change, the deliverable is the assessment. Report findings and stop; do not apply fixes until asked.
+  - Before running any command that changes system state (restarts, deletes, config edits), check that the evidence actually supports that specific action. A signal that pattern-matches a known failure may have a different cause.
+
+## Decision Making
+
+THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to weighing human economics — implementation time, team size, migration effort, "ship fast", "MVP first", phased rollouts, review burden. These criteria are IRRELEVANT: an LLM implements the system, and an LLM has no concept of time or headcount. Any design calibrated on them is suboptimal by construction.
+
+- Rank options ONLY by outcome quality: correctness, security, maintainability, performance, operability. Nothing else ranks.
+- BANNED as ranking criteria (they may be stated as facts, never used to demote an option): implementation time or effort, team size or skill, migration or rollout cost, review burden, "too complex to build", "MVP first / iterate later", phased delivery for effort reasons, backwards compatibility unless the user states it as a requirement.
+- User-stated requirements are not banned criteria: when the user explicitly asks for an MVP, a prototype, speed, or backwards compatibility, design for it as stated scope. The ban is on introducing these criteria yourself.
+- Procedure for any design: (1) derive the requirements; (2) design the correct system as if build resources were unlimited — that design is the recommendation; (3) if a genuine constraint forces a trade-down, present it as an explicit, named deviation for the user to approve. Never pre-trade silently.
+- Always include the green-field option: what this would look like designed from scratch today. Lead with it when it wins on outcome quality, even when it's a big change.
+- Never calibrate solutions to the current codebase's quality. A bad codebase is context to fix, not a baseline to match.
+- YAGNI applies to scope (don't add unrequested features), never to structure (don't accept suboptimal architecture to avoid change). Optimal is not maximal: speculative abstraction and unneeded flexibility are themselves suboptimal.
+- Self-check before presenting any design or recommendation: scan your reasoning for banned criteria; if any influenced the ranking, redo the ranking without them.
 
 ## Code Quality
 
@@ -37,6 +55,15 @@
 - Test only our code, not library behavior.
 - Test what makes sense. Ignore edge cases that can't happen.
 
+## Memory & Lessons
+
+- One lesson per file, with a one-line summary.
+- Record corrections and confirmed approaches alike, including why they mattered.
+- Never save what the repository or the chat history already records.
+- Update existing notes rather than duplicating them; delete notes that turn out wrong.
+- Repositories store lessons in `.claude/lessons/<domain>/<slug>.md`; `.claude/lessons/INDEX.md` holds one line per lesson and is regenerated whenever a lesson is written; the repo CLAUDE.md imports the index via `@.claude/lessons/INDEX.md` so it auto-loads.
+- Before implementing or reviewing, load only the lessons whose domains or globs match the work at hand.
+
 ## External Tools / MCP
 
 - **context7**: ALWAYS use Context7 MCP when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask. ALWAYS spawn a subagent to delegate context7 calls.
@@ -45,15 +72,9 @@
 
 ## Review Workflow
 
-When you finish implementing a task:
-1. Run /ask-claude-review to self-review your changes
-2. The review handles triage autonomously — it verifies findings via /receiving-code-review before implementing
-3. Run /push-pr to create or update the PR
-4. Stop and wait for human review
-
-Do not continue to the next task after creating a PR.
-
-When the user runs /pull-review-comments:
-- Use /receiving-code-review skill
-- Address all reviews in a single commit
-- After pushing fixes, stop and wait for human review
+- Non-trivial features start with /brainstorming: manual, two gated stages (Understanding, then Design Overview), each approved by me before proceeding.
+- "Implement X" fires the automatic chain: worktree → stacked draft PRs → review loop (panel + triage, max 3 rounds) → PR flips OPEN the moment human input is needed → pr-shepherd keeps it green until merge.
+- PRs stay DRAFT while machines iterate; flipping to OPEN means humans are involved.
+- Exactly two message types reach me: (1) "ready for your final review - push back or merge"; (2) "escalated items - findings pushed back with uncertainty, your call".
+- Human review and merge are mandatory and always mine. Never merge, close, or approve a PR autonomously.
+- After merge, the learning pass distills lessons from the PR's paper trail into the target repository's lessons.
