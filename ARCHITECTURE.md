@@ -1,8 +1,6 @@
 # Architecture
 
-This harness runs the software delivery pipeline as a chain of agents, with the human kept at the decision points where judgment is irreplaceable. You explain intent, approve the understanding and the design, decide escalations, and merge. Everything in between — implementation, tests, pull requests, multi-reviewer code review, fix rounds, CI maintenance, rebases — is done by agents that message you exactly when it is your turn and never before.
-
-The rest of this document walks the whole pipeline: the end-to-end diagram, each workflow stage, the lessons layer that lets the system improve over time, the shared conventions, and the repository layout. Model assignments are not repeated here; the model table in the [README](README.md) is the single source of truth for which model runs what.
+This harness runs the software delivery pipeline as a simple chain — brainstorm, implement, review loop, human review, merge and clean — with the human kept at the decision points where judgment is irreplaceable. You explain intent, approve the design, decide escalations, and merge. Everything in between is done by three agents and a handful of skills, with no stored state of any kind: GitHub and the agents' own context are the only memory.
 
 ## Pipeline
 
@@ -11,77 +9,81 @@ flowchart TD
     Y1[you: brainstorm] --> U[stage 1: understanding]
     U --> Y2[you: approve understanding]
     Y2 --> D[stage 2: design overview]
-    D --> R[red-team both stages]
-    R --> Y3[you: approve design]
-    Y3 --> BR[brief + architecture lock]
-    BR --> B[builder: code + tests]
-    B --> DP[draft PR]
-    DP --> P[review panel]
-    P --> S[skeptic verification]
-    S --> T[triage + builder fixes]
-    T -->|major changes, max 3 rounds| P
-    T -->|escalations| Y4[you: decide]
-    Y4 --> T
-    T -->|converged| O[flip draft to open]
-    O --> SH[shepherd: keep green]
-    SH --> Y5[you: final review]
-    Y5 --> Y6[you: merge]
-    Y6 --> LP[merge learning pass]
-    T -.->|lessons ride the PR| L[repo lessons + INDEX]
-    LP -.-> L
-    L -.-> BR
-    L -.-> P
+    D --> R[skeptic: red-team both stages]
+    R --> Y3[you: approve the spec]
+    Y3 --> B[builder: code + tests + draft PR]
+    B --> P[review-panel: blind personas]
+    P --> S[skeptic: verify findings]
+    S --> F[builder: fix or rebut]
+    F -->|substantive fixes, max 3 rounds| W[wake the same panel]
+    W --> S
+    F -->|converged| O[flip draft to open]
+    O --> Y4[you: review and merge]
+    Y4 --> M[monitor wakes builder: feedback, CI, rebase]
+    M --> Y4
+    Y4 --> C[builder: cleanup on merge]
 ```
 
 ## Workflow
 
-### W1 — UNDERSTAND (`brainstorming`)
+### 1. Understand (`brainstorming`)
 
-Turns a raw request into an approved design checkpoint through two gated stages. Stage 1 (Understanding) captures the reasoning chain — the task, who it is for, what the output enables, the request, and observable acceptance criteria. Stage 2 (Design Overview) produces the recommended architecture: two to three genuinely different options ranked only by outcome quality, with the green-field design always present and effort never a ranking criterion. An adversarial red-team attacks both stages, hunting for blind spots and for human-economics smuggled into the ranking, before you see the result. Each stage ends with your explicit approval, and the approved architecture is recorded in the checkpoint's Decisions section. Nothing proceeds to implementation without your sign-off.
+Two gated stages turn a raw request into an approved spec. Stage 1 (Understanding) captures the reasoning chain — the task, who it is for, what the output enables, the request, observable acceptance criteria. Stage 2 (Design Overview) produces genuinely different architectures ranked only by outcome quality, green-field always present, effort never a criterion. The skeptic red-teams both stages before you see the result, and each stage ends with your explicit approval. The spec lives in the conversation; it is published only if you ask, and only to GitHub (a tracking issue). Nothing is written to disk — repositories hold only architectural docs and ADRs.
 
-### W2 — BUILD (`implement`)
+### 2. Build (`implement`)
 
-The single manual entry point of an otherwise automatic chain. The main agent authors an implementation brief that carries the architecture lock — the approved design travels with the work, and the builder must escalate rather than silently deviate from it. One persistent builder agent is spawned per PR: it writes all code and tests, keeps its implementation rationale for the PR's entire life, and is the only agent that ever writes code for that PR, in the initial build and in every later fix round. Work lands as small, single-concern PRs, each with its own tests and a Verification section (exact command plus expected output). PRs are created as drafts via `push-pr` — draft while machines iterate, open only when humans enter.
+The single manual entry point of an otherwise automatic chain. The main agent is an orchestrator that never touches code: it creates a worktree and branch, spawns ONE persistent builder agent with the spec, and coordinates everything after by waking agents. The builder writes all code and tests, opens a draft PR (via `push-pr`), and remains that PR's only implementer for its entire life. It escalates rather than silently deviating from the approved design.
 
-### W3 — REVIEW (`pr-review` + `review-triage`)
+### 3. Review (`review-panel`)
 
-The in-depth review loop runs on the draft PR. `pr-review` spawns a blind, parallel panel of reviewers; findings survive only if skeptic agents fail to refute them, and any finding bound for auto-fix additionally requires an executable reproducer before the fix is written. Verified findings post to the PR as inline resolvable comments plus a sticky summary — a single top-level comment updated in place each round rather than reposted. `review-triage` then classifies every unresolved thread into exactly one bucket, dispatches fixes to the resumed builder, and re-triggers the panel only when major changes were applied (three rounds maximum).
+The panel is spawned ONCE per PR: one generic `reviewer` agent per selected persona, blind and parallel, each reading its own persona file; the `correct-design` persona is also told where the spec lives. Findings are deduped, then verified by the `skeptic` (provenance and severity stripped; refute-by-default); survivors post as ONE batched inline review per round. The builder then fixes or rebuts on the threads. For re-checks the SAME reviewers are woken — their context survives, so no bookkeeping (markers, trailers, manifests) exists or is needed. At most 3 rounds, then the PR flips open and you get one of exactly two messages: "ready for your final review - push back or merge" or "escalated items - findings pushed back with uncertainty, your call".
 
-This is the cross-model integrity chain: the builder writes, the panel reviews, the skeptics verify, the builder fixes — every artifact is checked by a different model than the one that produced it, and the README's model table explains the split. When the loop converges, the PR flips from draft to open (the draft-to-open flip, `gh pr ready`) and you receive one of exactly two message types: (1) "ready for your final review - push back or merge", or (2) "escalated items - findings pushed back with uncertainty, your call", the latter also posted as a top-level bot-headed PR comment. After convergence only humans review; later pushes never re-spawn the panel.
+`/review-panel` also runs standalone on any PR, including ones the harness did not build.
 
-### W4 — KEEP-GREEN (`pr-shepherd`)
+### 4. Human review and watch
 
-A lightweight maintenance routine owns the open PR until merge so nobody has to babysit it, keeping it green — passing CI, rebased on base, description in sync. It rebases behind base (force-push with lease only, on the PR's own branch only), classifies CI failures (flaky gets rerun, legitimate failures go to the resumed builder), autofixes lint, and keeps the PR description in sync with the diff. It pings you using the same two message types and never merges, closes, or spawns reviewers. On merge it cleans up the branch, worktree, and state, then hands the PR's full paper trail — panel comments, triage commits, escalations, your comments — to a learning pass.
+After the flip, humans own the PR. The main session arms one persistent monitor (`github-comment`, Mode 5) that polls comments, submitted reviews, review threads, CI, pushes, and merge state. On any event its only action is waking the builder with "PR updated" — the builder inspects the PR and does the rest: responds to your feedback and implements it, fixes CI, rebases when the base moves, and on merge deletes its worktree and branch. If the session dies, you resume it; GitHub holds the full state and the builder keeps its context.
 
-### L — LEARN (lessons layer)
+## Agents
 
-Every human intervention becomes a lesson so future rounds need less of you. Lessons ride the PR that taught them: capture events during build and review write lesson files into the working tree, committed alongside the fixes, so learning stays human-gated through your mandatory final review with zero extra PRs. The merge-time learning pass distills anything missed into staging that rides the next PR. Lessons live in the target repository and are scoped by domain and path globs, so future brainstorms, builds, and reviews load only what applies to the work at hand.
+| Agent | Role |
+|---|---|
+| `builder` | One per PR, persistent for its whole life: implements from the spec, opens the draft PR, fixes or rebuts review findings, and after the flip handles feedback, CI, rebases, and cleanup on merge. Escalates instead of deviating from the approved design. |
+| `reviewer` | One generic definition holding the review discipline, severity scale, precision contract, and the single findings format. Each spawn reads and adopts the persona file it is pointed at. Read-only. |
+| `skeptic` | Adversarial verifier: refutes findings with codebase evidence (refute-by-default) and red-teams brainstorm designs. Read-only; `effort: xhigh` pinned in its definition — the only effort setting in the harness. |
 
-## Lessons mechanics
+All agents inherit the session model. Agent descriptions state capability only — every subagent can see the roster of named agents, so a description must never leak pipeline structure to blind reviewers.
 
-Lessons live in the target repository — not in this one — at `.claude/lessons/<domain>/<slug>.md`, each with YAML frontmatter: `name`, a one-line `summary`, `domains` (list), and `globs` (path patterns). `.claude/lessons/INDEX.md` holds one line per lesson (summary plus domains) and is regenerated whenever a lesson is written; the repo's `CLAUDE.md` imports it via `@.claude/lessons/INDEX.md`, so the index enters context automatically in every session.
+## Skills
 
-Retrieval scales through the index: consumers (the builder, each panel reviewer, brainstorming) read the one-line index and load the full text only of lessons whose domains and globs match the diff or task at hand. Two hundred lessons cost two hundred index lines, not two hundred files in context.
-
-Capture is event-driven: triage records user push-backs and rejected findings (repo-specific ones as repo lessons, generalizable rulings as care-abouts and negative rules appended to the reviewer and persona files), brainstorming records platform decisions, and the shepherd's merge-time pass distills anything missed from the PR's paper trail into staging under `~/.claude/state/lessons/<owner>-<repo>/`, which the next build commits into the repo's lessons. All repository lessons reach the repo through PRs you review.
+| Skill | Purpose |
+|---|---|
+| `brainstorming` | Gated Understanding and Design stages, skeptic red-team, approved spec. |
+| `implement` | The delivery chain: worktree, builder, draft PR, review loop via `review-panel`, open flip, one message, monitor watch. |
+| `review-panel` | The standalone panel: persona roster and selection, blind parallel reviewers spawned once, skeptic verification, one batched review per round, wake-based re-checks. Personas live in `personas/`, one file each. |
+| `github-comment` | Agent-facing gh library: batched inline reviews, thread replies and resolution, and the PR monitor plus wake-the-builder pattern. |
+| `push-pr` | Creates or updates a PR (draft in the chain) with template-filled or generated body, labels, and a Verification section. |
+| `visual-evidence` | Screenshots and interaction GIFs for frontend PRs, published as an artifact and linked from one upserted comment. |
+| `receiving-code-review` | Discipline for handling review feedback: verify before implementing, calibrated push-back, no performative agreement. |
+| `build-design-system` | Builds a complete frontend design system from an approved design exploration. |
 
 ## Conventions
 
-- **Per-repo profiles.** Skills contain zero repository-specific facts. A repo profile holds those facts — `trust` (full-autonomy or read-only), `frontend`, `base_branch`, `launch_command`, `infrastructure`, `spec_location` — in the harness's per-repo project memory: one JSON file per repository at `~/.claude/profiles/<owner>-<repo>.json`, asked once when first needed (question selector) and written back. Unattended runs missing a fact use the safe default (read-only / skip) and flag it in the report.
-- **Bot identity.** Every autonomously posted GitHub comment begins with the line `**Harness automated comment**`. PR descriptions and commit messages you own never mention AI or automation.
-- **Autonomous fix commits** carry the git trailer `Harness-Fix: true`, so the panel never re-reviews its own fixes into a loop.
-- **PR lifecycle.** Draft while machines iterate; flipped to open the moment a human-facing message fires.
+- **No stored data.** No profiles, state directories, checkpoints, briefs, lessons, markers, or trailers. Repo facts come from `gh` and the repository at runtime; anything worth remembering across sessions goes to Claude Code's built-in memory.
+- **Bot identity.** Every autonomously posted GitHub comment begins with the line `**Harness automated comment**`. Commit messages and PR bodies never mention AI or automation; no emoji anywhere in outward-facing text.
+- **PR lifecycle.** Draft while machines iterate; flipped to open the moment a human-facing message fires. Never merged, closed, or approved autonomously.
+- **One builder per PR.** All fixes go to the same persistent agent by name; a fresh fixer per round is forbidden.
 
 ## Repository layout
 
 ```
 ~/.claude/
 ├── CLAUDE.md        global rules (decision making, code quality, testing, workflow)
-├── settings.json    permissions, plugins, environment
+├── settings.json    permissions, hooks, environment
 ├── rules/           supplementary global rules
 ├── hooks/           PreToolUse guards (commit attribution)
-├── agents/          builder, skeptic
-├── skills/          workflow and support skills (see the README skills table)
+├── agents/          builder, reviewer, skeptic
+├── skills/          the skills table above (review-panel/personas/ holds the persona files)
 ```
 
 An ignore-all `.gitignore` keeps Claude Code's runtime files (caches, history, telemetry) out of version control; only configuration is whitelisted.

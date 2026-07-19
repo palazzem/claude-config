@@ -1,6 +1,6 @@
 ---
 name: visual-evidence
-description: Capture screenshots and a GIF of the key interaction as visual evidence for frontend PRs. Runs automatically inside the review loop when the repo profile says frontend: yes; invocable manually on any PR. Re-captures when the PR HEAD moves. Produces before/after pairs when behavior changed and embeds everything in one upserted PR comment.
+description: Capture screenshots and a GIF of the key interaction as visual evidence for frontend PRs. Invoked by the implement chain's review loop when the PR changes UI, or manually on any PR. Re-captures when the PR HEAD moves. Produces before/after pairs when behavior changed and embeds everything in one upserted PR comment.
 ---
 
 # Visual Evidence for Frontend PRs
@@ -13,31 +13,23 @@ Nothing is ever committed to the repository.
 
 ## Trigger
 
-- **Automatic**: invoked by the review loop's owner (the implement skill's
-  review-loop section, W3) for any PR whose repo profile has `frontend: yes`,
-  whenever the PR HEAD differs from the SHA recorded in the evidence comment. On first
-  encounter with a repo whose profile lacks the `frontend` field, ask the user
-  once via the question selector and persist the answer to the repo profile.
-  Unattended run with the field missing: skip capture and flag "visual evidence
-  skipped - frontend unknown" in the run report.
-- **Manual**: `/visual-evidence` on any PR, any repo, regardless of profile.
+- **Automatic**: invoked by the review loop's owner (the implement skill) when
+  the PR's diff changes user-facing UI (routes, pages, components, styles),
+  whenever the PR HEAD differs from the SHA recorded in the evidence comment.
+- **Manual**: `/visual-evidence` on any PR, any repo.
 
-## Profile fields used
+## Runtime inputs
 
-The repo profile is the harness's per-repo project memory: one JSON file per
-repository at `~/.claude/profiles/<owner>-<repo>.json`. "Ask once" means ask via the
-question selector and write the answer back to the profile file.
-
-| Field | Purpose | If missing |
-|---|---|---|
-| `frontend` | gates the automatic trigger | ask once / skip unattended |
-| `launch_command` | how the capture runner starts the app | ask once / skip unattended, flag in report |
-| `base_branch` | source for before/after baseline worktree | ask once / default to the repo's default branch |
-| `trust` | gates comment posting | read-only default: capture locally, report only |
+Nothing is stored: every fact is derived at run time. The base branch comes from
+the PR (`gh pr view --json baseRefName`). The launch command is discovered from
+the repository (package manifest scripts, README, Makefile, container files); if
+it cannot be determined confidently, ask the user once via the question selector
+- in an unattended run, skip capture and flag "visual evidence skipped - launch
+command unknown" in the report.
 
 ## Steps
 
-1. **Resolve inputs.** Read the repo profile. Determine PR number, current
+1. **Resolve inputs.** Determine PR number, current
    `HEAD_SHA` (`gh pr view <n> --json headRefOid -q .headRefOid`), and the
    evidence working directory in the session scratchpad (capture files feed
    the artifact; nothing lands in the repository).
@@ -55,10 +47,10 @@ question selector and write the answer back to the profile file.
    would manually click through) for the GIF. Note whether the PR CHANGES
    existing behavior (before/after needed) or only ADDS new surface (after only).
 
-4. **Spawn the capture runner** — an agent with `model: "haiku"` (Agent tool
-   `model` param). Pass it the capture plan, the `launch_command`, and the output
+4. **Spawn the capture runner** — a general-purpose agent via the Agent tool.
+   Pass it the capture plan, the launch command, and the output
    directory. The runner:
-   1. Starts the app with the profile's `launch_command` and waits for readiness.
+   1. Starts the app with the launch command and waits for readiness.
    2. Drives it with playwright via npx (`npx playwright ...`; browsers are
       expected in the local cache — run `npx playwright install chromium` if not).
    3. Captures one screenshot per screen/state from the plan
@@ -72,7 +64,7 @@ question selector and write the answer back to the profile file.
       manifest, never silently dropped).
 
 5. **Before/after pairs** — only when step 3 found changed behavior. Create a
-   worktree at the base branch (`git worktree add <scratch>/base <base_branch>`),
+   worktree at the PR's base branch (`git worktree add <scratch>/base <base-branch>`),
    run the same capture plan there via the runner (same screens/states), store as
    `before-<screen>-<state>.png` next to the `after` shots, remove the worktree.
 
@@ -107,15 +99,15 @@ question selector and write the answer back to the profile file.
    (unreachable states, with reasons, if any)
    ```
 
-   The recorded `<short-sha>` is the re-capture key: the review loop (W3)
+   The recorded `<short-sha>` is the re-capture key: the review loop
    compares it with the PR HEAD after each fix round and re-invokes this skill
    when they differ. Re-capture ends when the loop does — after the PR flips
    OPEN, evidence is refreshed only by a manual invocation.
 
 ## Rails
 
-- Read-only repos (profile `trust: read-only`): capture and publish the
-  artifact, report the link to the user directly, never post the PR comment.
+- If the PR comment cannot be posted (no comment access), report the artifact
+  link and the summary table to the user directly instead.
 - Never merge, close, or modify anything in the repository; the evidence
   comment (and the artifact) are this skill's only outputs.
 - If the app fails to launch twice, stop retrying: report the failure and the

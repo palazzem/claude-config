@@ -1,0 +1,182 @@
+---
+name: github-comment
+description: Internal agent-facing library for GitHub PR interaction via gh - post line-anchored (inline) review comments and batched reviews, reply to and resolve review threads, and arm a PR monitor that fires on comments, submitted reviews, CI results, pushes, and merge. Other skills and agents invoke these techniques instead of reimplementing them.
+---
+
+# GitHub PR Comments and Monitoring via gh
+
+`gh pr review` cannot place comments on specific lines — it only supports review-level approve/comment/request-changes. The REST API can. Modes 1-4 wrap the working workaround documented in cli/cli#359; Mode 5 arms the PR monitor.
+
+## Rules (apply to every posting mode)
+
+1. Every comment body posted through this skill MUST begin with the exact line `**Harness automated comment**` followed by a blank line, then the content. This applies to the review body AND each inline comment body. The header is how any later reader distinguishes machine posts from human ones - a thread where any comment lacks it (and is not from a known bot account) is a human thread.
+2. `commit_id` is always the PR's current HEAD SHA. Fetch it fresh immediately before posting — never reuse a SHA cached earlier in the run:
+   ```bash
+   HEAD_SHA=$(gh pr view <n> --json headRefOid -q .headRefOid)
+   ```
+3. `line` is a file line number on the given `side` of the diff, not a diff position. `side: RIGHT` targets the new file version (added/unchanged lines); `side: LEFT` targets deleted lines in the old version.
+4. A line can only be commented on if it appears in the PR diff (in the hunk context shown by `git diff` / the Files Changed view).
+5. No emoji anywhere; the review event is always `COMMENT`.
+
+## Mode 1 — Batch review (PREFERRED)
+
+One submitted review carrying all inline comments. Use this whenever posting more than one comment: atomic, single notification, comments grouped under one review.
+
+Write the payload to a JSON file (use the scratchpad directory), then POST:
+
+```bash
+gh api repos/{owner}/{repo}/pulls/{n}/reviews \
+  --method POST \
+  --input review.json
+```
+
+`review.json`:
+
+```json
+{
+  "commit_id": "<HEAD_SHA>",
+  "event": "COMMENT",
+  "body": "**Harness automated comment**\n\nReview summary body.",
+  "comments": [
+    {
+      "path": "path/to/file.ts",
+      "line": 42,
+      "side": "RIGHT",
+      "body": "**Harness automated comment**\n\nSingle-line finding."
+    },
+    {
+      "path": "path/to/other.ts",
+      "start_line": 40,
+      "start_side": "RIGHT",
+      "line": 45,
+      "side": "RIGHT",
+      "body": "**Harness automated comment**\n\nMulti-line finding covering lines 40-45."
+    }
+  ]
+}
+```
+
+- Multi-line ranges: add `start_line` + `start_side` (the range start) alongside `line` + `side` (the range end). Start must be strictly before end.
+- The POST is all-or-nothing: one invalid comment entry fails the whole review with HTTP 422. See failure modes below for recovery.
+
+## Mode 2 — Single-comment fallback
+
+Direct comment endpoint, one inline comment per call. Use when posting exactly one comment, or when salvaging entries after a batch failure.
+
+```bash
+gh api repos/{owner}/{repo}/pulls/{n}/comments \
+  --method POST \
+  -f body='**Harness automated comment**
+
+Finding text.' \
+  -f commit_id="$HEAD_SHA" \
+  -f path='path/to/file.ts' \
+  -F line=42 \
+  -f side='RIGHT'
+```
+
+Multi-line range: add `-F start_line=40 -f start_side='RIGHT'` before `line`/`side`.
+
+## Mode 3 — Thread replies
+
+Reply inside an existing review thread:
+
+```bash
+gh api repos/{owner}/{repo}/pulls/{n}/comments/{comment_id}/replies \
+  --method POST \
+  -f body='**Harness automated comment**
+
+Reply text.'
+```
+
+`comment_id` is the numeric `databaseId` of the thread's FIRST comment.
+
+## Mode 4 — Resolving threads
+
+Resolution is GraphQL-only. First list threads to get node IDs:
+
+```bash
+gh api graphql -f query='
+  query($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) {
+        reviewThreads(first: 100) {
+          nodes {
+            id
+            isResolved
+            path
+            comments(first: 1) { nodes { databaseId body } }
+          }
+        }
+      }
+    }
+  }' -f owner=<owner> -f repo=<repo> -F number=<n>
+```
+
+Match the target thread by `path` plus the first comment's `databaseId` or body prefix, then resolve:
+
+```bash
+gh api graphql -f query='
+  mutation($threadId: ID!) {
+    resolveReviewThread(input: {threadId: $threadId}) {
+      thread { id isResolved }
+    }
+  }' -f threadId=<PRRT_node_id>
+```
+
+Never resolve a thread a human opened or replied in.
+
+## Mode 5 — PR monitor and the wake pattern
+
+Arm ONE persistent Monitor per watched PR, owned by the MAIN session (a spawned subagent cannot receive monitor events). GitHub splits PR activity across separate API objects — issue comments, submitted reviews, review (inline) comments, CI checks, pushes, merge state — and the script must poll ALL of them: a monitor watching only comments misses a human "Request changes" review entirely.
+
+```bash
+Monitor (persistent: true, description: "PR #<n> activity"):
+
+PR=<n>; OWNER=<owner>; REPO=<repo>; prev=""
+while true; do
+  cur=$(
+    {
+      gh api "repos/$OWNER/$REPO/issues/$PR/comments?per_page=100" --jq '.[-1].id // 0' 2>/dev/null || echo 0
+      gh api "repos/$OWNER/$REPO/pulls/$PR/reviews?per_page=100" --jq '.[-1].id // 0' 2>/dev/null || echo 0
+      gh api "repos/$OWNER/$REPO/pulls/$PR/comments?per_page=100" --jq '.[-1].id // 0' 2>/dev/null || echo 0
+      gh pr view "$PR" --repo "$OWNER/$REPO" \
+        --json state,headRefOid,mergeStateStatus,statusCheckRollup \
+        --jq '[.state, .headRefOid, .mergeStateStatus,
+               ([.statusCheckRollup[]? | .conclusion // .state] | sort | join(","))] | join(" ")' \
+        2>/dev/null || echo unknown
+    } | tr '\n' '|'
+  )
+  if [ -n "$prev" ] && [ "$cur" != "$prev" ]; then
+    echo "PR_UPDATED #$PR"
+    case "$cur" in *MERGED*) echo "PR_MERGED #$PR"; exit 0;; *CLOSED*) echo "PR_CLOSED #$PR"; exit 0;; esac
+  fi
+  prev="$cur"
+  sleep 60
+done
+```
+
+The line coverage is deliberate: a new issue comment, a submitted review (human or bot), a new inline review comment, a CI conclusion change, a push (head SHA), a base-branch conflict (`mergeStateStatus`), and merge/close all change `cur` and emit an event.
+
+**The wake pattern.** On any event, the main session's ONLY action is waking the PR's builder agent:
+
+```
+SendMessage to: builder-<branch-slug>
+message: "PR updated: PR #<n>"
+```
+
+Nothing else — no classification, no fixing, no replying. The builder inspects the PR and decides what the event means. On `PR_MERGED` / `PR_CLOSED` the monitor exits by itself; the wake message lets the builder run its cleanup, and the watch is over.
+
+## Failure modes
+
+| Symptom | Cause | Recovery |
+|---|---|---|
+| 422 `line must be part of the diff` (or `...position is invalid`) | Target line is not in the PR diff | Re-read the diff for that file; anchor to the closest changed line in the same file and say "re: line N" in the body. If the file has no nearby diff line, fold the finding into the review `body` (Mode 1) or post `gh pr comment <n> --body ...` with the bot header. |
+| 422 on the batch POST | One or more invalid entries fail the entire review | Parse the error to identify the offending entry; fix its coordinates or demote it to a general comment; retry the batch. If the error does not identify the entry, post the entries individually via Mode 2 — the failures isolate themselves. |
+| 422 `commit_id is not part of the pull request` (or comments land as "outdated") | Stale `commit_id` — the branch was pushed after the SHA was fetched | Refetch `HEAD_SHA`, re-validate line coordinates against the new diff, retry. |
+| 404 on `/comments/{id}/replies` | `comment_id` is not the thread's first comment, or is a node ID | Use the numeric `databaseId` of the FIRST comment in the thread (from the GraphQL thread listing). |
+| GraphQL `resolveReviewThread` errors | Wrong ID type or thread already resolved | Thread IDs are `PRRT_...` node IDs from `reviewThreads`, not comment IDs. Check `isResolved` before mutating; already-resolved is a no-op success, not an error. |
+
+## Ordering discipline
+
+When posting a review round: fetch HEAD SHA → build all coordinates against that SHA's diff → POST immediately. Minimize the window between fetch and post; if any other step pushes commits in between, restart from the SHA fetch.
