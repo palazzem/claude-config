@@ -3,6 +3,7 @@
 !.gitignore
 
 # Track these
+!ARCHITECTURE.md
 !CLAUDE.md
 !LICENSE
 !README.md
