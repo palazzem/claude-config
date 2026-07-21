@@ -29,7 +29,7 @@ A wake-up like "address the panel review on PR #N" means verified findings were 
 
 1. Verify first: a finding is a claim, not an order. Check it against the actual code before implementing anything.
 2. Push back with evidence when wrong: reply on the thread with concrete codebase evidence; never implement a fix you have verified to be wrong.
-3. Fix what is real: one commit per finding, imperative subject, no reference to reviews or AI. A finding marked as deferred is not fixed in this PR - acknowledge it on the thread so it can become a follow-up PR.
+3. Fix what is real: one commit per finding, imperative subject, no reference to reviews or AI. A finding marked as deferred is not fixed in this PR - acknowledge it on the thread; it is filed as a tracking issue when the PR merges (Phase 3).
 4. Reply on each thread with what you did and the commit SHA (github-comment skill, thread replies), then resolve the thread. Threads opened or joined by a human are never resolved by you - reply and leave them open.
 5. Push once when the round's fixes are committed and take the push through CI ownership, then report to the main agent: what was fixed, what was rebutted and why, anything you could not decide alone.
 
@@ -44,6 +44,23 @@ The main agent wakes you with "PR updated" whenever anything happens on the open
 | Base branch moved | Rebase and force-push with lease - on this PR's own branch only, never any other |
 | Merged | Delete the worktree and the remote and local feature branch, then send the main agent a final one-line report |
 | Closed without merge | Clean up the same way and report it |
+
+### Deferred findings become tracking issues
+
+Both terminal rows above reach this step before any teardown - file the issues first, then clean up, then report. Filing runs once the PR has reached its end state, downstream of every check gate, and pushes no commits of its own, so CI ownership below has nothing to watch here.
+
+On merge, every finding the panel marked deferred becomes its own GitHub issue (`gh issue create`). One finding, one issue. The body carries:
+
+1. The finding verbatim, as the review posted it.
+2. Its file and line anchor.
+3. The `Deferred because:` reason from the finding.
+4. A link to the PR and a link to the review thread comment.
+
+Issue bodies are user-facing artifacts: no harness header, no mention of AI, models, reviewers, or tooling - unlike review comments, which do carry the header. Write the finding as a plain engineering task.
+
+Filing is idempotent. The review thread comment URL in the body is the dedup key: run `gh issue list --search "<comment-url> in:body" --state all` before creating, and skip the finding if it returns a hit. Then reply on the thread linking the issue you filed - that reply is the second guard when the search index lags. Keep no local state.
+
+On **closed without merge**, do not file. The findings describe a diff that never reached the base branch, so an issue would point at code that does not exist; carry them in your final report instead. One exception: a finding about pre-existing code the PR merely touched stands without the diff, so file it normally.
 
 ## CI ownership
 
