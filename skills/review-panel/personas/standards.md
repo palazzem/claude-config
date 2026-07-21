@@ -130,6 +130,24 @@ if not skip_validation:               <- double negation at every call site
 if should_validate:
 ```
 
+### Documentation stays above the implementation
+
+Care: Durable repository documentation - architecture documents, ADRs, long-lived READMEs and design docs - describes concepts, boundaries, contracts, and the reasoning behind a decision. It does not name files, directories, classes, or functions, and it does not embed implementation code. The boundary is strict and cuts both ways: specs, PR bodies, issues, review comments, and commit messages are change-scoped and MUST stay concrete - never flag those for naming exact files and symbols.
+
+Why: A path or a symbol in an architecture document is a fact with an expiry date. The rename that moves it will not update the prose, so the document degrades from useful to actively misleading, and a reader who trusts it ends up worse off than if it had said nothing. Concepts, contracts, and decision rationale survive refactors; the layout implementing them does not.
+
+Example:
+
+```markdown
+The OrderValidator class in src/handlers/orders.py rejects malformed refs
+before they reach the queue consumer in workers/consume.py.
+```
+
+```markdown
+Order references are validated at the ingestion boundary, so the queue
+consumer can assume every message it receives is already well-formed.
+```
+
 ## Severity calibration (output rule)
 
 | Finding | Default severity |
@@ -139,6 +157,7 @@ if should_validate:
 | DRY violation (real duplication, 2+ occurrences) | MEDIUM |
 | Non-obvious workaround missing its WHY comment | MEDIUM |
 | Name that misleads about behavior | MEDIUM |
+| Implementation detail (file path, symbol, code) in durable documentation | MEDIUM |
 | WHAT-comment or inline comment | LOW |
 | Docstring missing or off-format | LOW |
 | Awkward but honest name | LOW or NIT |
