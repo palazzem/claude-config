@@ -14,9 +14,18 @@ Locate what to implement: the approved brainstorming result (in this conversatio
 
 ## 2. Setup and build
 
-1. Create an isolated worktree and feature branch off the base branch (`git worktree add`). Never build on the user's checked-out branch.
-2. Spawn one builder via the Agent tool with the stable name `builder-<branch-slug>` (`<branch-slug>` = the branch name lowercased, every non-alphanumeric run replaced by a single hyphen - deterministic, so the name can always be re-derived from `gh pr view --json headRefName`). Its prompt: the spec (inline, or the GitHub link to fetch), the worktree path, the branch, and the base branch.
+1. Decide the feature branch name first - `<login>/<slug>`, with `<login>` from `gh api user --jq .login` (derive it at runtime, never hardcode) and `<slug>` describing the change. Everything below is derived from it.
+2. Spawn one builder via the Agent tool with `isolation: "worktree"` and the stable name `builder-<branch-slug>` (`<branch-slug>` = the branch name lowercased, every non-alphanumeric run replaced by a single hyphen - deterministic, so the name can always be re-derived from `gh pr view --json headRefName`; branch `palazzem/worktree-internals` gives agent `builder-palazzem-worktree-internals`). Its prompt: the spec (inline, or the GitHub link to fetch), the branch name to adopt, and the base branch.
 3. The builder implements, tests, and opens a draft PR (its Phase 1), then reports the PR number. It escalates rather than deviating from the approved design; answer escalations from the spec when possible, and surface the rest to the user as a type 2 message before resuming it.
+
+### Isolation
+
+`isolation: "worktree"` is what actually isolates a builder. Claude Code creates `<repo>/.claude/worktrees/agent-<hex>` on a generated `worktree-agent-<hex>` branch cut fresh from `origin/<base>`, locks the tree to that agent, and pins the agent's working directory to it.
+
+- **Never create the worktree by hand.** A tree made with `git worktree add` is invisible to the isolation guard: the guard does not recognize it as the agent's assigned workspace, so the agent's writes are blocked or redirected into whichever tree the guard does consider current. Manual isolation is not isolation.
+- **Never use `EnterWorktree` here.** It mutates the calling session's process-wide working directory, and the orchestrator must stay in the user's checkout. It also refuses creation from a subagent with a cwd override, and a parent that isolates ends up redirecting its subagents' writes into the parent's own tree rather than each subagent's.
+- **The builder adopts the branch name after spawn.** `isolation: "worktree"` generates the branch name, so `<login>/<slug>` cannot be set at creation. The builder's first action is `git branch -m <login>/<slug>`, which renames in place, leaves the worktree registration pointing at the new ref, and leaves no stray branch behind. State the target name in the spawn prompt.
+- **Built-in worktrees are locked while their owner lives.** `git worktree list --porcelain` reports `locked claude agent ...` on them, and `git worktree remove` fails with exit 128 on a locked tree. Teardown must `git worktree unlock` first rather than forcing.
 
 One builder per PR, forever: every later fix goes to the same agent via SendMessage. Never spawn a second builder or a fresh fixer for a PR that has one - the builder's accumulated context is the point.
 
