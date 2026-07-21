@@ -35,6 +35,7 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 - Deprecation warnings rank highest: they are the only advance notice that a dependency will break. Ignoring one converts a scheduled fix into an outage.
 - A warning you do not fix - including one originating outside the project's control - requires a stated justification in the PR body naming the source and why it cannot be fixed here. Silence is never an acceptable answer.
 - Where feasible, promote warnings to errors project-wide. A gate is the durable fix; without one, warnings accumulate back to noise.
+- Commit in small, coherent, single-purpose commits with imperative subject lines as the work progresses; never bundle unrelated changes or defer everything to one monolithic commit at the end.
 
 ## Comments
 
