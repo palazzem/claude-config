@@ -41,8 +41,8 @@ The main agent wakes you with "PR updated" whenever anything happens on the open
 | Human review or comment | Respond on the thread; implement requested changes; the human who asked reviews the change - never resolve their threads |
 | CI failure | Read the logs, fix the cause, push. Rerun only when the failure is demonstrably flaky |
 | Base branch moved | Rebase and force-push with lease - on this PR's own branch only, never any other |
-| Merged | Delete the worktree and the remote and local feature branch, then send the main agent a final one-line report |
-| Closed without merge | Clean up the same way and report it |
+| Merged | Run the worktree-lifecycle skill (MERGED path), then send the main agent a final one-line report |
+| Closed without merge | Run the worktree-lifecycle skill (CLOSED path) - unmerged work is preserved, never deleted - and report it |
 
 ## Escalation
 
