@@ -130,36 +130,45 @@ Never resolve a thread a human opened or replied in.
 
 Arm one persistent Monitor per watched PR, owned by the main session (a spawned subagent cannot receive monitor events). GitHub splits PR activity across separate API objects - issue comments, submitted reviews, review (inline) comments, CI checks, pushes, merge state - and the script must poll all of them: a monitor watching only comments misses a human "Request changes" review entirely.
 
-Two rules keep the monitor free of false wake-ups, both learned from live failures:
-
-- A transient API failure must skip the poll cycle, never substitute a fallback value into the state tuple - a fallback makes the tuple change on the failure and change back on recovery, producing two spurious events per network hiccup.
-- A `mergeStateStatus` of `UNKNOWN` also skips the cycle: GitHub recomputes mergeability lazily, so the field transiently reads `UNKNOWN` after any event and flips back on its own.
-
 ```bash
 Monitor (persistent: true, description: "PR #<n> activity"):
 
-PR=<n>; OWNER=<owner>; REPO=<repo>; prev=""
+PR=<n>; OWNER=<owner>; REPO=<repo>; prev=""; merge_known=""
 while true; do
-  a=$(gh api "repos/$OWNER/$REPO/issues/$PR/comments?per_page=100" --jq '.[-1].id // 0' 2>/dev/null) || { sleep 60; continue; }
-  b=$(gh api "repos/$OWNER/$REPO/pulls/$PR/reviews?per_page=100" --jq '.[-1].id // 0' 2>/dev/null) || { sleep 60; continue; }
-  c=$(gh api "repos/$OWNER/$REPO/pulls/$PR/comments?per_page=100" --jq '.[-1].id // 0' 2>/dev/null) || { sleep 60; continue; }
-  d=$(gh pr view "$PR" --repo "$OWNER/$REPO" \
+  issues=$(gh api --paginate "repos/$OWNER/$REPO/issues/$PR/comments?per_page=100" --jq '.[-1].id // 0' 2>/dev/null) || { sleep 60; continue; }
+  issues=$(printf '%s' "$issues" | tail -n 1)
+  reviews=$(gh api --paginate "repos/$OWNER/$REPO/pulls/$PR/reviews?per_page=100" --jq '.[-1].id // 0' 2>/dev/null) || { sleep 60; continue; }
+  reviews=$(printf '%s' "$reviews" | tail -n 1)
+  rcomments=$(gh api --paginate "repos/$OWNER/$REPO/pulls/$PR/comments?per_page=100" --jq '.[-1].id // 0' 2>/dev/null) || { sleep 60; continue; }
+  rcomments=$(printf '%s' "$rcomments" | tail -n 1)
+  line=$(gh pr view "$PR" --repo "$OWNER/$REPO" \
     --json state,headRefOid,mergeStateStatus,statusCheckRollup \
-    --jq '[.state, .headRefOid, .mergeStateStatus,
+    --jq '[.mergeStateStatus, .state, .headRefOid,
            ([.statusCheckRollup[]? | .conclusion // .state] | sort | join(","))] | join(" ")' \
     2>/dev/null) || { sleep 60; continue; }
-  case "$d" in *UNKNOWN*) sleep 60; continue;; esac
-  cur="$a|$b|$c|$d"
+  merge=${line%% *}; rest=${line#* }
+  if [ "$merge" = UNKNOWN ] && [ -z "$merge_known" ]; then
+    sleep 60; continue
+  elif [ "$merge" = UNKNOWN ]; then
+    merge=$merge_known
+  else
+    merge_known=$merge
+  fi
+  cur="$issues|$reviews|$rcomments|$rest|$merge"
   if [ -n "$prev" ] && [ "$cur" != "$prev" ]; then
     echo "PR_UPDATED #$PR"
-    case "$d" in MERGED*) echo "PR_MERGED #$PR"; exit 0;; CLOSED*) echo "PR_CLOSED #$PR"; exit 0;; esac
+    case "$cur" in *MERGED*) echo "PR_MERGED #$PR"; exit 0;; *CLOSED*) echo "PR_CLOSED #$PR"; exit 0;; esac
   fi
   prev="$cur"
   sleep 60
 done
 ```
 
-The coverage is deliberate: a new issue comment, a submitted review (human or bot), a new inline review comment, a CI conclusion change, a push (head SHA), a base-branch conflict (`mergeStateStatus`), and merge/close all change the tuple and emit an event.
+Each fetch goes into its own variable, and any failure (non-zero exit under `2>/dev/null`) skips the whole cycle via `{ sleep 60; continue; }` — a brace group, never a subshell, or `continue` would be a silent no-op. The fingerprint is assembled only after all four fetches succeed, so a state the monitor failed to observe is never compared and an API outage never fabricates an event: during an outage the monitor is simply silent, and detection is delayed by the outage plus up to one poll interval. The three list fetches use `--paginate` with `.[-1].id // 0`, which prints the last id of each page; the multi-line output is captured first — so the checked exit status is `gh`'s and not a pipeline's (which would be `tail`'s and would mask a `gh` failure) — and only then reduced with `tail -n 1` to the true last id. `per_page=100` alone would pin at item 100 once a list grows past one page, and `direction=desc` is not used because the issue-comments endpoint silently ignores it (with `per_page=1` that would pin to the oldest comment).
+
+Mergeability is lazily computed by GitHub and transiently flips to `UNKNOWN`, and every MERGED PR reports `mergeStateStatus: UNKNOWN` permanently — so UNKNOWN is masked with the last known value (`merge_known`), never skipped: skipping on UNKNOWN would silence the monitor forever at exactly the merge event. During an UNKNOWN window the poll still runs, so comments, pushes, and CI changes are still detected, and `.state` flipping to MERGED/CLOSED still changes the fingerprint — the case patterns match on `.state`, which masking never touches. The one exception is a startup UNKNOWN with no known value yet, which skips: bounded startup blindness only.
+
+The line coverage is deliberate: a new issue comment, a submitted review (human or bot), a new inline review comment, a CI conclusion change, a push (head SHA), a base-branch conflict (`mergeStateStatus`), and merge/close all change `cur` and emit an event. With the PR author's own token the reviews endpoint also returns PENDING (unsubmitted) reviews, so a wake-up may mean a review was started, not only submitted.
 
 The wake pattern: on any event, the main session's only action is waking the PR's builder agent:
 
