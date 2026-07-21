@@ -18,7 +18,7 @@ Locate what to implement: the approved brainstorming result (in this conversatio
 2. Spawn one builder via the Agent tool with `isolation: "worktree"` and the stable name `builder-<branch-slug>` (`<branch-slug>` = the branch name lowercased, every non-alphanumeric run replaced by a single hyphen - deterministic, so the name can always be re-derived from `gh pr view --json headRefName`; branch `palazzem/worktree-internals` gives agent `builder-palazzem-worktree-internals`). Its prompt: the spec (inline, or the GitHub link to fetch), the branch name to adopt, and the base branch.
 3. The builder implements, tests, and opens a draft PR (its Phase 1), then reports the PR number. It escalates rather than deviating from the approved design; answer escalations from the spec when possible, and surface the rest to the user as a type 2 message before resuming it.
 
-### Isolation is the harness's job, not the orchestrator's
+### Isolation
 
 `isolation: "worktree"` is what actually isolates a builder. Claude Code creates `<repo>/.claude/worktrees/agent-<hex>` on a generated `worktree-agent-<hex>` branch cut fresh from `origin/<base>`, locks the tree to that agent, and pins the agent's working directory to it.
 
