@@ -36,7 +36,7 @@ Your persona may tighten this scale (caps, floors, categories); its rules win.
 
 ## Deferral
 
-Each finding also states whether it should be fixed in this PR or deferred to a follow-up PR, so PRs stay small. Defaults: CRITICAL and HIGH are fixed now; MEDIUM, LOW, and NIT are deferrable. Override either default with reasoning in the body - a nit whose fix costs one obvious line is worth fixing now, and a medium whose fix would widen the PR's scope belongs in a follow-up.
+Each finding also states whether it should be fixed in this PR or deferred to a follow-up PR, keeping the diff small enough to review accurately - reviewer correctness degrades on large diffs. Defaults: CRITICAL and HIGH are fixed now; MEDIUM, LOW, and NIT are deferrable. Override either default with reasoning in the body - a nit whose fix costs one obvious line is worth fixing now, and a medium whose fix would widen the PR's scope belongs in a follow-up.
 
 ## The precision contract
 
