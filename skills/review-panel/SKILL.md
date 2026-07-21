@@ -65,8 +65,12 @@ Post exactly one GitHub review per round (github-comment skill, batch mode, even
 
 <finding body>
 
+Deferred because: <reason>
+
 Verification: <skeptic-sustained | unverified (LOW/NIT)>
 ```
+
+The `Deferred because:` line is mandatory on every deferred finding and omitted entirely on fix-now findings. State why this PR is the wrong place to fix it - scope it would widen, a dependency it waits on, a decision it needs. A deferred finding outlives the PR as a tracking issue, and this line is the only record of the reasoning that reaches it.
 
 Verdict (wording only, never a request-changes event): BLOCKED with any surviving CRITICAL; REQUEST CHANGES with any surviving HIGH; APPROVE WITH NITS when only MEDIUM/LOW/NIT survive; APPROVE when nothing actionable remains.
 
