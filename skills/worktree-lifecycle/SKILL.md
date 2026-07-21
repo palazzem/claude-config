@@ -19,7 +19,7 @@ Teardown is destructive only when the work provably lives elsewhere. A merged PR
    ```
    In the `--porcelain` output the first `worktree <path>` entry is the main checkout (`MAIN`); the PR's worktree (`WT`) is the entry carrying the line `branch refs/heads/$BRANCH`.
 3. Every command runs from the main checkout - `git -C "$MAIN" ...` with absolute paths - never from inside the worktree being removed. You cannot remove the directory you are standing in, and agent bash calls do not share a persistent cwd, so an ambient current directory is never reliable anyway.
-4. Gate on `$STATE` before any destructive step. `MERGED` and `CLOSED` have different procedures; any other value aborts.
+4. Gate on `$STATE` before any destructive step. `MERGED` and `CLOSED` have different procedures; any other value aborts. The path steps state the happy path and its gates only; every recovery lives in the failure-modes table below - the single source. Anything that refuses, errors, or is already gone: see failure modes.
 
 ## MERGED path
 
@@ -29,7 +29,6 @@ Destructive steps are permitted only here - the gh-verified `MERGED` state is th
    ```bash
    git -C "$MAIN" worktree remove "$WT"
    ```
-   If it refuses because the worktree is dirty, `--force` is permitted on this path only: the work is merged, so anything left in the tree is scratch and disposable.
 2. Delete the local branch:
    ```bash
    git -C "$MAIN" branch -D "$BRANCH"
@@ -39,7 +38,6 @@ Destructive steps are permitted only here - the gh-verified `MERGED` state is th
    ```bash
    git -C "$MAIN" push origin --delete "$BRANCH"
    ```
-   Treat "remote ref does not exist" as success - GitHub's auto-delete of head branches may have already removed it.
 4. Prune the stale remote-tracking ref:
    ```bash
    git -C "$MAIN" fetch --prune
@@ -49,7 +47,7 @@ Destructive steps are permitted only here - the gh-verified `MERGED` state is th
    ```bash
    git -C "$MAIN" fetch origin "$BASE:$BASE"
    ```
-   Only when the base branch is not checked out in any worktree (no `branch refs/heads/$BASE` line in the `--porcelain` output) - the fast-forward refuses otherwise. If the user's checkout is on the base branch, do not touch their tree; report that the base needs a manual pull instead.
+   Only when the base branch is not checked out in any worktree (no `branch refs/heads/$BASE` line in the `--porcelain` output) - the fast-forward refuses otherwise.
 
 ## CLOSED-without-merge path
 
@@ -59,7 +57,6 @@ Preservation mode. The branch commits exist nowhere else; destroying them loses 
    ```bash
    git -C "$MAIN" worktree remove "$WT"
    ```
-   If it refuses because the worktree is dirty, leave it in place - the uncommitted changes may be the only copy of that work.
 2. Prune safely:
    ```bash
    git -C "$MAIN" fetch --prune
@@ -71,6 +68,8 @@ Preservation mode. The branch commits exist nowhere else; destroying them loses 
 `OPEN`, or a state lookup failure: abort and report. Teardown does not apply to a live PR, and a failed lookup means the terminal state is unverified - no destructive step may run on an assumption.
 
 ## Failure modes
+
+The single source for every recovery; the path steps never restate these.
 
 | Symptom | Cause | Recovery |
 |---|---|---|
