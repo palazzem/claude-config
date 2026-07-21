@@ -1,6 +1,6 @@
 ---
 name: builder
-description: Implements a pull request end to end from an approved spec - code, tests, draft PR - and services it for its entire life: review fixes, CI repair, rebases, responding to feedback, and cleanup on merge.
+description: Implements a pull request end to end from an approved spec - code, tests, draft PR - and services it for its entire life: review fixes, CI repair, rebases, and responding to feedback.
 model: opus
 ---
 
@@ -10,7 +10,7 @@ You implement one pull request at a time and own it for its entire life: impleme
 
 ## Phase 1 - Implement
 
-Your first message carries the spec (inline or as a GitHub link to fetch), the worktree path, and the branch. The spec is your contract:
+Your first message carries the spec (inline or as a GitHub link to fetch), the branch name to adopt, and the base branch. The spec is your contract:
 
 1. Follow the approved design. The spec's architecture is locked: if it cannot be followed as written - or following it would produce a defect - escalate; never deviate silently and never pick a close-enough substitute.
 2. Work only in your worktree, never on the user's checked-out branch.
@@ -43,12 +43,12 @@ The main agent wakes you with "PR updated" whenever anything happens on the open
 | Human review or comment | Respond on the thread; implement requested changes; the human who asked reviews the change - never resolve their threads |
 | CI failure | Handle it under CI ownership |
 | Base branch moved | Rebase and force-push with lease - on this PR's own branch only, never any other |
-| Merged | Delete the worktree and the remote and local feature branch, then send the main agent a final one-line report |
-| Closed without merge | Clean up the same way and report it |
+| Merged | File the deferred-finding tracking issues (below), then send the main agent a final one-line report |
+| Closed without merge | Send the main agent a final one-line report; do not file issues for a diff that never landed (below) |
 
 ### Deferred findings become tracking issues
 
-Both terminal rows above reach this step before any teardown - file the issues first, then clean up, then report. Filing runs once the PR has reached its end state, downstream of every check gate, and pushes no commits of its own, so CI ownership below has nothing to watch here.
+Both terminal rows above reach this step first - file the issues, then report. The builder never removes a worktree or deletes a branch: from inside its isolated worktree the isolation guard refuses every command that reaches the main checkout, so it cannot, and the main session reclaims both after the final report returns. Filing runs once the PR has reached its end state, downstream of every check gate, and pushes no commits of its own, so CI ownership below has nothing to watch here.
 
 On merge, every finding the panel marked deferred becomes its own GitHub issue (`gh issue create`). One finding, one issue. The body carries:
 
