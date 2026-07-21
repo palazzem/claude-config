@@ -12,28 +12,29 @@ Teardown is destructive only when the work provably lives elsewhere. A merged PR
 1. The caller supplies the PR number and the repository identity it already holds - the `<owner>/<repo>` slug for `gh` and a path inside any checkout of the repository for `git`. The builder has its worktree path; the implement chain derived the repo at setup. Never resolve either from the ambient cwd: a session invoking this skill from another directory would silently derive facts from whatever repository the cwd happens to be in, and a same-numbered PR there can even pass the state gate.
 2. Derive every other fact at runtime - never assume branch or path names:
    ```bash
-   STATE=$(gh pr view <n> -R <owner>/<repo> --json state -q .state)
-   BRANCH=$(gh pr view <n> -R <owner>/<repo> --json headRefName -q .headRefName)
-   BASE=$(gh pr view <n> -R <owner>/<repo> --json baseRefName -q .baseRefName)
+   read -r STATE BRANCH BASE HEADOID <<<"$(gh pr view <n> -R <owner>/<repo> \
+     --json state,headRefName,baseRefName,headRefOid \
+     -q '[.state, .headRefName, .baseRefName, .headRefOid] | join(" ")')"
    git -C <repo-path> worktree list --porcelain
    ```
-   In the `--porcelain` output the first `worktree <path>` entry is the main checkout (`MAIN`); the PR's worktree (`WT`) is the entry carrying the line `branch refs/heads/$BRANCH`.
+   One `gh` call, one atomic snapshot: the state that gates the path and the head OID that anchors the ancestry check come from the same moment. In the `--porcelain` output the first `worktree <path>` entry is the main checkout (`MAIN`); the PR's worktree (`WT`) is the entry carrying the line `branch refs/heads/$BRANCH`.
 3. Every command runs from the main checkout - `git -C "$MAIN" ...` with absolute paths - never from inside the worktree being removed. You cannot remove the directory you are standing in, and agent bash calls do not share a persistent cwd, so an ambient current directory is never reliable anyway.
 4. Gate on `$STATE` before any destructive step. `MERGED` and `CLOSED` have different procedures; any other value aborts. The path steps state the happy path and its gates only; every recovery lives in the failure-modes table below - the single source. Anything that refuses, errors, or is already gone: see failure modes.
 
 ## MERGED path
 
-Destructive steps are permitted only here - the gh-verified `MERGED` state is the proof that the work is safe on the base branch.
+Destructive steps are permitted only here - and only for state the merge provably captured. The gh-verified `MERGED` state proves the pushed head (`$HEADOID`) is on the base; it says nothing about local-only state. Unpushed commits or a tree dirty at merge time are work the merge never captured - an in-flight fix a human merged past, not scratch - and they are preserved exactly as on the CLOSED path.
 
-1. Remove the worktree:
+1. Remove the worktree, never with `--force`:
    ```bash
    git -C "$MAIN" worktree remove "$WT"
    ```
-2. Delete the local branch:
+2. Verify the local tip was merged, then delete the local branch:
    ```bash
-   git -C "$MAIN" branch -D "$BRANCH"
+   git -C "$MAIN" merge-base --is-ancestor "$BRANCH" "$HEADOID" \
+     && git -C "$MAIN" branch -D "$BRANCH"
    ```
-   `-D`, not `-d`, and only after the gh-verified `MERGED` state: after a squash or rebase merge the branch's commits are not ancestors of the base, so `-d` refuses even though the work is merged. The gh check is the merge verification; the flag choice depends on it.
+   The ancestry gate runs against the merged head, never the base: after a squash or rebase merge the branch's commits are not ancestors of the base, so `-d` refuses even though the work is merged - hence `-D`, made safe only by the gh-verified state plus this gate together. A non-zero exit means the local tip holds commits the merge never captured: see failure modes.
 3. Delete the remote branch:
    ```bash
    git -C "$MAIN" push origin --delete "$BRANCH"
@@ -73,6 +74,7 @@ The single source for every recovery; the path steps never restate these.
 
 | Symptom | Cause | Recovery |
 |---|---|---|
-| `worktree remove` refuses (dirty worktree) | Uncommitted or untracked files in the worktree | MERGED path: retry with `--force`. CLOSED path: leave the worktree in place and report its path |
+| `worktree remove` refuses (dirty tree) | Uncommitted or untracked files - at merge time these can be an in-flight change, not scratch | Never `--force`, on either path: leave the worktree and both branches in place, run the safe steps (`fetch --prune`; base sync on MERGED), and report the preserved path |
+| `merge-base --is-ancestor` exits non-zero | The local tip holds commits the merge never captured, or the merged head is not a local object | Skip both branch deletions, run the safe steps, and report the preserved branch |
 | `remote ref does not exist` on `push origin --delete` | GitHub auto-delete already removed the head branch | Treat as success and continue |
 | `fetch origin <base>:<base>` refuses | The base branch is checked out in some worktree | Skip the sync; if it is the user's checkout, report that the base needs a manual pull |
