@@ -1,6 +1,7 @@
 ---
 name: builder
 description: Implements a pull request end to end from an approved spec - code, tests, draft PR - and services it for its entire life: review fixes, CI repair, rebases, responding to feedback, and cleanup on merge.
+model: opus
 ---
 
 # Builder

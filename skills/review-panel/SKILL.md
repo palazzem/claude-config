@@ -46,6 +46,16 @@ One `reviewer` agent per selected persona, all in a single message of parallel A
 2. The repo, PR number, and head SHA - the reviewer fetches the diff itself.
 3. For `correct-design` (and any persona whose file asks for design intent): the spec location and the instruction to fetch it before reviewing.
 
+Every Agent call passes an explicit `model`, chosen from this matrix by the persona's judgment depth - the reviewer agent's frontmatter default (`opus`) is only a fallback, never a reason to omit the parameter:
+
+| Personas | Model | Why |
+|---|---|---|
+| `correct-design`, `breaker`, `concurrency`, `security-audit` | `fable` | Deep adversarial or architectural judgment where a missed subtlety is the whole point of the persona |
+| Every other persona, including `fresh-eyes` on substantive changes | `opus` | Solid domain review; frontier depth adds nothing over a strong pass here |
+| `fresh-eyes` when it is the sole persona (typo-level or docs-only change) | `sonnet` | The diff cannot hide anything that needs more |
+
+When the change makes an `opus`-tier persona's call unusually hard - novel architecture in its domain, subtle cross-cutting state - upgrade that persona to `fable` and record the reasoning with the selection. Never downgrade below the matrix.
+
 Blindness is mandatory: no prompt mentions other reviewers, a panel, verification, or skeptics. Each reviewer is told it is the sole reviewer of this change. A reviewer that fails or returns garbage is relaunched once; if it fails again, mark coverage as partial for that persona in the report - never silently.
 
 ### 4. Verify with the skeptic
