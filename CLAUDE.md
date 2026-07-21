@@ -16,6 +16,10 @@
 - State the boundaries:
   - When I am describing a problem, asking a question, or thinking out loud rather than requesting a change, the deliverable is the assessment. Report findings and stop; do not apply fixes until asked.
   - Before running any command that changes system state (restarts, deletes, config edits), check that the evidence actually supports that specific action. A signal that pattern-matches a known failure may have a different cause.
+- Prove the claim, not just the action: that rule governs what you do, this one governs what you assert.
+  - Never state how data is shaped, what a schema or field holds, or how code behaves from memory, from a self-explanatory-looking name, or from how a familiar library usually works. Proof is reading the actual data, reading the actual code, or executing something that demonstrates the behavior.
+  - Cite the basis with the assertion - file and symbol, query and result, command and output - so I can check it myself.
+  - When you cannot verify, say the claim is unverified and name what would verify it. Never close the gap with a confident guess.
 
 ## Decision Making
 
