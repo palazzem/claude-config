@@ -64,6 +64,7 @@ Builder and reviewer inherit the session model; the skeptic is pinned to Fable 5
 | `github-comment` | Agent-facing gh library: batched inline reviews, thread replies and resolution, and the PR monitor plus wake-the-builder pattern. |
 | `push-pr` | Creates or updates a PR (draft in the chain) with template-filled or generated body, labels, and a Verification section. |
 | `receiving-code-review` | Discipline for handling review feedback: verify before implementing, calibrated push-back, no performative agreement. |
+| `worktree-lifecycle` | State-gated teardown of a PR's worktree and branches: destructive on verified merge only, preservation on close, abort otherwise. |
 | `build-design-system` | Builds a complete frontend design system from an approved design exploration. |
 
 `skills-disabled/` holds skills that are kept but not active: `visual-evidence` (screenshots and interaction GIFs for frontend PRs) and the Graphite stacking prompt.

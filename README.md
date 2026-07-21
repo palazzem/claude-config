@@ -21,6 +21,7 @@ Full pipeline diagram and deep dive: [ARCHITECTURE.md](ARCHITECTURE.md).
 | `github-comment` | Agent-facing gh library: batched inline reviews, thread replies and resolution, and the PR monitor plus wake-the-builder pattern. |
 | `push-pr` | Creates or updates a pull request (draft inside the chain, usable manually anywhere) with the repo PR template filled when present, labels, and a Verification section. |
 | `receiving-code-review` | Behavioral discipline for handling review feedback: verify before implementing, calibrated push-back, no performative agreement. |
+| `worktree-lifecycle` | Guarded teardown of a PR's worktree and branches once the PR is terminal: destructive only on a verified merge, preserving unmerged work on close. |
 | `build-design-system` | Builds a complete frontend design system from an approved design exploration. |
 
 Deactivated skills live in `skills-disabled/`: `visual-evidence` (frontend visual proof) and the Graphite stacking prompt.
