@@ -55,6 +55,14 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 - Library choice, version pin, and other design rationale go in the commit body and PR description, not in code comments.
 - Always use Python docstrings using Google Python guidelines. Use the equivalent approach for other languages.
 
+## Documentation
+
+- Durable repository documentation - architecture documents, ADRs, long-lived READMEs and design docs - describes the system at the conceptual level: responsibilities, boundaries, data flow, invariants, and the reasoning behind a decision. Never file paths, directory layouts, class or function names, or code snippets.
+- Name what is stable: concepts, architectural roles, contracts, protocols, external systems. Do not name what rots: the files, symbols, and structure that currently implement them. Code is the source of truth for the implementation; documentation explains the concept and the overview.
+- Rationale: a path or symbol in a durable document is a fact with an expiry date. The rename that moves it will not update the prose, and a stale document misleads worse than no document.
+- The altitude rule applies ONLY to durable repository documentation. Specs, PR bodies, issues, review comments, and commit messages are change-scoped and short-lived: they MUST name exact files, symbols, and commands, because being concrete is their entire purpose. Never strip that detail in the name of this rule.
+- The governing test is what the text does, not how long it lives: the rule covers prose that DESCRIBES a system, never text that DIRECTS an action. Instruction files - rule files, agent and skill definitions, runbooks, setup and operating instructions - are durable but operative, and are out of scope for the same reason as the artifacts above. An instruction that does not name its exact file, symbol, or command does not work.
+
 ## Testing
 
 - ALWAYS use TDD when you are implementing a bugfix. Write the test first, verify it fails, then write the fix.

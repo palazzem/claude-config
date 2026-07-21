@@ -118,7 +118,7 @@ Then ask the user to approve the spec or give feedback (question selector); iter
 Once the spec is approved, ask the user what to do with it (question selector):
 
 1. Publish to GitHub - a tracking issue via `gh issue edit` (existing) or `gh issue create` (new), written as a user-owned artifact: no bot header, no mention of AI or tooling.
-2. Store as markdown - write the spec to a markdown file in a worktree and open a PR for it via the push-pr skill.
+2. Store as markdown - write the spec to a markdown file in a worktree and open a PR for it via the push-pr skill. The spec itself stays concrete; any architecture document, ADR, or README the same PR touches follows the documentation altitude rule - concepts, boundaries, and decisions, never file paths or symbol names.
 3. Implement directly - invoke the implement skill with the approved spec; the full delivery chain runs from here.
 
 The next step is always the user's explicit choice through this question - never assume one. Whatever the destination, the approved Design Overview recorded in the Decisions record is the architecture lock for whatever follows: downstream implementation carries it, and deviating from it requires escalation back to the user.
