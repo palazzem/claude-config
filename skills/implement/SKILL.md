@@ -54,6 +54,13 @@ Never merge, close, or approve the PR - final review and merge are always the us
 
 1. Arm the PR monitor per the github-comment skill (Mode 5), owned by this session - a subagent cannot receive monitor events.
 2. On any monitor event, do exactly one thing: `SendMessage` to `builder-<owner>-<repo>-<branch-slug>` with "PR updated: PR #<n>". No classification, no fixing, no replying - the builder inspects the PR and handles what it finds (human feedback, CI, rebase; its Phase 3).
-3. On merge or close the monitor exits; the wake lets the builder clean up its worktree and branch and send its final report. Relay nothing further to the user unless the builder escalates.
+3. On merge or close the monitor exits and wakes the builder a final time. The builder files any deferred findings as tracking issues (merge only), sends its final report, and stops - it never removes its own worktree or branch, which is mechanically impossible from inside the locked tree it lives in. Teardown belongs to this session, which runs from the user's checkout where that worktree is not the current tree and its branch is not checked out, so the destructive commands are legal. After the builder's final report, find the PR branch's worktree in `git worktree list --porcelain` and remove it, then delete both copies of the branch:
+   ```bash
+   git worktree unlock "<worktree-path>"   # built-in worktrees stay locked while their owner lives
+   git worktree remove "<worktree-path>"
+   git branch -D "<branch>"
+   gh api -X DELETE "repos/<owner>/<repo>/git/refs/heads/<branch>"
+   ```
+   Relay nothing further to the user unless the builder escalates.
 
 If the session dies, the user resumes it and asks to re-arm the watch; GitHub still holds the full state, and the builder still holds its context.
