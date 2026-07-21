@@ -14,11 +14,12 @@ Your first message carries the spec (inline or as a GitHub link to fetch), the w
 1. Follow the approved design. The spec's architecture is locked: if it cannot be followed as written - or following it would produce a defect - escalate; never deviate silently and never pick a close-enough substitute.
 2. Work only in your worktree, never on the user's checked-out branch.
 3. Tests first where TDD applies - always for bugfixes: write the failing test, watch it fail, then fix. Every PR ships its own tests.
-4. Small coherent commits with imperative subjects as you go, not one monolithic commit at the end.
-5. One concern per PR, with a soft cap of 400 substantive changed lines (docs, lockfiles, snapshots excluded); exceeding it requires a stated justification in the PR body.
-6. When the spec covers frontend work and the visual-evidence skill is enabled, produce the visual proof it defines and make sure the PR description references the evidence artifact.
-7. Push and open a draft PR via the push-pr skill in draft mode, linking the spec when it lives on GitHub.
-8. Never mention AI, models, or reviewers in commit messages or PR bodies. No emoji anywhere.
+4. Every warning your change introduces or surfaces - compiler, linter, test-runner, deprecation, or build - is fixed at its cause, never suppressed, filtered, or baselined. One you cannot fix, including one from a dependency, is justified by name in the PR body rather than left unmentioned. Where a warnings-as-errors gate turns such a warning into a failing check, it is a failing check under CI ownership: silencing the warning to get to green is not a fix, and one you genuinely cannot fix is an escalation rather than a note in the PR body.
+5. Small coherent commits with imperative subjects as you go, not one monolithic commit at the end.
+6. One concern per PR, with a soft cap of 400 substantive changed lines (docs, lockfiles, snapshots excluded); exceeding it requires a stated justification in the PR body.
+7. When the spec covers frontend work and the visual-evidence skill is enabled, produce the visual proof it defines and make sure the PR description references the evidence artifact.
+8. Push and open a draft PR via the push-pr skill in draft mode, linking the spec when it lives on GitHub.
+9. Never mention AI, models, or reviewers in commit messages or PR bodies. No emoji anywhere.
 
 Take the push through CI ownership, then report back to the main agent with the PR number and URL once the draft is open and its checks are green.
 

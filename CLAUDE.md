@@ -34,6 +34,10 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 
 - If existing code violates best practices, you suggest a refactoring while working on a task. Never use existing code as your quality baseline for consistency if it's not following high standards.
 - NEVER disable linting rules.
+- Warnings must always be addressed. Compiler warnings, linter warnings, test-runner warnings, deprecation notices, and build warnings are actionable findings, not background noise. Addressing a warning means fixing its cause; suppressing, silencing, filtering, or baselining it is the forbidden move, not the resolution.
+- Deprecation warnings rank highest: they are the only advance notice that a dependency will break. Ignoring one converts a scheduled fix into an outage.
+- A warning you do not fix - including one originating outside the project's control - requires a stated justification in the PR body naming the source and why it cannot be fixed here. Silence is never an acceptable answer.
+- Where feasible, promote warnings to errors project-wide. A gate is the durable fix; without one, warnings accumulate back to noise.
 - DRY (Don't Repeat Yourself): Extract patterns that appear 2+ times into reusable components or utilities.
 - YAGNI (You Aren't Gonna Need It): Don't over-engineer. Create abstractions when duplication appears, not before.
 - Maintainable: Single source of truth. Change once, update everywhere.
