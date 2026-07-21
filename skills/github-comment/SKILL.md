@@ -173,7 +173,7 @@ The line coverage is deliberate: a new issue comment, a submitted review (human 
 The wake pattern: on any event, the main session's only action is waking the PR's builder agent:
 
 ```
-SendMessage to: builder-<branch-slug>
+SendMessage to: builder-<owner>-<repo>-<branch-slug>
 message: "PR updated: PR #<n>"
 ```
 

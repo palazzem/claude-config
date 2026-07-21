@@ -1,6 +1,7 @@
 ---
 name: reviewer
 description: Code reviewer that adopts the persona definition it is given, audits a diff against it with a strict read-only discipline, and reports structured findings.
+model: opus
 tools: Bash, Read, Glob, Grep, WebFetch, WebSearch, ToolSearch, SendMessage
 ---
 

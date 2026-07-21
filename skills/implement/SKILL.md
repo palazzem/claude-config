@@ -15,7 +15,7 @@ Locate what to implement: the approved brainstorming result (in this conversatio
 ## 2. Setup and build
 
 1. Decide the feature branch name first - `<login>/<slug>`, with `<login>` from `gh api user --jq .login` (derive it at runtime, never hardcode) and `<slug>` describing the change. Everything below is derived from it.
-2. Spawn one builder via the Agent tool with `isolation: "worktree"` and the stable name `builder-<branch-slug>` (`<branch-slug>` = the branch name lowercased, every non-alphanumeric run replaced by a single hyphen - deterministic, so the name can always be re-derived from `gh pr view --json headRefName`; branch `palazzem/worktree-internals` gives agent `builder-palazzem-worktree-internals`). Its prompt: the spec (inline, or the GitHub link to fetch), the branch name to adopt, and the base branch.
+2. Spawn one builder via the Agent tool with `isolation: "worktree"` and the stable name `builder-<owner>-<repo>-<branch-slug>` (`<branch-slug>` = the branch name lowercased, every non-alphanumeric run replaced by a single hyphen; the owner and repo come from `gh repo view --json nameWithOwner` and keep two repositories sharing a branch name from colliding on one agent - deterministic, so the name can always be re-derived from `gh pr view --json headRefName`; repository `acme/widgets` with branch `dana/worktree-internals` gives agent `builder-acme-widgets-dana-worktree-internals`). Its prompt: the spec (inline, or the GitHub link to fetch), the branch name to adopt, and the base branch.
 3. The builder implements, tests, and opens a draft PR (its Phase 1), then reports the PR number. It escalates rather than deviating from the approved design; answer escalations from the spec when possible, and surface the rest to the user as a type 2 message before resuming it.
 
 ### Isolation
@@ -53,7 +53,7 @@ Never merge, close, or approve the PR - final review and merge are always the us
 ## 5. Watch to merge
 
 1. Arm the PR monitor per the github-comment skill (Mode 5), owned by this session - a subagent cannot receive monitor events.
-2. On any monitor event, do exactly one thing: `SendMessage` to `builder-<branch-slug>` with "PR updated: PR #<n>". No classification, no fixing, no replying - the builder inspects the PR and handles what it finds (human feedback, CI, rebase; its Phase 3).
+2. On any monitor event, do exactly one thing: `SendMessage` to `builder-<owner>-<repo>-<branch-slug>` with "PR updated: PR #<n>". No classification, no fixing, no replying - the builder inspects the PR and handles what it finds (human feedback, CI, rebase; its Phase 3).
 3. On merge or close the monitor exits; the wake lets the builder clean up its worktree and branch and send its final report. Relay nothing further to the user unless the builder escalates.
 
 If the session dies, the user resumes it and asks to re-arm the watch; GitHub still holds the full state, and the builder still holds its context.
