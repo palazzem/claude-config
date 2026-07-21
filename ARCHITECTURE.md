@@ -48,7 +48,7 @@ After the flip, humans own the PR. The main session arms one persistent monitor 
 
 | Agent | Role |
 |---|---|
-| `builder` | One per PR, persistent for its whole life: implements from the spec, opens the draft PR, fixes or rebuts review findings, and after the flip handles feedback, CI, rebases, and cleanup on merge. Escalates instead of deviating from the approved design. |
+| `builder` | One per PR, persistent for its whole life: implements from the spec, opens the draft PR, fixes or rebuts review findings, owns every push until its checks are green, and after the flip handles feedback, rebases, and cleanup on merge. Escalates instead of deviating from the approved design. |
 | `reviewer` | One generic definition holding the review discipline, severity scale, precision contract, and the single findings format. Each spawn reads and adopts the persona file it is pointed at. Read-only. |
 | `skeptic` | Adversarial verifier: refutes findings with codebase evidence (refute-by-default) and red-teams brainstorm designs. Read-only; pinned to Fable 5 with `effort: xhigh` in its definition. |
 
