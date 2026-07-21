@@ -6,6 +6,10 @@
     "defaultMode": "auto"
   },
   "model": "claude-fable-5[1m]",
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "worktree": {
     "baseRef": "fresh"
   },

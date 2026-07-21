@@ -3,10 +3,8 @@
 ## Claude Code
 
 - You MUST challenge my thinking, question my assumptions, and expose blind spots. Stop defaulting to agreement. If my reasoning is weak, break it down and show me why.
-- Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, consume all tokens you need to achieve your goals, as your principle is to write the best possible code and not having a "token economy" to prevent compacts.
 - ALWAYS use the question selector tool when asking the user questions, and make each question self-contained - all context in the question text, trade-offs in the option descriptions (memory records why: a bug hides any text written before the call).
-- NEVER mention Generated with Claude anywhere.
-- NEVER use emoji in outward-facing or professional text (GitHub comments, PR content, commit messages, generated documents).
+- Never mention AI generation, and never use emoji, in outward-facing or professional text (commits, PR content, GitHub comments, generated documents).
 - When building skills, agents, or workflows, keep them generic: never hardcode repository-specific facts (repo lists, owners, paths). Derive repo facts at runtime from `gh` and the repository itself; when one cannot be derived, ask once. Never invent custom storage (profile files, state directories, checkpoints) - if persistence is genuinely needed, use built-in memory.
 - State the boundaries:
   - When I am describing a problem, asking a question, or thinking out loud rather than requesting a change, the deliverable is the assessment. Report findings and stop; do not apply fixes until asked.
@@ -37,11 +35,6 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 - Deprecation warnings rank highest: they are the only advance notice that a dependency will break. Ignoring one converts a scheduled fix into an outage.
 - A warning you do not fix - including one originating outside the project's control - requires a stated justification in the PR body naming the source and why it cannot be fixed here. Silence is never an acceptable answer.
 - Where feasible, promote warnings to errors project-wide. A gate is the durable fix; without one, warnings accumulate back to noise.
-- DRY (Don't Repeat Yourself): Extract patterns that appear 2+ times into reusable components or utilities.
-- YAGNI (You Aren't Gonna Need It): Don't over-engineer. Create abstractions when duplication appears, not before.
-- Maintainable: Single source of truth. Change once, update everywhere.
-- Readable: Clear naming, proper structure that follows language best practices.
-- Flexible: Accept configuration options with sensible defaults.
 
 ## Comments
 
@@ -62,28 +55,18 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 
 - ALWAYS use TDD when you are implementing a bugfix. Write the test first, verify it fails, then write the fix.
 - ALL written code must be properly tested. Check code coverage for new code.
-- Don't replicate tests for the same functionality.
 - Test only our code, not library behavior.
-- Test what makes sense. Ignore edge cases that can't happen.
 
 ## Memory
 
-- When you identify a user preference or a confirmed best practice, record it with Claude Code's built-in memory so future sessions apply it.
-- Record corrections and confirmed approaches alike, including why they mattered.
 - Never save what the repository or the chat history already records.
 
 ## External Tools / MCP
 
 - **context7**: ALWAYS use Context7 MCP when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask. ALWAYS spawn a subagent to delegate context7 calls.
 - **push-pr**: ALWAYS use push-pr skill when asked to create a PR for a branch.
-- **gh**: ALWAYS use for all GitHub interactions
 
 ## Review Workflow
 
-- Non-trivial features start with /brainstorming: manual, two gated stages (Understanding, then Design Overview), each approved by me before proceeding. Specs live in the conversation and are published at most to GitHub; repositories hold only architectural docs and ADRs.
-- "Implement X" fires the automatic chain: worktree → one persistent builder implements and opens a draft PR → review loop via /review-panel (panel spawned once, same reviewers woken for re-checks, max 3 rounds) → PR flips OPEN → one message to me → a monitor wakes the builder on any PR activity until merge and cleanup.
-- /review-panel also runs standalone on any PR, including ones the harness did not build.
-- PRs stay DRAFT while machines iterate; flipping to OPEN means humans are involved.
-- Exactly two message types reach me: (1) "ready for your final review - push back or merge"; (2) "escalated items - findings pushed back with uncertainty, your call".
 - Human review and merge are mandatory and always mine. Never merge, close, or approve a PR autonomously.
 - GitHub and agent context hold all workflow state; repository facts are derived at runtime from `gh` and the repository itself.
