@@ -1,6 +1,6 @@
 # Architecture
 
-This harness runs the software delivery pipeline as a simple chain — brainstorm, implement, review loop, human review, merge and clean — with the human kept at the decision points where judgment is irreplaceable. You explain intent, approve the design, decide escalations, and merge. Everything in between is done by three agents and a handful of skills, with no stored state of any kind: GitHub and the agents' own context are the only memory.
+This harness runs the software delivery pipeline as a simple chain — brainstorm, implement, review loop, human review, merge and clean — with the human kept at the decision points where judgment is irreplaceable. You explain intent, approve the design, decide escalations, and merge. Everything in between is done by four agents and a handful of skills, with no stored state of any kind: GitHub and the agents' own context are the only memory.
 
 ## Pipeline
 
@@ -53,8 +53,9 @@ After the flip, humans own the PR. The main session arms one persistent monitor 
 | `builder` | One per PR, persistent for its whole life: implements from the spec, opens the draft PR, fixes or rebuts review findings, owns every push until its checks are green, and after the flip handles feedback, rebases, and cleanup on merge. Escalates instead of deviating from the approved design. |
 | `reviewer` | One generic definition holding the review discipline, severity scale, precision contract, and the single findings format. Each spawn reads and adopts the persona file it is pointed at. Read-only. |
 | `skeptic` | Adversarial verifier: refutes findings with codebase evidence (refute-by-default) and red-teams brainstorm designs. Read-only; pinned to Fable 5 with `effort: xhigh` in its definition. |
+| `shepherd` | Writes the human-facing surface of a new PR: analyzes the diff and composes the title, body, and labels, then opens it. Spawned fresh per invocation with no state between them; never commits, pushes, or changes PR lifecycle, and never rewrites the description of a PR that already exists - a body it cannot prove is its own is one it leaves alone. |
 
-Builder and reviewer inherit the session model; the skeptic is pinned to Fable 5, and the push-pr body author runs on sonnet. Agent descriptions state capability only — every subagent can see the roster of named agents, so a description must never leak pipeline structure to blind reviewers.
+Every agent pins its own model in its definition instead of inheriting the session's, so which model runs a build or a review does not change when the session model does; the frontmatter is the source of truth, and the per-persona review overrides live in the review-panel selection table. Agent descriptions state capability only — every subagent can see the roster of named agents, so a description must never leak pipeline structure to blind reviewers.
 
 ## Skills
 
@@ -85,7 +86,7 @@ Builder and reviewer inherit the session model; the skeptic is pinned to Fable 5
 ├── settings.json    permissions, hooks, environment
 ├── rules/           supplementary global rules
 ├── hooks/           PreToolUse guards (commit attribution)
-├── agents/          builder, reviewer, skeptic
+├── agents/          builder, reviewer, skeptic, shepherd
 ├── skills/          the skills table above (review-panel/personas/ holds the persona files)
 ```
 
