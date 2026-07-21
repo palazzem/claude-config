@@ -54,7 +54,7 @@ Blindness is mandatory: no prompt mentions other reviewers, a panel, verificatio
 
 ### 4. Verify with the skeptic
 
-Collect every reviewer's findings block. Dedup findings that hit the same file within 5 lines or state the same concern; a merged finding lists every persona that flagged it, sorts first, and is called out - convergence raises priority but never skips verification. Then spawn one `skeptic` agent named `skeptic-<owner>-<repo>-pr<number>` and send it every CRITICAL, HIGH, and MEDIUM finding with provenance and severity stripped - no persona tag, no severity label, nothing that anchors authority. LOW and NIT findings post unverified. Refuted findings are dropped from posting and listed in the report with the refutation reason.
+Collect every reviewer's findings block. Dedup findings that hit the same file within 5 lines or state the same concern; a merged finding lists every persona that flagged it, sorts first, and is called out - convergence raises priority but never skips verification. Then spawn one `skeptic` agent named `skeptic-<owner>-<repo>-pr<number>` and send it every surviving finding - CRITICAL, HIGH, MEDIUM, LOW, and NIT alike - with provenance and severity stripped - no persona tag, no severity label, nothing that anchors authority. Nothing posts unverified: the builder auto-implements what the panel posts, so a LOW or NIT that reaches a thread has already survived the skeptic. Refuted findings are dropped from posting and listed in the report with the refutation reason.
 
 The skeptic may also adjust a surviving finding's deferral: a deferred nit whose fix is one obvious line can be promoted to fix-now, and a fix-now medium whose fix would widen the PR's scope can be demoted to deferred - each with the reasoning stated.
 
@@ -71,7 +71,7 @@ Post exactly one GitHub review per round (github-comment skill, batch mode, even
 
 Deferred because: <reason>
 
-Verification: <skeptic-sustained | unverified (LOW/NIT)>
+Verification: skeptic-sustained
 ```
 
 The `Deferred because:` line is mandatory on every deferred finding and omitted entirely on fix-now findings. State why this PR is the wrong place to fix it - scope it would widen, a dependency it waits on, a decision it needs. A deferred finding outlives the PR as a tracking issue, and this line is the only record of the reasoning that reaches it.
@@ -88,6 +88,6 @@ Always end with a terminal report to the caller: selected and skipped personas w
 
 When the caller asks for a re-check (fixes were pushed, or a standalone user asks again):
 
-1. Wake each existing reviewer via SendMessage: "PR #N changed since your review (new head <sha>). Verify each of your findings was addressed or validly rebutted, and review the changes as new material." Wake the skeptic the same way with the fresh CRITICAL/HIGH/MEDIUM findings.
+1. Wake each existing reviewer via SendMessage: "PR #N changed since your review (new head <sha>). Verify each of your findings was addressed or validly rebutted, and review the changes as new material." Wake the skeptic the same way with the fresh findings, all severities.
 2. Steps 4-6 repeat on the results. A finding rebutted by the builder with evidence the reviewer accepts is closed; one the reviewer restates goes back in the round's review.
-3. The caller owns round counting and any cap; this skill runs the round it is asked for.
+3. The implement chain runs a single re-check (round 2); if findings still do not converge after it, the round is reported back and the caller escalates to the user rather than waking the panel again. A standalone caller owns its own round counting; this skill runs the round it is asked for.
