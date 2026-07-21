@@ -32,7 +32,9 @@ Two gated stages turn a raw request into an approved spec. Stage 1 (Understandin
 
 ### 2. Build (`implement`)
 
-The single manual entry point of an otherwise automatic chain. The main agent is an orchestrator that never touches code: it creates a worktree and branch, spawns one persistent builder agent with the spec, and coordinates everything after by waking agents. The builder writes all code and tests, opens a draft PR (via `push-pr`), and remains that PR's only implementer for its entire life. It escalates rather than silently deviating from the approved design.
+The single manual entry point of an otherwise automatic chain. The main agent is an orchestrator that never touches code: it spawns one persistent builder agent with the spec, and coordinates everything after by waking agents. The builder writes all code and tests, opens a draft PR (via `push-pr`), and remains that PR's only implementer for its entire life. It escalates rather than silently deviating from the approved design.
+
+Isolation comes from Claude Code, not from the harness: the builder is spawned with `isolation: "worktree"`, which creates a locked worktree under `.claude/worktrees/` on a generated branch cut fresh from the base and pins the agent's working directory to it. A worktree made by hand with `git worktree add` is not recognized as isolation by the guard, so the orchestrator never builds one; `EnterWorktree` is equally wrong here because it moves the calling session's own working directory, and the orchestrator must stay in the user's checkout. Because the built-in generates the branch name, the builder adopts the real `<login>/<slug>` name itself with `git branch -m` as its first action.
 
 ### 3. Review (`review-panel`)
 
@@ -59,7 +61,7 @@ Builder and reviewer inherit the session model; the skeptic is pinned to Fable 5
 | Skill | Purpose |
 |---|---|
 | `brainstorming` | Gated Understanding and Design stages, skeptic red-team, approved spec. |
-| `implement` | The delivery chain: worktree, builder, draft PR, review loop via `review-panel`, open flip, one message, monitor watch. |
+| `implement` | The delivery chain: builder spawned with built-in worktree isolation, draft PR, review loop via `review-panel`, open flip, one message, monitor watch. |
 | `review-panel` | The standalone panel: persona roster and selection, blind parallel reviewers spawned once, skeptic verification, one batched review per round, wake-based re-checks. Personas live in `personas/`, one file each. |
 | `github-comment` | Agent-facing gh library: batched inline reviews, thread replies and resolution, and the PR monitor plus wake-the-builder pattern. |
 | `push-pr` | Creates or updates a PR (draft in the chain) with template-filled or generated body, labels, and a Verification section. |
