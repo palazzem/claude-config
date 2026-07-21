@@ -89,17 +89,27 @@ Handling findings:
 
 ## The spec
 
-On approval of the direction, write the full spec in the conversation:
+On approval of the direction, write the full spec in the conversation.
 
-| Section | Content |
-|---|---|
-| Problem statement | A clear definition of the problem being solved |
-| The task / Who it is for / What the output enables / The request / Acceptance criteria | The approved Stage 1 template, verbatim |
-| Decisions | Chosen architecture, rejected alternatives with why, approved deviations, red-team findings and their rulings |
-| Non-goals | What is deliberately out of scope |
-| Delivery outline | Ordered PR-sized outcomes; each with an observable verification command (exact command plus expected result) |
-| Delivery recommendation | Sequential or parallel, with reasoning: contained or hard-to-parallelize work runs as the implement chain's single builder; a large change whose delivery outline splits into independent units (for example an abstraction, its implementations, infrastructure, documentation) recommends parallel delivery - one builder and PR per independent unit |
-| Open questions | Only unresolved questions that require code-level verification to answer. Every question answerable by the user or by your own investigation must be answered before the spec is presented - ask or investigate, do not park it here |
+The spec is a build-ready artifact, not a summary of the conversation that produced it. Someone who never saw the interview must be able to implement it from the spec alone. That means real paths, real identifiers, real commands, real values, real defaults - prose that could describe any project is a defect.
+
+Not every session earns every section. The Required column below decides: a required section always appears; an optional one appears when the work has substance for it and is omitted entirely otherwise - never kept as a heading with a placeholder or an "N/A" under it. A small session can be five sections long.
+
+| Section | Required | Content |
+|---|---|---|
+| Problem statement | Yes | What is broken or missing today and why it matters. This opens the spec - no preamble about the request or the interview |
+| Scope | Yes | What this spec builds, and where it lands: the directories, packages, or services it touches. When it is one slice of a larger effort, say which slice and what the other slices are |
+| Design | Yes | The approved architecture made concrete: file and directory layout, module boundaries, and the data flow between them. Show the tree or the wiring when the structure is not obvious from prose |
+| Components | No | One subsection per component. Its responsibility, its inputs and outputs as tables (name, type, description, default), the concrete resources, types, endpoints, or files it defines, and the reasoning behind any non-obvious choice. This is the section that makes the spec implementable - it is normally the longest |
+| Environment and state | No | Configuration, secrets, and persistent state: exact variable names and defaults, what is committed versus ignored, how state is stored and bootstrapped, how components are wired together at deploy time. Omit when the work has none |
+| Acceptance criteria | Yes | The observable criteria from the approved Understanding, carried forward with each one paired with its exact proof: a command with its expected result, a named test, or a demonstrable behavior. The pairing is the substance of this section - a criterion with no proof is not a criterion, so resolve it or drop it before presenting the spec, and never reduce this to a bare restatement of the list |
+| Documentation | No | Which documents are created or updated, what each must cover, and to what standard. Omit when nothing changes |
+| ADRs | No | Each decision that outlives this work, as a proposed ADR: file path, context, decision, consequences. Omit when the work sets no lasting precedent |
+| Decisions record | No | A table - decision, choice, rationale - covering every decision the spec locks in: the chosen architecture, rejected alternatives and why they lost, approved deviations, red-team findings and their rulings, and the smaller calls settled along the way. One line each; point at the ADR where there is one |
+| Delivery outline | No | Ordered PR-sized outcomes. Each names what it delivers and which acceptance criteria it satisfies. Every criterion must be claimed by exactly one outcome - an unclaimed criterion means the outline is incomplete |
+| Delivery recommendation | No | Sequential or parallel, with reasoning: contained or hard-to-parallelize work runs as the implement chain's single builder; a large change whose delivery outline splits into independent units (for example an abstraction, its implementations, infrastructure, documentation) recommends parallel delivery - one builder and PR per independent unit |
+| Out of scope | Yes | What is deliberately excluded, each with the reason or the condition that would bring it back in scope |
+| Open questions | Yes | Only unresolved questions that require code-level verification to answer. Every question answerable by the user or by your own investigation must be answered before the spec is presented - ask or investigate, do not park it here |
 
 Then ask the user to approve the spec or give feedback (question selector); iterate until approved.
 
@@ -111,4 +121,4 @@ Once the spec is approved, ask the user what to do with it (question selector):
 2. Store as markdown - write the spec to a markdown file in a worktree and open a PR for it via the push-pr skill.
 3. Implement directly - invoke the implement skill with the approved spec; the full delivery chain runs from here.
 
-The next step is always the user's explicit choice through this question - never assume one. Whatever the destination, the approved Design Overview recorded in Decisions is the architecture lock for whatever follows: downstream implementation carries it, and deviating from it requires escalation back to the user.
+The next step is always the user's explicit choice through this question - never assume one. Whatever the destination, the approved Design Overview recorded in the Decisions record is the architecture lock for whatever follows: downstream implementation carries it, and deviating from it requires escalation back to the user.
