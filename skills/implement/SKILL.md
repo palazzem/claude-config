@@ -45,12 +45,13 @@ Never merge, close, or approve the PR - final review and merge are always the us
 
 1. Arm the PR monitor per the github-comment skill (Mode 5), owned by this session; Mode 5 carries the reasoning for main-session ownership.
 2. On any monitor event, do exactly one thing: `SendMessage` to `builder-<branch-slug>` with "PR updated: PR #<n>". No classification, no fixing, no replying - the builder inspects the PR and handles what it finds (human feedback, CI, rebase; its Phase 3).
-3. On merge or close the monitor exits and wakes the builder a final time. The builder files any deferred findings as tracking issues (merge only), sends its final report, and stops - it never removes its own worktree or branch, which is mechanically impossible from inside the locked tree it lives in. Teardown belongs to this session, which runs from the user's checkout where that worktree is not the current tree and its branch is not checked out, so the destructive commands are legal. After the builder's final report, find the PR branch's worktree in `git worktree list --porcelain` and remove it, then delete both copies of the branch:
+3. On merge or close the monitor exits and wakes the builder a final time. The builder files any deferred findings as tracking issues (merge only), sends its final report, and stops - it never removes its own worktree or branch, which is mechanically impossible from inside the locked tree it lives in. Teardown belongs to this session, which runs from the user's checkout where that worktree is not the current tree and its branch is not checked out, so the destructive commands are legal. After the builder's final report, find the PR branch's worktree in `git worktree list --porcelain` and remove it, then delete both copies of the branch. Every step is a no-op when its target is already gone, so the block is safe to re-run after a partial teardown and safe when the merge already removed the remote ref (`delete_branch_on_merge` deletes it on merge):
    ```bash
-   git worktree unlock "<worktree-path>"   # built-in worktrees stay locked while their owner lives
-   git worktree remove "<worktree-path>"
-   git branch -D "<branch>"
-   gh api -X DELETE "repos/<owner>/<repo>/git/refs/heads/<branch>"
+   git worktree unlock "<worktree-path>" 2>/dev/null || true   # locked while the builder lives; no-op if already unlocked
+   git worktree remove "<worktree-path>" 2>/dev/null || true   # no-op if already removed
+   git worktree prune                                          # drop any stale registration left behind
+   git branch -D "<branch>" 2>/dev/null || true                # no-op if already deleted
+   gh api -X DELETE "repos/<owner>/<repo>/git/refs/heads/<branch>" 2>/dev/null || true   # ref may already be gone
    ```
    Relay nothing further to the user unless the builder escalates.
 
