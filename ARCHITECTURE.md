@@ -21,7 +21,7 @@ flowchart TD
     O --> Y4[you: review and merge]
     Y4 --> M[monitor wakes builder: feedback, CI, rebase]
     M --> Y4
-    Y4 --> C[builder: cleanup on merge]
+    Y4 --> C[main session: reclaim]
 ```
 
 ## Workflow
@@ -44,13 +44,13 @@ The panel is spawned once per PR: the orchestrator selects personas by judging t
 
 ### 4. Human review and watch
 
-After the flip, humans own the PR. The main session arms one persistent monitor (`github-comment`, Mode 5) that polls comments, submitted reviews, review threads, CI, pushes, and merge state. On any event its only action is waking the builder with "PR updated" — the builder inspects the PR and does the rest: responds to your feedback and implements it, fixes CI, rebases when the base moves, and on merge files one tracking issue per deferred finding before deleting its worktree and branch. If the session dies, you resume it; GitHub holds the full state and the builder keeps its context.
+After the flip, humans own the PR. The main session arms one persistent monitor (`github-comment`, Mode 5) that polls comments, submitted reviews, review threads, CI, pushes, and merge state. On any event its only action is waking the builder with "PR updated" — the builder inspects the PR and does the rest: responds to your feedback and implements it, fixes CI, rebases when the base moves, and on merge files one tracking issue per deferred finding. The main session, not the builder, reclaims the worktree and branch once the PR reaches its end state. If the session dies, you resume it; GitHub holds the full state and the builder keeps its context.
 
 ## Agents
 
 | Agent | Role |
 |---|---|
-| `builder` | One per PR, persistent for its whole life: implements from the spec, opens the draft PR, fixes or rebuts review findings, owns every push until its checks are green, and after the flip handles feedback, rebases, and cleanup on merge. Escalates instead of deviating from the approved design. |
+| `builder` | One per PR, persistent for its whole life: implements from the spec, opens the draft PR, fixes or rebuts review findings, owns every push until its checks are green, and after the flip handles feedback and rebases; worktree and branch reclaim is the main session's, not the builder's. Escalates instead of deviating from the approved design. |
 | `reviewer` | One generic definition holding the review discipline, severity scale, precision contract, and the single findings format. Each spawn reads and adopts the persona file it is pointed at. Read-only. |
 | `skeptic` | Adversarial verifier: refutes findings with codebase evidence (refute-by-default) and red-teams brainstorm designs. Read-only; pinned to Fable 5 with `effort: xhigh` in its definition. |
 | `shepherd` | Writes the human-facing surface of a new PR: analyzes the diff and composes the title, body, and labels, then opens it. Spawned fresh per invocation with no state between them; never commits, pushes, or changes PR lifecycle, and never rewrites the description of a PR that already exists - a body it cannot prove is its own is one it leaves alone. |

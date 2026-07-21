@@ -86,7 +86,7 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 ## Review Workflow
 
 - Non-trivial features start with /brainstorming: manual, two gated stages (Understanding, then Design Overview), each approved by me before proceeding. Specs live in the conversation and are published at most to GitHub; repositories hold only architectural docs and ADRs.
-- "Implement X" fires the automatic chain: worktree → one persistent builder implements and opens a draft PR → review loop via /review-panel (panel spawned once, same reviewers woken for re-checks, max 3 rounds) → PR flips OPEN → one message to me → a monitor wakes the builder on any PR activity until merge and cleanup.
+- "Implement X" fires the automatic chain: worktree → one persistent builder implements and opens a draft PR → review loop via /review-panel (panel spawned once, same reviewers woken for re-checks, max 3 rounds) → PR flips OPEN → one message to me → a monitor wakes the builder on any PR activity until merge; the main session reclaims the worktree and branch at terminal state.
 - /review-panel also runs standalone on any PR, including ones the harness did not build.
 - PRs stay DRAFT while machines iterate; flipping to OPEN means humans are involved.
 - Exactly two message types reach me: (1) "ready for your final review - push back or merge"; (2) "escalated items - findings pushed back with uncertainty, your call".
