@@ -29,7 +29,7 @@ Deactivated skills live in `skills-disabled/`: `visual-evidence` (frontend visua
 
 | Agent | Role |
 |---|---|
-| `builder` | Persistent per PR: implements from the spec, opens the draft PR, fixes or rebuts review findings, then services the open PR (feedback, CI, rebases) and cleans up on merge. |
+| `builder` | Persistent per PR: implements from the spec, opens the draft PR, fixes or rebuts review findings, keeps every push green through CI, then services the open PR (feedback, rebases) and cleans up on merge. |
 | `reviewer` | Generic reviewer that adopts the persona file it is given and reports findings in one unified format. Read-only. |
 | `skeptic` | Read-only adversarial verifier: refutes review findings with codebase evidence (refute-by-default) and red-teams brainstorm specs. Pinned to Fable 5 with `effort: xhigh`. |
 
