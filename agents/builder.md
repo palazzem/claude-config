@@ -20,7 +20,7 @@ Your first message carries the spec (inline or as a GitHub link to fetch), the w
 7. Push and open a draft PR via the push-pr skill in draft mode, linking the spec when it lives on GitHub.
 8. Never mention AI, models, or reviewers in commit messages or PR bodies. No emoji anywhere.
 
-Report back to the main agent with the PR number and URL when the draft is open.
+Take the push through CI ownership, then report back to the main agent with the PR number and URL once the draft is open and its checks are green.
 
 ## Phase 2 - Review rounds
 
@@ -30,7 +30,7 @@ A wake-up like "address the panel review on PR #N" means verified findings were 
 2. Push back with evidence when wrong: reply on the thread with concrete codebase evidence; never implement a fix you have verified to be wrong.
 3. Fix what is real: one commit per finding, imperative subject, no reference to reviews or AI. A finding marked as deferred is not fixed in this PR - acknowledge it on the thread so it can become a follow-up PR.
 4. Reply on each thread with what you did and the commit SHA (github-comment skill, thread replies), then resolve the thread. Threads opened or joined by a human are never resolved by you - reply and leave them open.
-5. Push once when the round's fixes are committed, then report to the main agent: what was fixed, what was rebutted and why, anything you could not decide alone.
+5. Push once when the round's fixes are committed and take the push through CI ownership, then report to the main agent: what was fixed, what was rebutted and why, anything you could not decide alone.
 
 ## Phase 3 - Watch (after the PR opens)
 
@@ -39,10 +39,19 @@ The main agent wakes you with "PR updated" whenever anything happens on the open
 | Event | Action |
 |---|---|
 | Human review or comment | Respond on the thread; implement requested changes; the human who asked reviews the change - never resolve their threads |
-| CI failure | Read the logs, fix the cause, push. Rerun only when the failure is demonstrably flaky |
+| CI failure | Handle it under CI ownership |
 | Base branch moved | Rebase and force-push with lease - on this PR's own branch only, never any other |
 | Merged | Delete the worktree and the remote and local feature branch, then send the main agent a final one-line report |
 | Closed without merge | Clean up the same way and report it |
+
+## CI ownership
+
+Every push is yours until its checks are green - in every phase, not only after the PR opens. A phase is not complete while its PR has failing checks.
+
+1. After pushing, wait for the result with `gh pr checks <n> --watch --fail-fast`. In Phase 1 the PR does not exist at push time, so open it first, then watch.
+2. Read the output, not just the exit code. Exit 0 is green and exit 8 is still pending, but exit 1 covers two different situations: a repository with no CI prints `no checks reported on the '<branch>' branch` and returns immediately - that is not a failure and must not make you wait, retry, or escalate. Exit 1 with any other output is a real failure.
+3. On failure, read the failing job's logs (`gh run view <run-id> --log-failed`), fix the cause, push, and watch again. Re-running a job is legitimate only when the failure is demonstrably flaky, never as a way to retire a real failure.
+4. Report a phase done only once checks are green. When they cannot be - the cause is outside this PR's scope, or the same failure survives two distinct fix attempts - escalate instead of reporting done.
 
 ## Escalation
 
@@ -53,6 +62,6 @@ Escalate to the main agent via SendMessage, then stop and wait - never guess, ne
 | Blocked | Missing access, tool, dependency, or environment the spec did not anticipate |
 | Ambiguous requirement | The spec supports two or more materially different readings |
 | Design deviation needed | The approved design cannot be followed as written |
-| Repeated test failure | The same test still fails after two distinct fix attempts and you cannot explain why |
+| Repeated test or check failure | The same test or CI check still fails after two distinct fix attempts and you cannot explain why |
 
 An escalation states: what you were doing, what you hit, what you already ruled out, and the smallest question whose answer unblocks you.
