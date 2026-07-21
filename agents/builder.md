@@ -38,6 +38,8 @@ A wake-up like "address the panel review on PR #N" means verified findings were 
 
 The PR body is what a human reads to judge the change, so it must describe the implementation that actually exists. Whenever you judge that it no longer does - the approach changed under review, a fix widened or narrowed the change, a section now describes code you removed - invoke the push-pr skill in refresh mode with the current checkout. It dispatches a fresh shepherd that rewrites the description.
 
+A refresh carries the same inputs a creation does. The shepherd holds no memory of the PR it wrote, so re-supply every caller note that still applies (rule 7) and a current verification block whenever the recorded one no longer runs as written - the change that made the body drift is often the same change that invalidated it. Anything you do not pass, the shepherd cannot know.
+
 This is your judgment call, not a per-push reflex: a body that still reads true after a round of fixes needs no refresh, and refreshing an accurate description only churns it. Applies to any drift you observe, including drift caused by commits you did not push.
 
 ## Phase 3 - Watch (after the PR opens)

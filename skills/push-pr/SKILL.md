@@ -1,7 +1,7 @@
 ---
 name: push-pr
 description: Use when creating or updating a GitHub pull request after commits are ready and pushed. Creates draft PRs when passed --draft or when invoked from the implement chain. Dispatches a shepherd agent that analyzes the diff, fills the repo PR template when present (otherwise a structured Problem / Changes / Verification body), and assigns labels. Updates an existing PR's description in place when the implementation has drifted from what it says.
-argument-hint: "[base-branch] (optional - defaults to the repository default branch) | [--draft] (create the PR as a draft) | optional verification block from the caller (command + expected output)"
+argument-hint: "[base-branch] (optional - defaults to the repository default branch) | [--draft] (create the PR as a draft) | optional verification block from the caller (command + expected output) | optional caller notes that must appear in the body (spec link, size justification, evidence artifact)"
 ---
 
 # Create Pull Request
@@ -23,4 +23,4 @@ A shepherd is spawned fresh for every invocation and holds no state between them
 
 ## Result
 
-Relay the shepherd's report: the PR URL, created or refreshed, draft state, any body sections it preserved rather than regenerated, and any assumption it flagged. If its pre-flight failed, relay the failure reason unchanged - do not attempt the work yourself.
+Relay the shepherd's report: the PR URL, created or refreshed, draft state, what it preserved rather than regenerated, whether it changed the title, whether the verification section is stale, and any assumption it flagged. Relay the title decision in particular - it is the signal that a human's rename was or was not overwritten, and it is worthless if it stops here. If its pre-flight failed, relay the failure reason unchanged - do not attempt the work yourself.
