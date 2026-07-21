@@ -1,7 +1,7 @@
 ---
 name: push-pr
 description: Use when creating or updating a GitHub pull request after commits are ready and pushed. Creates draft PRs when passed --draft or when invoked from the implement chain. Fills the repo PR template when present, otherwise generates a structured body (Problem / Changes / Verification). Handles smart diff analysis and label assignment via subagent. Updates existing PRs in place if one already exists for the branch.
-argument-hint: "[base-branch] (optional - resolved from the repo profile when omitted) | [--draft] (create the PR as a draft) | optional verification block from the caller (command + expected output)"
+argument-hint: "[base-branch] (optional - defaults to the repository default branch) | [--draft] (create the PR as a draft) | optional verification block from the caller (command + expected output)"
 ---
 
 # Create Pull Request
@@ -12,7 +12,7 @@ Creates or updates a GitHub PR via a `general-purpose` subagent (Agent tool, `mo
 
 | Input | Resolution |
 |---|---|
-| Base branch | Argument if given. Otherwise read `base_branch` from the repo profile - the per-repo JSON file at `~/.claude/profiles/<owner>-<repo>.json`; if absent, ask the user once (question selector) and write it back to the profile file. Unattended with no profile value: use the repository default branch (`gh repo view --json defaultBranchRef`) and flag the assumption in the result. |
+| Base branch | Argument if given. Otherwise the repository default branch (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`). |
 | Draft mode | On when `--draft` is passed or when invoked from the implement chain (the chain always creates drafts: PRs stay draft while machines iterate; the review loop flips them open later with `gh pr ready`). |
 | Verification block | Optional, passed by the caller (e.g., the implement chain forwards each PR's verification: exact command + expected output). When provided, the body MUST contain it under a `## Verification` heading. |
 

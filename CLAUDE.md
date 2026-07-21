@@ -12,7 +12,7 @@
   end the turn, and ask the question in the next turn.
 - NEVER mention Generated with Claude anywhere.
 - NEVER use emoji in outward-facing or professional text (GitHub comments, PR content, commit messages, generated documents).
-- When building skills, agents, or workflows, keep them generic: never hardcode repository-specific facts (repo lists, owners, paths). When a repo-specific fact is first needed, ask once and persist it as a per-repo profile/memory; in unattended runs, default to the safe behavior and flag it.
+- When building skills, agents, or workflows, keep them generic: never hardcode repository-specific facts (repo lists, owners, paths). Derive repo facts at runtime from `gh` and the repository itself; when one cannot be derived, ask once. Never invent custom storage (profile files, state directories, checkpoints) - if persistence is genuinely needed, use built-in memory.
 - State the boundaries:
   - When I am describing a problem, asking a question, or thinking out loud rather than requesting a change, the deliverable is the assessment. Report findings and stop; do not apply fixes until asked.
   - Before running any command that changes system state (restarts, deletes, config edits), check that the evidence actually supports that specific action. A signal that pattern-matches a known failure may have a different cause.
@@ -55,14 +55,11 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 - Test only our code, not library behavior.
 - Test what makes sense. Ignore edge cases that can't happen.
 
-## Memory & Lessons
+## Memory
 
-- One lesson per file, with a one-line summary.
+- When you identify a user preference or a confirmed best practice, record it with Claude Code's built-in memory so future sessions apply it.
 - Record corrections and confirmed approaches alike, including why they mattered.
 - Never save what the repository or the chat history already records.
-- Update existing notes rather than duplicating them; delete notes that turn out wrong.
-- Repositories store lessons in `.claude/lessons/<domain>/<slug>.md`; `.claude/lessons/INDEX.md` holds one line per lesson and is regenerated whenever a lesson is written; the repo CLAUDE.md imports the index via `@.claude/lessons/INDEX.md` so it auto-loads.
-- Before implementing or reviewing, load only the lessons whose domains or globs match the work at hand.
 
 ## External Tools / MCP
 
@@ -72,9 +69,10 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 
 ## Review Workflow
 
-- Non-trivial features start with /brainstorming: manual, two gated stages (Understanding, then Design Overview), each approved by me before proceeding.
-- "Implement X" fires the automatic chain: worktree → stacked draft PRs → review loop (panel + triage, max 3 rounds) → PR flips OPEN the moment human input is needed → pr-shepherd keeps it green until merge.
+- Non-trivial features start with /brainstorming: manual, two gated stages (Understanding, then Design Overview), each approved by me before proceeding. Specs live in the conversation and are published at most to GitHub; repositories hold only architectural docs and ADRs.
+- "Implement X" fires the automatic chain: worktree → one persistent builder implements and opens a draft PR → review loop via /review-panel (panel spawned once, same reviewers woken for re-checks, max 3 rounds) → PR flips OPEN → one message to me → a monitor wakes the builder on any PR activity until merge and cleanup.
+- /review-panel also runs standalone on any PR, including ones the harness did not build.
 - PRs stay DRAFT while machines iterate; flipping to OPEN means humans are involved.
 - Exactly two message types reach me: (1) "ready for your final review - push back or merge"; (2) "escalated items - findings pushed back with uncertainty, your call".
 - Human review and merge are mandatory and always mine. Never merge, close, or approve a PR autonomously.
-- After merge, the learning pass distills lessons from the PR's paper trail into the target repository's lessons.
+- GitHub and agent context hold all workflow state; repository facts are derived at runtime from `gh` and the repository itself.

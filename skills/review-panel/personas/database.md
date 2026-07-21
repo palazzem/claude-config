@@ -21,7 +21,7 @@ queries, indexes, and any code that reads or writes a data store.
 - A table written by more than one service is a shared contract. A schema change safe for
   the service making it can silently break the other writer or reader that speaks the same
   table in a different language or ORM.
-- Analytical-store queries need **bounded ranges and tags**: an unbounded scan over all
+- Analytical-store queries need bounded ranges and tags: an unbounded scan over all
   history is a resource incident waiting to happen, and an untagged query is invisible to
   the resource management that would have caught it.
 - Insert-time transformations (materialized/derived views, triggers) can amplify one write

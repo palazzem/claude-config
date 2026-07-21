@@ -24,7 +24,7 @@ manifests, and any change to how the system is deployed or operated.
 - Passing in dev/staging does not mean passing in production. Infrastructure changes
   (networking, service mesh, DNS, CNI) can break specific services only under production
   topology and load. Environment asymmetry is where these hide.
-- Manual steps in a deployment WILL be skipped: an approval gate, a publish button, a
+- Manual steps in a deployment will be skipped: an approval gate, a publish button, a
   cache-warm command a human has to remember. If a fix depends on a manual step, the fix
   does not reliably ship.
 - Hardcoded configuration that should be runtime-adjustable forces a full deploy cycle to
