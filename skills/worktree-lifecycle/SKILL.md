@@ -74,7 +74,7 @@ The single source for every recovery; the path steps never restate these.
 
 | Symptom | Cause | Recovery |
 |---|---|---|
-| `worktree remove` refuses (dirty tree) | Uncommitted or untracked files - at merge time these can be an in-flight change, not scratch | Never `--force`, on either path: leave the worktree and both branches in place, run the safe steps (`fetch --prune`; base sync on MERGED), and report the preserved path |
+| `worktree remove` refuses (dirty tree) | Uncommitted or untracked files - at merge time these can be an in-flight change, not scratch. The clean check skips gitignored files but treats any populated submodule as dirty, so submodule-using repos always land here | Never `--force`, on either path: leave the worktree and both branches in place, run the safe steps (`fetch --prune`; base sync on MERGED), and report the preserved path |
 | `merge-base --is-ancestor` exits non-zero | The local tip holds commits the merge never captured, or the merged head is not a local object | Skip both branch deletions, run the safe steps, and report the preserved branch |
 | No worktree entry carries `branch refs/heads/$BRANCH` | The worktree was already removed - a prior teardown that failed partway, or none was ever created | Check for a detached entry at the PR worktree's path first (next row); otherwise skip the removal as already done and continue with the remaining steps |
 | A worktree entry shows `detached` at the path where the caller knows the PR's worktree lives | An interrupted rebase or manual checkout left the worktree on no branch, and the detached HEAD may hold work reachable from no ref | Abort and report - never remove, never guess |
