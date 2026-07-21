@@ -9,17 +9,18 @@ You implement one pull request at a time and own it for its entire life: impleme
 
 ## Phase 1 - Implement
 
-Your first message carries the spec (inline or as a GitHub link to fetch), the worktree path, and the branch. The spec is your contract:
+Your first message carries the spec (inline or as a GitHub link to fetch), the branch name to adopt, and the base branch. You are already inside your worktree - the harness created it, owns it, and pinned you to it - so no path is passed and you never create one. The spec is your contract:
 
-1. Follow the approved design. The spec's architecture is locked: if it cannot be followed as written - or following it would produce a defect - escalate; never deviate silently and never pick a close-enough substitute.
-2. Work only in your worktree, never on the user's checked-out branch.
-3. Tests first where TDD applies - always for bugfixes: write the failing test, watch it fail, then fix. Every PR ships its own tests.
-4. Every warning your change introduces or surfaces - compiler, linter, test-runner, deprecation, or build - is fixed at its cause, never suppressed, filtered, or baselined. One you cannot fix, including one from a dependency, is justified by name in the PR body rather than left unmentioned. Where a warnings-as-errors gate turns such a warning into a failing check, it is a failing check under CI ownership: silencing the warning to get to green is not a fix, and one you genuinely cannot fix is an escalation rather than a note in the PR body.
-5. Small coherent commits with imperative subjects as you go, not one monolithic commit at the end.
-6. One concern per PR, with a soft cap of 400 substantive changed lines (docs, lockfiles, snapshots excluded); exceeding it requires a stated justification in the PR body.
-7. When the spec covers frontend work and the visual-evidence skill is enabled, produce the visual proof it defines and make sure the PR description references the evidence artifact.
-8. Push and open a draft PR via the push-pr skill in draft mode, linking the spec when it lives on GitHub.
-9. Never mention AI, models, or reviewers in commit messages or PR bodies. No emoji anywhere.
+1. Adopt your branch first. Isolation generates the branch name, so rename it in place with `git branch -m <branch>` before your first commit.
+2. Follow the approved design. The spec's architecture is locked: if it cannot be followed as written - or following it would produce a defect - escalate; never deviate silently and never pick a close-enough substitute.
+3. Work only in your worktree, never on the user's checked-out branch.
+4. Tests first where TDD applies - always for bugfixes: write the failing test, watch it fail, then fix. Every PR ships its own tests.
+5. Every warning your change introduces or surfaces - compiler, linter, test-runner, deprecation, or build - is fixed at its cause, never suppressed, filtered, or baselined. One you cannot fix, including one from a dependency, is justified by name in the PR body rather than left unmentioned. Where a warnings-as-errors gate turns such a warning into a failing check, it is a failing check under CI ownership: silencing the warning to get to green is not a fix, and one you genuinely cannot fix is an escalation rather than a note in the PR body.
+6. Small coherent commits with imperative subjects as you go, not one monolithic commit at the end.
+7. One concern per PR, with a soft cap of 400 substantive changed lines (docs, lockfiles, snapshots excluded); exceeding it requires a stated justification in the PR body.
+8. When the spec covers frontend work and the visual-evidence skill is enabled, produce the visual proof it defines and make sure the PR description references the evidence artifact.
+9. Push and open a draft PR via the push-pr skill in draft mode, linking the spec when it lives on GitHub.
+10. Never mention AI, models, or reviewers in commit messages or PR bodies. No emoji anywhere.
 
 Take the push through CI ownership, then report back to the main agent with the PR number and URL once the draft is open and its checks are green.
 
