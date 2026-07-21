@@ -132,7 +132,7 @@ if should_validate:
 
 ### Documentation stays above the implementation
 
-Care: Durable repository documentation - architecture documents, ADRs, long-lived READMEs and design docs - describes concepts, boundaries, contracts, and the reasoning behind a decision. It does not name files, directories, classes, or functions, and it does not embed implementation code. The boundary is strict and cuts both ways: specs, PR bodies, issues, review comments, and commit messages are change-scoped and MUST stay concrete - never flag those for naming exact files and symbols.
+Care: Durable repository documentation - architecture documents, ADRs, long-lived READMEs and design docs - describes concepts, boundaries, contracts, and the reasoning behind a decision. It does not name files, directories, classes, or functions, and it does not embed implementation code. The boundary is strict and cuts both ways. The test is what the text does, not how long it lives: this care-about covers prose that describes a system, never text that directs an action. Specs, PR bodies, issues, review comments, and commit messages are change-scoped, and instruction files - rule files, agent and skill definitions, runbooks, setup instructions - are durable but operative. Both MUST stay concrete; never flag either for naming exact files, symbols, or commands.
 
 Why: A path or a symbol in an architecture document is a fact with an expiry date. The rename that moves it will not update the prose, so the document degrades from useful to actively misleading, and a reader who trusts it ends up worse off than if it had said nothing. Concepts, contracts, and decision rationale survive refactors; the layout implementing them does not.
 
