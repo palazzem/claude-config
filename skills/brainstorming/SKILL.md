@@ -9,7 +9,7 @@ Turn a raw request into an approved, red-teamed spec. Stage 1 captures the reaso
 
 Flow:
 
-1. Enter plan mode before Stage 1. Brainstorming is read-only work - recon, interview, design, and writing the spec into the conversation - so plan mode's permission-layer block on file and command mutation is the right enforcement, not a convention to remember. It stays engaged through the adversarial review and spec approval; the Destination step, which may write a file or start implementation, runs only after the user approves and plan mode is exited.
+1. Enter plan mode before Stage 1 by calling the `EnterPlanMode` tool as the first action. This keeps brainstorming - recon, interview, design, and writing the spec into the conversation - read-only, while plan mode still auto-allows the read-only Bash that Stage 1 recon needs. Engagement depends on the model actually making the call in response to this instruction - it is not a structural guarantee independent of the model - so entering plan mode is the first thing to do. Keep it engaged through the adversarial review and spec approval; the Destination step, which may write a file or start implementation, runs only after the user approves and plan mode is exited.
 2. Stage 1 Understanding: interview, fill the template, user approves.
 3. Stage 2 Design Overview: options ranked by outcome quality only, self-check.
 4. Adversarial review: skeptic red-teams both stages, findings presented to the user.
