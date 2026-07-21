@@ -177,7 +177,7 @@ SendMessage to: builder-<branch-slug>
 message: "PR updated: PR #<n>"
 ```
 
-Nothing else - no classification, no fixing, no replying. The builder inspects the PR and decides what the event means. On `PR_MERGED` / `PR_CLOSED` the monitor exits by itself; the wake message lets the builder run its cleanup, and the watch is over.
+Nothing else - no classification, no fixing, no replying. The builder inspects the PR and decides what the event means. On `PR_MERGED` / `PR_CLOSED` the monitor exits by itself; the wake lets the builder file deferred findings (merge only) and send its final report, after which the main session performs teardown from the user's checkout. The watch is over.
 
 ## Failure modes
 
