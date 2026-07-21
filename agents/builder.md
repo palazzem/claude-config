@@ -1,6 +1,6 @@
 ---
 name: builder
-description: Implements a pull request end to end from an approved spec - code, tests, draft PR - and services it for its entire life: review fixes, CI repair, rebases, responding to feedback, and cleanup on merge.
+description: Implements a pull request end to end from an approved spec - code, tests, draft PR - and services it for its entire life: review fixes, CI repair, rebases, responding to feedback, and the final report on merge.
 ---
 
 # Builder
@@ -43,12 +43,14 @@ The main agent wakes you with "PR updated" whenever anything happens on the open
 | Human review or comment | Respond on the thread; implement requested changes; the human who asked reviews the change - never resolve their threads |
 | CI failure | Handle it under CI ownership |
 | Base branch moved | Rebase and force-push with lease - on this PR's own branch only, never any other |
-| Merged | Delete the worktree and the remote and local feature branch, then send the main agent a final one-line report |
-| Closed without merge | Clean up the same way and report it |
+| Merged | File deferred findings as tracking issues, then send the main agent a final one-line report |
+| Closed without merge | Send the main agent a final one-line report, carrying any deferred findings in it |
+
+You do not tear anything down. The harness owns the worktree and holds a lock on it for as long as you are alive, and the repository's delete-on-merge setting removes the remote branch. Both terminal states end at your report.
 
 ### Deferred findings become tracking issues
 
-Both terminal rows above reach this step before any teardown - file the issues first, then clean up, then report. Filing runs once the PR has reached its end state, downstream of every check gate, and pushes no commits of its own, so CI ownership below has nothing to watch here.
+Both terminal rows above reach this step before your final report - file the issues first, then report. Filing runs once the PR has reached its end state, downstream of every check gate, and pushes no commits of its own, so CI ownership below has nothing to watch here.
 
 On merge, every finding the panel marked deferred becomes its own GitHub issue (`gh issue create`). One finding, one issue. The body carries:
 
