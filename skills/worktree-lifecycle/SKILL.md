@@ -17,7 +17,7 @@ Teardown is destructive only when the work provably lives elsewhere. A merged PR
      -q '[.state, .headRefName, .baseRefName, .headRefOid] | join(" ")')"
    git -C <repo-path> worktree list --porcelain
    ```
-   One `gh` call, one atomic snapshot: the state that gates the path and the head OID that anchors the ancestry check come from the same moment. In the `--porcelain` output the first `worktree <path>` entry is the main checkout (`MAIN`); the PR's worktree (`WT`) is the entry carrying the line `branch refs/heads/$BRANCH`.
+   One `gh` call, one atomic snapshot: the state that gates the path and the head OID that anchors the ancestry check come from the same moment. In the `--porcelain` output the first `worktree <path>` entry is the main checkout (`MAIN`); the PR's worktree (`WT`) is the entry carrying the line `branch refs/heads/$BRANCH`. Derivation and every command that consumes a derived value run in a single bash invocation (or the derived values are substituted in as literals): agent bash calls share no shell state, so a variable set in one call is empty in the next.
 3. Every command runs from the main checkout - `git -C "$MAIN" ...` with absolute paths - never from inside the worktree being removed. You cannot remove the directory you are standing in, and agent bash calls do not share a persistent cwd, so an ambient current directory is never reliable anyway.
 4. Gate on `$STATE` before any destructive step. `MERGED` and `CLOSED` have different procedures; any other value aborts. The path steps state the happy path and its gates only; every recovery lives in the failure-modes table below - the single source. Anything that refuses, errors, or is already gone: see failure modes.
 
