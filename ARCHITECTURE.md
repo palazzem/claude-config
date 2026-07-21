@@ -42,7 +42,7 @@ The panel is spawned once per PR: the orchestrator selects personas by judging t
 
 ### 4. Human review and watch
 
-After the flip, humans own the PR. The main session arms one persistent monitor (`github-comment`, Mode 5) that polls comments, submitted reviews, review threads, CI, pushes, and merge state. On any event its only action is waking the builder with "PR updated" — the builder inspects the PR and does the rest: responds to your feedback and implements it, fixes CI, rebases when the base moves, and on merge deletes its worktree and branch. If the session dies, you resume it; GitHub holds the full state and the builder keeps its context.
+After the flip, humans own the PR. The main session arms one persistent monitor (`github-comment`, Mode 5) that polls comments, submitted reviews, review threads, CI, pushes, and merge state. On any event its only action is waking the builder with "PR updated" — the builder inspects the PR and does the rest: responds to your feedback and implements it, fixes CI, rebases when the base moves, and on merge files one tracking issue per deferred finding before deleting its worktree and branch. If the session dies, you resume it; GitHub holds the full state and the builder keeps its context.
 
 ## Agents
 
