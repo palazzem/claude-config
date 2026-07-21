@@ -19,6 +19,7 @@ A shepherd is spawned fresh for every invocation and holds no state between them
 | Mode | `create` when no PR exists for the branch; `refresh` when one exists and the caller reports the description no longer matches the implementation. The shepherd re-checks this itself with `gh pr view`. |
 | Draft mode | On when `--draft` is passed or when invoked from the implement chain - the chain always creates drafts, and the review loop flips them open later with `gh pr ready`. |
 | Verification block | Optional, passed by the caller (the implement chain forwards each PR's exact command and expected output). When provided, the body must carry it under `## Verification`. |
+| Caller notes | Facts the caller must get into the body that the diff cannot supply: the spec link when the spec lives on GitHub, a justification when the change exceeds the builder's soft size cap, a reference to a visual-evidence artifact. The builder owes these; it supplies them here rather than composing body prose itself. |
 
 ## Result
 
