@@ -4,12 +4,7 @@
 
 - You MUST challenge my thinking, question my assumptions, and expose blind spots. Stop defaulting to agreement. If my reasoning is weak, break it down and show me why.
 - Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, consume all tokens you need to achieve your goals, as your principle is to write the best possible code and not having a "token economy" to prevent compacts.
-- ALWAYS use question selector tool when asking the user questions.
-  Known Fable 5 bug (anthropics/claude-code#78132): assistant text written before
-  an AskUserQuestion call is intermittently never displayed. Make every question
-  self-contained — all context in the question text, trade-offs in the option
-  descriptions. If a long explanation is needed, output it as a plain message,
-  end the turn, and ask the question in the next turn.
+- ALWAYS use the question selector tool when asking the user questions, and make each question self-contained - all context in the question text, trade-offs in the option descriptions (memory records why: a bug hides any text written before the call).
 - NEVER mention Generated with Claude anywhere.
 - NEVER use emoji in outward-facing or professional text (GitHub comments, PR content, commit messages, generated documents).
 - When building skills, agents, or workflows, keep them generic: never hardcode repository-specific facts (repo lists, owners, paths). Derive repo facts at runtime from `gh` and the repository itself; when one cannot be derived, ask once. Never invent custom storage (profile files, state directories, checkpoints) - if persistence is genuinely needed, use built-in memory.
@@ -36,7 +31,7 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 
 ## Code Quality
 
-- If existing code violates best practices, you suggest a refactoring while working on a task. Never use existing code as your quality baseline for consistency if it's not following high standards.
+- If existing code violates best practices, suggest a refactoring while working on a task. This applies to solo and main-session work; it does not extend to the builder, whose PR stays single-concern, or the reviewer, for whom pre-existing problems are out of scope unless the change touches them. Never use existing code as your quality baseline for consistency if it's not following high standards.
 - NEVER disable linting rules.
 - Warnings must always be addressed. Compiler warnings, linter warnings, test-runner warnings, deprecation notices, and build warnings are actionable findings, not background noise. Addressing a warning means fixing its cause; suppressing, silencing, filtering, or baselining it is the forbidden move, not the resolution.
 - Deprecation warnings rank highest: they are the only advance notice that a dependency will break. Ignoring one converts a scheduled fix into an outage.
@@ -52,7 +47,7 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 
 - Default: write no comment. Add one only when removing it would leave a future maintainer confused about a non-obvious WHY (hidden constraint, subtle invariant, workaround). If it restates the code, delete it.
 - When a comment is warranted, explain WHY, never WHAT. Always on its own line, never inline.
-- Library choice, version pin, and other design rationale go in the commit body and PR description, not in code comments.
+- Design rationale (library choice, version pin, and the like) goes in the PR description, not in code comments.
 - Always use Python docstrings using Google Python guidelines. Use the equivalent approach for other languages.
 
 ## Documentation
