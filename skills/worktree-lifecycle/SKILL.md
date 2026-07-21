@@ -9,16 +9,17 @@ Teardown is destructive only when the work provably lives elsewhere. A merged PR
 
 ## Rules
 
-1. Derive every fact at runtime - never assume repo, branch, or path names:
+1. The caller supplies the PR number and the repository identity it already holds - the `<owner>/<repo>` slug for `gh` and a path inside any checkout of the repository for `git`. The builder has its worktree path; the implement chain derived the repo at setup. Never resolve either from the ambient cwd: a session invoking this skill from another directory would silently derive facts from whatever repository the cwd happens to be in, and a same-numbered PR there can even pass the state gate.
+2. Derive every other fact at runtime - never assume branch or path names:
    ```bash
-   STATE=$(gh pr view <n> --json state -q .state)
-   BRANCH=$(gh pr view <n> --json headRefName -q .headRefName)
-   BASE=$(gh pr view <n> --json baseRefName -q .baseRefName)
-   git worktree list --porcelain
+   STATE=$(gh pr view <n> -R <owner>/<repo> --json state -q .state)
+   BRANCH=$(gh pr view <n> -R <owner>/<repo> --json headRefName -q .headRefName)
+   BASE=$(gh pr view <n> -R <owner>/<repo> --json baseRefName -q .baseRefName)
+   git -C <repo-path> worktree list --porcelain
    ```
    In the `--porcelain` output the first `worktree <path>` entry is the main checkout (`MAIN`); the PR's worktree (`WT`) is the entry carrying the line `branch refs/heads/$BRANCH`.
-2. Every command runs from the main checkout - `git -C "$MAIN" ...` with absolute paths - never from inside the worktree being removed. You cannot remove the directory you are standing in, and agent bash calls do not share a persistent cwd, so an ambient current directory is never reliable anyway.
-3. Gate on `$STATE` before any destructive step. `MERGED` and `CLOSED` have different procedures; any other value aborts.
+3. Every command runs from the main checkout - `git -C "$MAIN" ...` with absolute paths - never from inside the worktree being removed. You cannot remove the directory you are standing in, and agent bash calls do not share a persistent cwd, so an ambient current directory is never reliable anyway.
+4. Gate on `$STATE` before any destructive step. `MERGED` and `CLOSED` have different procedures; any other value aborts.
 
 ## MERGED path
 
