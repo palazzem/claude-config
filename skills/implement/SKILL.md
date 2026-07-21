@@ -43,7 +43,7 @@ Never merge, close, or approve the PR - final review and merge are always the us
 
 ## 5. Watch to merge
 
-1. Pre-arm state check: `gh pr view <n> --json state -q .state`. If the PR is already MERGED or CLOSED, skip the monitor entirely - Mode 5 only emits on fingerprint changes, so arming it on a terminal PR loops silently forever and cleanup never fires - and go straight to cleanup: wake the builder with "PR updated: PR #<n>" if it exists, otherwise invoke the worktree-lifecycle skill directly, passing the PR number and the repository.
+1. Pre-arm state check: `gh pr view <n> --json state -q .state`. If the PR is already MERGED or CLOSED, skip the monitor entirely - Mode 5 never emits for a PR that is already terminal when armed; see github-comment - and go straight to cleanup: wake the builder with "PR updated: PR #<n>" if it exists, otherwise invoke the worktree-lifecycle skill directly, passing the PR number and the repository.
 2. Arm the PR monitor per the github-comment skill (Mode 5), owned by this session - a subagent cannot receive monitor events.
 3. On any monitor event, do exactly one thing: `SendMessage` to `builder-<branch-slug>` with "PR updated: PR #<n>". No classification, no fixing, no replying - the builder inspects the PR and handles what it finds (human feedback, CI, rebase; its Phase 3).
 4. On merge or close the monitor exits; the wake lets the builder clean up its worktree and branch and send its final report. Relay nothing further to the user unless the builder escalates.
