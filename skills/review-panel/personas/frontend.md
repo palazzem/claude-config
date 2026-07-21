@@ -60,7 +60,7 @@ review UI components, forms, client state management, and anything a person inte
    view?
 9. Do form submit handlers guard against IME composition so Enter does not submit
    mid-character?
-10. Is form validation present on BOTH client (UX) and server (enforcement), with server
+10. Is form validation present on both client (UX) and server (enforcement), with server
     errors surfaced clearly?
 11. Is the surface accessible — semantic elements, labels, keyboard navigation, focus
     management?

@@ -57,11 +57,9 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 
 ## Memory
 
-- Use only Claude Code's built-in memory - never a custom lessons or notes system.
-- One fact per memory, with a one-line summary.
+- When you identify a user preference or a confirmed best practice, record it with Claude Code's built-in memory so future sessions apply it.
 - Record corrections and confirmed approaches alike, including why they mattered.
 - Never save what the repository or the chat history already records.
-- Update existing memories rather than duplicating them; delete memories that turn out wrong.
 
 ## External Tools / MCP
 
@@ -77,4 +75,4 @@ THE FAILURE MODE TO PREVENT: when brainstorming or designing, you default to wei
 - PRs stay DRAFT while machines iterate; flipping to OPEN means humans are involved.
 - Exactly two message types reach me: (1) "ready for your final review - push back or merge"; (2) "escalated items - findings pushed back with uncertainty, your call".
 - Human review and merge are mandatory and always mine. Never merge, close, or approve a PR autonomously.
-- No stored workflow data anywhere: no profiles, state directories, checkpoints, briefs, or markers. GitHub and agent context are the only memory.
+- GitHub and agent context hold all workflow state; repository facts are derived at runtime from `gh` and the repository itself.

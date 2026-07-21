@@ -49,7 +49,7 @@ what one component sends and another expects.
    Is it safe on rollback?
 4. Does a client extension or plugin reference APIs that a pinned older core may not
    expose? Is the version compatibility checked?
-5. Do request wrappers, interceptors, or middleware forward ALL options (body types,
+5. Do request wrappers, interceptors, or middleware forward all options (body types,
    streaming, headers, credentials) rather than a subset?
 6. Are removed or renamed fields truly unused by every consumer, including external ones
    you cannot grep?

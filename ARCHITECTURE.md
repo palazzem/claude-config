@@ -32,11 +32,11 @@ Two gated stages turn a raw request into an approved spec. Stage 1 (Understandin
 
 ### 2. Build (`implement`)
 
-The single manual entry point of an otherwise automatic chain. The main agent is an orchestrator that never touches code: it creates a worktree and branch, spawns ONE persistent builder agent with the spec, and coordinates everything after by waking agents. The builder writes all code and tests, opens a draft PR (via `push-pr`), and remains that PR's only implementer for its entire life. It escalates rather than silently deviating from the approved design.
+The single manual entry point of an otherwise automatic chain. The main agent is an orchestrator that never touches code: it creates a worktree and branch, spawns one persistent builder agent with the spec, and coordinates everything after by waking agents. The builder writes all code and tests, opens a draft PR (via `push-pr`), and remains that PR's only implementer for its entire life. It escalates rather than silently deviating from the approved design.
 
 ### 3. Review (`review-panel`)
 
-The panel is spawned ONCE per PR: one generic `reviewer` agent per selected persona, blind and parallel, each reading its own persona file; the `correct-design` persona is also told where the spec lives. Findings are deduped, then verified by the `skeptic` (provenance and severity stripped; refute-by-default); survivors post as ONE batched inline review per round. The builder then fixes or rebuts on the threads. For re-checks the SAME reviewers are woken — their context survives, so no bookkeeping (markers, trailers, manifests) exists or is needed. At most 3 rounds, then the PR flips open and you get one of exactly two messages: "ready for your final review - push back or merge" or "escalated items - findings pushed back with uncertainty, your call".
+The panel is spawned once per PR: the orchestrator selects personas by judging the impact of the change (fresh-eyes always runs; heavier changes get more lenses), then spawns one generic `reviewer` agent per selected persona, blind and parallel, each reading its own persona file; the `correct-design` persona is also told where the spec lives. Findings are deduped, then verified by the `skeptic` (provenance and severity stripped; refute-by-default); survivors post as one batched inline review per round, each finding marked fix-now or deferred to a follow-up PR so PRs stay small. The builder then fixes or rebuts on the threads. For re-checks the same reviewers are woken — their context survives, so no bookkeeping is needed. Reaching three rounds without convergence stops the loop and escalates to you with a diagnosis; otherwise the PR flips open and you get one of exactly two messages: "ready for your final review - push back or merge" or "escalated items - findings pushed back with uncertainty, your call".
 
 `/review-panel` also runs standalone on any PR, including ones the harness did not build.
 
@@ -50,9 +50,9 @@ After the flip, humans own the PR. The main session arms one persistent monitor 
 |---|---|
 | `builder` | One per PR, persistent for its whole life: implements from the spec, opens the draft PR, fixes or rebuts review findings, and after the flip handles feedback, CI, rebases, and cleanup on merge. Escalates instead of deviating from the approved design. |
 | `reviewer` | One generic definition holding the review discipline, severity scale, precision contract, and the single findings format. Each spawn reads and adopts the persona file it is pointed at. Read-only. |
-| `skeptic` | Adversarial verifier: refutes findings with codebase evidence (refute-by-default) and red-teams brainstorm designs. Read-only; `effort: xhigh` pinned in its definition — the only effort setting in the harness. |
+| `skeptic` | Adversarial verifier: refutes findings with codebase evidence (refute-by-default) and red-teams brainstorm designs. Read-only; pinned to Fable 5 with `effort: xhigh` in its definition. |
 
-All agents inherit the session model. Agent descriptions state capability only — every subagent can see the roster of named agents, so a description must never leak pipeline structure to blind reviewers.
+Builder and reviewer inherit the session model; the skeptic is pinned to Fable 5, and the push-pr body author runs on sonnet. Agent descriptions state capability only — every subagent can see the roster of named agents, so a description must never leak pipeline structure to blind reviewers.
 
 ## Skills
 
@@ -63,9 +63,10 @@ All agents inherit the session model. Agent descriptions state capability only �
 | `review-panel` | The standalone panel: persona roster and selection, blind parallel reviewers spawned once, skeptic verification, one batched review per round, wake-based re-checks. Personas live in `personas/`, one file each. |
 | `github-comment` | Agent-facing gh library: batched inline reviews, thread replies and resolution, and the PR monitor plus wake-the-builder pattern. |
 | `push-pr` | Creates or updates a PR (draft in the chain) with template-filled or generated body, labels, and a Verification section. |
-| `visual-evidence` | Screenshots and interaction GIFs for frontend PRs, published as an artifact and linked from one upserted comment. |
 | `receiving-code-review` | Discipline for handling review feedback: verify before implementing, calibrated push-back, no performative agreement. |
 | `build-design-system` | Builds a complete frontend design system from an approved design exploration. |
+
+`skills-disabled/` holds skills that are kept but not active: `visual-evidence` (screenshots and interaction GIFs for frontend PRs) and the Graphite stacking prompt.
 
 ## Conventions
 

@@ -6,7 +6,7 @@ argument-hint: "[base-branch] (optional - defaults to the repository default bra
 
 # Create Pull Request
 
-Creates or updates a GitHub PR via a `general-purpose` subagent (Agent tool). The main agent resolves the inputs below, dispatches the subagent with them, and does nothing else — no commands, no context gathering, no checks.
+Creates or updates a GitHub PR via a `general-purpose` subagent (Agent tool, `model: "sonnet"`). The main agent resolves the inputs below, dispatches the subagent with them, and does nothing else — no commands, no context gathering, no checks.
 
 ## Inputs
 

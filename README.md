@@ -8,7 +8,7 @@ Full pipeline diagram and deep dive: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 1. **Understand** (`brainstorming`) — Two gated stages, Understanding then Design Overview, turn a raw request into an approved spec. Each stage is red-teamed by the skeptic and needs your explicit approval. The spec lives in the conversation, published at most to a GitHub issue.
 2. **Build** (`implement`) — The main agent orchestrates and never touches code: one persistent builder agent per PR writes all code and tests against the approved design and opens a draft PR. It escalates to you rather than silently deviating.
-3. **Review** (`review-panel`) — A blind panel of persona reviewers is spawned once per PR; the skeptic verifies findings; survivors post as one batched inline review. The builder fixes or rebuts, and the same reviewers are woken to re-check — at most three rounds. Then the PR flips open and you get one of two messages: "ready for your final review - push back or merge" or "escalated items - findings pushed back with uncertainty, your call". The panel also runs standalone on any PR.
+3. **Review** (`review-panel`) — A blind panel of persona reviewers, selected by the impact of the change, is spawned once per PR; the skeptic verifies findings; survivors post as one batched inline review, each finding marked fix-now or deferred to a follow-up PR. The builder fixes or rebuts, and the same reviewers are woken to re-check — three rounds without convergence stops the loop and escalates with a diagnosis. Then the PR flips open and you get one of two messages: "ready for your final review - push back or merge" or "escalated items - findings pushed back with uncertainty, your call". The panel also runs standalone on any PR.
 4. **Watch to merge** — A monitor owned by the main session fires on comments, human reviews, CI, and pushes; its only action is waking the builder, which responds to feedback, fixes CI, rebases, and cleans up branch and worktree on merge. Final review and merge are always yours.
 
 ## Skills
@@ -20,9 +20,10 @@ Full pipeline diagram and deep dive: [ARCHITECTURE.md](ARCHITECTURE.md).
 | `review-panel` | The multi-persona review panel with skeptic verification, posting one batched inline review per round; spawned once per PR, woken for re-checks; runnable standalone on any PR. |
 | `github-comment` | Agent-facing gh library: batched inline reviews, thread replies and resolution, and the PR monitor plus wake-the-builder pattern. |
 | `push-pr` | Creates or updates a pull request (draft inside the chain, usable manually anywhere) with the repo PR template filled when present, labels, and a Verification section. |
-| `visual-evidence` | Captures per-state screenshots and interaction GIFs for frontend PRs and embeds everything in one upserted PR comment. |
 | `receiving-code-review` | Behavioral discipline for handling review feedback: verify before implementing, calibrated push-back, no performative agreement. |
 | `build-design-system` | Builds a complete frontend design system from an approved design exploration. |
+
+Deactivated skills live in `skills-disabled/`: `visual-evidence` (frontend visual proof) and the Graphite stacking prompt.
 
 ## Agents
 
@@ -30,9 +31,9 @@ Full pipeline diagram and deep dive: [ARCHITECTURE.md](ARCHITECTURE.md).
 |---|---|
 | `builder` | Persistent per PR: implements from the spec, opens the draft PR, fixes or rebuts review findings, then services the open PR (feedback, CI, rebases) and cleans up on merge. |
 | `reviewer` | Generic reviewer that adopts the persona file it is given and reports findings in one unified format. Read-only. |
-| `skeptic` | Read-only adversarial verifier: refutes review findings with codebase evidence (refute-by-default) and red-teams brainstorm specs. `effort: xhigh` pinned. |
+| `skeptic` | Read-only adversarial verifier: refutes review findings with codebase evidence (refute-by-default) and red-teams brainstorm specs. Pinned to Fable 5 with `effort: xhigh`. |
 
-All agents inherit the session model and effort; the skeptic's pinned effort is the only override in the harness.
+Builder and reviewer inherit the session model and effort; the skeptic is pinned to Fable 5 with xhigh effort, and the push-pr body author runs on sonnet.
 
 ## Setup
 
@@ -53,7 +54,7 @@ Prerequisites:
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed
 - [GitHub CLI](https://cli.github.com/) (`gh`) installed and authenticated — all GitHub interactions go through `gh`
 - PR stacking is deliberately not enabled yet; `skills-disabled/prompt-graphite.md` contains the ready-to-apply prompt that reintroduces it once Graphite (`gt`) is adopted
-- [Playwright](https://playwright.dev/) — visual evidence capture runs via `npx playwright`; browsers download on first use
+- [Playwright](https://playwright.dev/) — only if the visual-evidence skill is enabled; capture runs via `npx playwright`, browsers download on first use
 
 ## License
 
