@@ -128,19 +128,19 @@ Never resolve a thread a human opened or replied in.
 
 ## Mode 5 - PR monitor and the wake pattern
 
-Arm one persistent Monitor per watched PR, owned by the main session (a spawned subagent cannot receive monitor events). GitHub splits PR activity across separate API objects - issue comments, submitted reviews, review (inline) comments, CI checks, pushes, merge state - and the script must poll all of them: a monitor watching only comments misses a human "Request changes" review entirely.
+Arm one persistent Monitor per watched PR, owned by the main session. The main session owns it on purpose: the watch must outlive any single builder turn - it runs while the builder sits idle between events and must survive the builder's teardown at merge. A subagent *can* receive monitor events (that is verified), so the reason is not a platform limit; whether a builder-owned `Monitor(persistent: true)` would keep delivering across the builder's own dormant turns and past teardown is unverified, so ownership stays with the main session until that is demonstrated. GitHub splits PR activity across separate API objects - issue comments, submitted reviews, review (inline) comments, CI checks, pushes, merge state - and the script must poll all of them: a monitor watching only comments misses a human "Request changes" review entirely.
 
 ```bash
 Monitor (persistent: true, description: "PR #<n> activity"):
 
 PR=<n>; OWNER=<owner>; REPO=<repo>; prev=""; merge_known=""
 while true; do
-  issues=$(gh api --paginate "repos/$OWNER/$REPO/issues/$PR/comments?per_page=100" --jq '.[-1].id // 0' 2>/dev/null) || { sleep 60; continue; }
-  issues=$(printf '%s' "$issues" | tail -n 1)
+  issues=$(gh api --paginate "repos/$OWNER/$REPO/issues/$PR/comments?per_page=100" --jq 'map(select(.body | startswith("**Harness automated comment**") | not)) | .[-1].id // empty' 2>/dev/null) || { sleep 60; continue; }
+  issues=$(printf '%s' "$issues" | tail -n 1); issues=${issues:-0}
   reviews=$(gh api --paginate "repos/$OWNER/$REPO/pulls/$PR/reviews?per_page=100" --jq '.[-1].id // 0' 2>/dev/null) || { sleep 60; continue; }
   reviews=$(printf '%s' "$reviews" | tail -n 1)
-  rcomments=$(gh api --paginate "repos/$OWNER/$REPO/pulls/$PR/comments?per_page=100" --jq '.[-1].id // 0' 2>/dev/null) || { sleep 60; continue; }
-  rcomments=$(printf '%s' "$rcomments" | tail -n 1)
+  rcomments=$(gh api --paginate "repos/$OWNER/$REPO/pulls/$PR/comments?per_page=100" --jq 'map(select(.body | startswith("**Harness automated comment**") | not)) | .[-1].id // empty' 2>/dev/null) || { sleep 60; continue; }
+  rcomments=$(printf '%s' "$rcomments" | tail -n 1); rcomments=${rcomments:-0}
   line=$(gh pr view "$PR" --repo "$OWNER/$REPO" \
     --json state,headRefOid,mergeStateStatus,statusCheckRollup \
     --jq '[.mergeStateStatus, .state, .headRefOid,
@@ -164,11 +164,11 @@ while true; do
 done
 ```
 
-Each fetch goes into its own variable, and any failure (non-zero exit under `2>/dev/null`) skips the whole cycle via `{ sleep 60; continue; }` — a brace group, never a subshell, or `continue` would be a silent no-op. The fingerprint is assembled only after all four fetches succeed, so a state the monitor failed to observe is never compared and an API outage never fabricates an event: during an outage the monitor is simply silent, and detection is delayed by the outage plus up to one poll interval. The three list fetches use `--paginate` with `.[-1].id // 0`, which prints the last id of each page; the multi-line output is captured first — so the checked exit status is `gh`'s and not a pipeline's (which would be `tail`'s and would mask a `gh` failure) — and only then reduced with `tail -n 1` to the true last id. `per_page=100` alone would pin at item 100 once a list grows past one page, and `direction=desc` is not used because the issue-comments endpoint silently ignores it (with `per_page=1` that would pin to the oldest comment).
+Each fetch goes into its own variable, and any failure (non-zero exit under `2>/dev/null`) skips the whole cycle via `{ sleep 60; continue; }` — a brace group, never a subshell, or `continue` would be a silent no-op. The fingerprint is assembled only after all four fetches succeed, so a state the monitor failed to observe is never compared and an API outage never fabricates an event: during an outage the monitor is simply silent, and detection is delayed by the outage plus up to one poll interval. The three list fetches use `--paginate` and print one id per page; the multi-line output is captured first — so the checked exit status is `gh`'s and not a pipeline's (which would be `tail`'s and would mask a `gh` failure) — and only then reduced with `tail -n 1` to the true last id. The issue-comment and review-comment fetches carry the self-wake guard: `map(select(.body | startswith("**Harness automated comment**") | not))` drops every comment the harness itself posted before taking `.[-1].id`, so the builder's own thread replies and PR comments never move the fingerprint and never wake it — only a human comment does. Those two emit `.[-1].id // empty` per page, so a page with no human comment prints nothing rather than `0`, and `tail -n 1` keeps the last human id instead of letting a trailing page of pure harness posts collapse it to `0`; the final `${var:-0}` supplies `0` only when no page held a human comment. The submitted-reviews fetch keeps `.[-1].id // 0` unfiltered, because during the watch a new submitted review is always a human's. `per_page=100` alone would pin at item 100 once a list grows past one page, and `direction=desc` is not used because the issue-comments endpoint silently ignores it (with `per_page=1` that would pin to the oldest comment).
 
 Mergeability is lazily computed by GitHub and transiently flips to `UNKNOWN`, and every MERGED PR reports `mergeStateStatus: UNKNOWN` permanently — so UNKNOWN is masked with the last known value (`merge_known`), never skipped: skipping on UNKNOWN would silence the monitor forever at exactly the merge event. During an UNKNOWN window the poll still runs, so comments, pushes, and CI changes are still detected, and `.state` flipping to MERGED/CLOSED still changes the fingerprint — the case patterns match on `.state`, which masking never touches. The one exception is a startup UNKNOWN with no known value yet, which skips: bounded startup blindness only.
 
-The line coverage is deliberate: a new issue comment, a submitted review (human or bot), a new inline review comment, a CI conclusion change, a push (head SHA), a base-branch conflict (`mergeStateStatus`), and merge/close all change `cur` and emit an event. With the PR author's own token the reviews endpoint also returns PENDING (unsubmitted) reviews, so a wake-up may mean a review was started, not only submitted.
+The line coverage is deliberate: a new human issue comment, a submitted review (human or bot), a new human inline review comment, a CI conclusion change, a push (head SHA), a base-branch conflict (`mergeStateStatus`), and merge/close all change `cur` and emit an event. The self-wake guard keeps the builder's own thread replies and PR comments out of the two comment fetches - they carry the harness header and are filtered - so they never wake it. A push by the builder does still change the head SHA and emits one event, but that is a benign single wake rather than a loop: the builder inspects, sees its own commit already at HEAD with nothing external pending, does nothing, and does not push again without a fresh reason. With the PR author's own token the reviews endpoint also returns PENDING (unsubmitted) reviews, so a wake-up may mean a review was started, not only submitted.
 
 The wake pattern: on any event, the main session's only action is waking the PR's builder agent:
 
@@ -177,7 +177,7 @@ SendMessage to: builder-<owner>-<repo>-<branch-slug>
 message: "PR updated: PR #<n>"
 ```
 
-Nothing else - no classification, no fixing, no replying. The builder inspects the PR and decides what the event means. On `PR_MERGED` / `PR_CLOSED` the monitor exits by itself; the wake message lets the builder run its cleanup, and the watch is over.
+Nothing else - no classification, no fixing, no replying. The builder inspects the PR and decides what the event means. On `PR_MERGED` / `PR_CLOSED` the monitor exits by itself; the wake lets the builder file deferred findings (merge only) and send its final report, after which the main session performs teardown from the user's checkout. The watch is over.
 
 ## Failure modes
 
