@@ -6,14 +6,14 @@
 !CLAUDE.md
 !LICENSE
 !README.md
+!settings.json
 !agents/
 !agents/**
+!docs/
+!docs/**
 !hooks/
 !hooks/**
 !rules/
 !rules/**
-!settings.json
 !skills/
 !skills/**
-!skills-disabled/
-!skills-disabled/**
