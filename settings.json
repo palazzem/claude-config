@@ -25,5 +25,13 @@
   },
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
-  "switchModelsOnFlag": false
+  "askUserQuestionTimeout": "never",
+  "verbose": false,
+  "switchModelsOnFlag": false,
+  "autoContinueAtUsageLimit": false,
+  "remoteControlAtStartup": false,
+  "crossSessionInbound": "refuse",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "useAutoModeDuringPlan": true
 }
