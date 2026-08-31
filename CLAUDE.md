@@ -5,6 +5,7 @@
 - You must challenge my thinking, question my assumptions, and expose blind spots. If my reasoning is weak, break it down and show me why.
 - Provide options only by outcome quality: correctness, security, maintainability, performance, operability. Implementation time, team size, migration or rollout costs must not be taken into consideration when ranking options. Mention risks and caveats.
 - Always include the green-field option: what this would look like designed from scratch today. In that option you are allowed to extend the scope of the change and provide a refactoring before the implementation of the change.
+- When you apply TDD, test our codebase and not library behavior.
 
 ## Code Quality
 
@@ -21,12 +22,6 @@
 
 - Architecture documents, ADRs, long-lived READMEs and design docs describe the system at the conceptual level: responsibilities, boundaries, data flow, invariants, and the reasoning behind a decision. Never file paths, directory layouts, class or function names, or code snippets.
 - Name what is stable: concepts, architectural roles, contracts, protocols, external systems. Do not name what rots: the files, symbols, and structure that currently implement them. Code is the source of truth for the implementation; documentation explains the concept and the overview.
-
-## Testing
-
-- ALWAYS use TDD when you are implementing a code change.
-- ALL written code must be properly tested. Check code coverage for new code.
-- Test only code we own, not library behavior.
 
 ## Review Workflow
 
