@@ -10,18 +10,11 @@
     "defaultMode": "auto"
   },
   "model": "claude-fable-5[1m]",
-  "worktree": {
-    "baseRef": "fresh"
-  },
   "statusLine": {
     "type": "command",
     "command": "ccstatusline",
     "padding": 0,
     "refreshInterval": 10
-  },
-  "enabledPlugins": {
-    "playwright@claude-plugins-official": false,
-    "frontend-design@claude-plugins-official": false
   },
   "effortLevel": "xhigh",
   "modelSettings": {
@@ -31,13 +24,5 @@
   },
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
-  "askUserQuestionTimeout": "never",
-  "tui": "fullscreen",
-  "skipWorkflowUsageWarning": true,
-  "preferredNotifChannel": "auto",
-  "switchModelsOnFlag": false,
-  "teammateMode": "auto",
-  "remoteControlAtStartup": false,
-  "inputNeededNotifEnabled": true,
-  "skipAutoPermissionPrompt": true
+  "switchModelsOnFlag": false
 }
