@@ -1,6 +1,6 @@
 # Skill Anatomy
 
-This document describes the structure and format of agent-skills skill files. Use this as a guide when contributing new skills or understanding existing ones.
+This document describes the structure and format of the skills in this repository. Use it as the ruling when writing a new skill or auditing an existing one.
 
 ## File Location
 
@@ -17,6 +17,8 @@ skills/
 
 `SKILL.md` is the only required file. Add `scripts/` or `references/` only when the skill actually needs them, and omit them entirely for simpler skills.
 
+A skill is installed by placing `skills/<name>/` under `~/.claude/skills/`, as a copy or a symlink. At runtime a skill can reach only what lives inside its own directory — never a sibling skill, never a repository-root file. See [Self-Contained Skills](#self-contained-skills).
+
 ## SKILL.md Format
 
 ### Frontmatter (Required)
@@ -29,8 +31,9 @@ description: Guides agents through [task/workflow]. Use when [specific trigger c
 ```
 
 **Rules:**
-- `name`: Lowercase, hyphen-separated. Must match the directory name.
-- `description`: Start with what the skill does in third person, then include one or more clear "Use when" trigger conditions. Include both *what* and *when*. Maximum 1024 characters.
+- `name`: 1–64 characters; lowercase letters, digits, and single hyphens; no leading or trailing hyphen. Must match the directory name.
+- `description`: Third person. Start with what the skill does, then one or more clear "Use when" trigger conditions and the exclusions ("not for"). Include both *what* and *when*. Maximum 1024 characters.
+- Optional fields Claude Code recognizes (`argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `effort`, `context`) are allowed when the skill needs the behavior they control. A field that does not change how the skill runs is noise.
 
 **Why this matters:** Agents discover skills by reading descriptions. The description is injected into the system prompt, so it must tell the agent both what the skill provides and when to activate it. Do not summarize the workflow — if the description contains process steps, the agent may follow the summary instead of reading the full skill.
 
@@ -104,19 +107,17 @@ Create supporting files only when:
 - Code tools or scripts are needed
 - Checklists are long enough to justify separate files
 
-Keep patterns and principles inline when under 50 lines.
+Keep patterns, principles, and templates inline when under 50 lines.
 
 If a skill does not need runnable helpers, do not create an empty `scripts/` directory just to mirror other skills. Empty directories add noise without changing how the skill works.
 
-## Shared References
+## Self-Contained Skills
 
-Checklists used by more than one skill — testing, security, performance, accessibility, definition-of-done — live in `references/` at the repository root, deliberately *not* inside any skill directory.
+A skill is a self-contained directory, and this repository keeps it that way: nothing a skill reads or runs lives outside `skills/<name>/`. There is no repository-root `references/` for material shared across skills.
 
-This is a pack-level design choice. The Agent Skills spec describes a skill as a self-contained directory, but several skills here point at the same checklists. Colocating those would force one of two options: copy the checklist into every skill that uses it, or pick one skill to "own" it and have the others reach into that directory. Both drift over time. A single repo-root copy stays the source of truth.
+The reason is the install model. A skill reaches the harness as its own directory under `~/.claude/skills/`; a repository-root sibling does not travel with it, and a link to one resolves to nothing at runtime.
 
-The tradeoff is portability: a whole-repo install (such as the Claude Code marketplace plugin) carries `references/` along, but a per-skill install that copies only `skills/<name>/` leaves the repo-root sibling behind, and those links resolve to nothing. That gap is tracked in [#361](https://github.com/addyosmani/agent-skills/issues/361).
-
-Current convention: material used by exactly one skill is a supporting file inside that skill's directory; material shared across skills goes in `references/`.
+When two skills need the same material, one skill owns it and the other refers to that skill by name (see [Cross-Skill References](#cross-skill-references)). Do not copy the material into both — copies drift.
 
 ## Context Efficiency
 
@@ -132,12 +133,12 @@ Skills load on demand: only the skill name and description sit in context at sta
 
 When a skill ships runnable helpers under `scripts/`, each script follows these conventions:
 
-- Use a `#!/bin/bash` shebang.
-- Use `set -e` for fail-fast behavior.
-- Write status messages to stderr: `echo "Message" >&2`.
-- Write machine-readable output (JSON) to stdout.
-- Include a cleanup trap for temporary files.
-- Reference the script path as `skills/<skill-name>/scripts/<script>.sh` (repo-relative).
+- Use a `#!/usr/bin/env bash` shebang and stay compatible with bash 3.2: macOS ships that version at `/bin/bash`, so bash 4+ features (`mapfile`, associative arrays, `${var,,}`) are unavailable on the platform this harness runs on.
+- Use `set -euo pipefail` for fail-fast behavior. A long-running script that must survive a transient failure — a poller whose `gh` call times out — guards that one call explicitly (`out=$(cmd) || out=""`) and says why; it does not drop `-e` for the whole script.
+- Write status messages and diagnostics to stderr: `echo "Message" >&2`.
+- Write machine-readable output to stdout: a JSON document for a one-shot result, one JSON object per line for a stream of events.
+- When the script creates temporary files, include a cleanup trap for them.
+- Reference the script from `SKILL.md` as `${CLAUDE_SKILL_DIR}/scripts/<script>.sh`. Claude Code substitutes the installed skill directory; a repository-relative path does not resolve at runtime.
 
 ## Writing Principles
 
@@ -153,16 +154,15 @@ When a skill ships runnable helpers under `scripts/`, each script follows these 
 - Skill directories: `lowercase-hyphen-separated`
 - Skill files: `SKILL.md` (always uppercase)
 - Supporting files: `lowercase-hyphen-separated.md`
-- Shared references: stored in the root `references/` directory, not inside skill directories (see [Shared References](#shared-references) for why).
-- Skill-specific references: a single supporting doc can stay as a loose file in the skill directory (the `Supporting files` entry above); when several related docs travel with the skill, the emerging convention for self-contained, distributable skills is to group them in a `references/` directory inside the skill directory, so the skill carries its own supporting docs.
+- Skill-specific references: a single supporting doc stays as a loose file in the skill directory; when several related docs travel with the skill, group them in a `references/` directory inside the skill directory, so the skill carries its own supporting docs.
 
 ## Cross-Skill References
 
-Reference other skills by name:
+Reference other skills and agents by name:
 
 ```markdown
-Follow the `test-driven-development` skill for writing tests.
-If the build breaks, use the `debugging-and-error-recovery` skill.
+Use the `find-docs` skill to fetch current library documentation.
+Hand the proposal to the `skeptic` agent before implementation begins.
 ```
 
 Don't duplicate content between skills — reference and link instead.

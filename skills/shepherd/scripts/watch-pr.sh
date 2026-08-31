@@ -9,23 +9,27 @@
 #   watch-pr.sh watch <pr> '<watermark>' --once  one pass: print everything
 #                                                qualifying right now, then exit
 #
-# Events (stdout — every line wakes the session):
-#   COMMENT <id> <login>        unmarked PR conversation comment
-#   REVIEW <id> <login>         unmarked review submission, non-empty body
-#   THREAD_REPLY <id> <login>   unmarked review-thread / inline comment
-#   MERGED | CLOSED             the PR reached a terminal
-#   BEHIND | DIRTY              merge readiness drifted (base moved / conflicts)
+# Events — one JSON object per line on stdout; every line wakes the session:
+#   {"event":"COMMENT","id":<n>,"login":"<user>"}       unmarked PR conversation comment
+#   {"event":"REVIEW","id":<n>,"login":"<user>"}        unmarked review submission, non-empty body
+#   {"event":"THREAD_REPLY","id":<n>,"login":"<user>"}  unmarked review-thread / inline comment
+#   {"event":"MERGED"} | {"event":"CLOSED"}             the PR reached a terminal
+#   {"event":"BEHIND"} | {"event":"DIRTY"}              merge readiness drifted (base moved / conflicts)
 #
 # Never fires: marked bodies (first line **Claude Harness**); empty-body
 # reviews — GitHub wraps every API thread reply in one under our own account,
 # and a human's body-less approval lands in the same skip (stderr-logged);
 # CI; UNKNOWN merge state. Drift is transition-relative to the watermark in
 # watch mode, current-state in --once mode. Diagnostics go to stderr.
+#
+# A pass prints only after every surface was read in full. A partial pass would
+# exit on the surfaces that fired, and the next baseline would then swallow the
+# events of the surface that failed. In --once mode an incomplete read exits 1.
 
-set -u  # deliberately not -e: one failed gh call must not kill the watch
+set -euo pipefail
 
 MARKER='**Claude Harness**'
-INTERVAL=30
+INTERVAL="${WATCH_PR_INTERVAL:-30}"
 
 cmd="${1:-}"
 pr="${2:-}"
@@ -34,11 +38,12 @@ pr="${2:-}"
   exit 2
 }
 
-api() { gh api "repos/{owner}/{repo}/$1" --paginate 2>/dev/null; }
+api() { gh api "repos/{owner}/{repo}/$1" --paginate; }
 max_id() { jq -r '.[].id' | sort -n | tail -1; }
+event() { printf '{"event":"%s"}\n' "$1"; }
 
 if [[ "$cmd" == "baseline" ]]; then
-  view=$(gh pr view "$pr" --json state,mergeStateStatus) || exit 1
+  view=$(gh pr view "$pr" --json state,mergeStateStatus)
   c=$(api "issues/$pr/comments" | max_id)
   r=$(api "pulls/$pr/reviews" | max_id)
   t=$(api "pulls/$pr/comments" | max_id)
@@ -46,7 +51,7 @@ if [[ "$cmd" == "baseline" ]]; then
     --arg merge "$(jq -r '.mergeStateStatus' <<<"$view")" \
     --arg state "$(jq -r '.state' <<<"$view")" \
     '{comment: $c, review: $r, reply: $t, merge: $merge, state: $state}'
-  exit $?
+  exit 0
 fi
 
 [[ "$cmd" != "watch" ]] && { echo "unknown command: $cmd" >&2; exit 2; }
@@ -54,20 +59,21 @@ wm="${3:-}"
 [[ -z "$wm" ]] && { echo "watch needs the watermark from 'watch-pr.sh baseline'" >&2; exit 2; }
 once=false; [[ "${4:-}" == "--once" ]] && once=true
 
-b_comment=$(jq -r '.comment' <<<"$wm") || exit 2
-b_review=$(jq -r '.review' <<<"$wm")
-b_reply=$(jq -r '.reply' <<<"$wm")
-b_merge=$(jq -r '.merge' <<<"$wm")
+parsed=$(jq -er '"\(.comment|numbers) \(.review|numbers) \(.reply|numbers) \(.merge|strings)"' <<<"$wm" 2>/dev/null) || {
+  echo "watch-pr: malformed watermark: $wm" >&2
+  exit 2
+}
+read -r b_comment b_review b_reply b_merge <<<"$parsed"
 echo "watch-pr: pr=$pr once=$once baseline=$wm" >&2
 
-# SKIP lines are diagnostics for the empty-body-review carve-out; everything
+# Skip objects are diagnostics for the empty-body-review carve-out; everything
 # else is a qualifying event. Returns success iff anything fired.
 emit() {
   local any=1 line
   while IFS= read -r line; do
     [[ -z "$line" ]] && continue
-    if [[ "$line" == SKIP* ]]; then
-      echo "watch-pr: skipped empty-body review ${line#SKIP }" >&2
+    if [[ "$line" == '{"skip"'* ]]; then
+      echo "watch-pr: skipped empty-body review $line" >&2
     else
       printf '%s\n' "$line"
       any=0
@@ -76,40 +82,52 @@ emit() {
   return $any
 }
 
-while :; do
-  fired=false
+filter() {
+  local surface=$1 baseline=$2 body=$3
+  case "$surface" in
+    COMMENT|THREAD_REPLY)
+      jq -c --arg m "$MARKER" --argjson b "$baseline" --arg e "$surface" '
+        .[] | select(.id > $b)
+            | select((.body // "" | startswith($m)) | not)
+            | {event: $e, id: .id, login: .user.login}' <<<"$body" | emit ;;
+    REVIEW)
+      jq -c --arg m "$MARKER" --argjson b "$baseline" '
+        .[] | select(.id > $b)
+            | if (.body // "") == "" then {skip: {id: .id, login: .user.login, state: .state}}
+              elif (.body | startswith($m)) then empty
+              else {event: "REVIEW", id: .id, login: .user.login} end' <<<"$body" | emit ;;
+  esac
+}
 
-  view=$(gh pr view "$pr" --json state,mergeStateStatus 2>/dev/null)
-  if [[ -n "$view" ]]; then
-    state=$(jq -r '.state' <<<"$view")
-    merge=$(jq -r '.mergeStateStatus' <<<"$view")
-    [[ "$state" == "MERGED" ]] && { echo "MERGED"; exit 0; }
-    [[ "$state" == "CLOSED" ]] && { echo "CLOSED"; exit 0; }
-    if [[ "$merge" == "BEHIND" || "$merge" == "DIRTY" ]]; then
-      if $once || [[ "$merge" != "$b_merge" ]]; then
-        echo "$merge"
-        fired=true
-      fi
+while :; do
+  if ! { view=$(gh pr view "$pr" --json state,mergeStateStatus) \
+      && comments=$(api "issues/$pr/comments") \
+      && reviews=$(api "pulls/$pr/reviews") \
+      && replies=$(api "pulls/$pr/comments"); }; then
+    if $once; then
+      echo "watch-pr: incomplete read; re-run it before arming" >&2
+      exit 1
     fi
-  else
-    echo "watch-pr: gh pr view failed; retrying" >&2
+    echo "watch-pr: incomplete read; retrying" >&2
+    sleep "$INTERVAL"
+    continue
   fi
 
-  api "issues/$pr/comments" | jq -r --arg m "$MARKER" --argjson b "$b_comment" '
-    .[] | select(.id > $b)
-        | select((.body // "" | startswith($m)) | not)
-        | "COMMENT \(.id) \(.user.login)"' | emit && fired=true
+  fired=false
+  state=$(jq -r '.state' <<<"$view")
+  merge=$(jq -r '.mergeStateStatus' <<<"$view")
+  [[ "$state" == "MERGED" ]] && { event MERGED; exit 0; }
+  [[ "$state" == "CLOSED" ]] && { event CLOSED; exit 0; }
+  if [[ "$merge" == "BEHIND" || "$merge" == "DIRTY" ]]; then
+    if $once || [[ "$merge" != "$b_merge" ]]; then
+      event "$merge"
+      fired=true
+    fi
+  fi
 
-  api "pulls/$pr/reviews" | jq -r --arg m "$MARKER" --argjson b "$b_review" '
-    .[] | select(.id > $b)
-        | if (.body // "") == "" then "SKIP \(.id) \(.user.login) \(.state)"
-          elif (.body | startswith($m)) then empty
-          else "REVIEW \(.id) \(.user.login)" end' | emit && fired=true
-
-  api "pulls/$pr/comments" | jq -r --arg m "$MARKER" --argjson b "$b_reply" '
-    .[] | select(.id > $b)
-        | select((.body // "" | startswith($m)) | not)
-        | "THREAD_REPLY \(.id) \(.user.login)"' | emit && fired=true
+  filter COMMENT "$b_comment" "$comments" && fired=true
+  filter REVIEW "$b_review" "$reviews" && fired=true
+  filter THREAD_REPLY "$b_reply" "$replies" && fired=true
 
   $once && exit 0
   $fired && exit 0
