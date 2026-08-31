@@ -17,3 +17,5 @@
 !rules/**
 !skills/
 !skills/**
+!statusline/
+!statusline/**
