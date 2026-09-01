@@ -57,7 +57,7 @@ Report first, cleanup second — always both. Cleanup ignores every failure, so 
 ```
 
 3. Clean up without confirmation — the PR is the record, the worktree is not. If the checkout is a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`): `ExitWorktree(action: "remove", discard_changes: true)`, then from the main checkout `git worktree remove --force <worktree>`. Then `git branch -D <branch>`. MERGED: `git push origin --delete <branch>` (GitHub may already have). CLOSED unmerged: the remote branch stays — pushed work is recoverable and the PR can be reopened.
-4. Sync the main checkout — from the main checkout, where step 3's `ExitWorktree` left the session; aimed at it from inside a worktree, the command is refused by the harness. MERGED on the default branch: `git pull -p`; on any other branch `git fetch --prune` and say so — never pull into a branch the user has checked out. CLOSED: `git fetch --prune`. A pull the working tree refuses: report it, don't stash.
+4. Once the PR is `MERGED` and the worktree is deleted, sync the main checkout: `git pull -p` on the default branch, `git fetch --prune` on any other branch (say so — never pull into a branch the user has checked out). `CLOSED`: `git fetch --prune`. A pull the working tree refuses: report it, don't stash.
 
 ## Common Rationalizations
 
