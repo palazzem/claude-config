@@ -1,50 +1,110 @@
 # claude-config
 
-Personal [Claude Code](https://docs.anthropic.com/en/docs/claude-code) configuration, versioned as the `~/.claude` directory itself. Process comes from the [agent-skills](https://github.com/addyosmani/agent-skills) plugin; this repo adds the quality bar, the GitHub pull-request lifecycle the plugin stops short of, a documentation-research agent, and settings.
+A versioned `~/.claude` that turns Claude Code into a disciplined engineer.
 
-## Layout
-
+```text
+  DEFINE     /spec        ┐
+    │                     │
+  PLAN       /plan        ├─ agent-skills
+    │                     │
+  BUILD      /build       ┘
+    │
+  STACK      /gh-stack    ┐
+    │                     ├─ this repo
+  WATCH      /shepherd    ┘
+    │
+  VERIFY     /test        ┐
+    │                     │
+  REVIEW     /review      ├─ agent-skills
+    │                     │
+  SHIP       /ship        ┘
 ```
-~/.claude/
-├── CLAUDE.md                   # The bar — wins over plugin defaults where they conflict
-├── settings.json               # Model, effort, permissions, plugin marketplace, status line
-├── rules/context7.md           # Library and API questions go to docs-researcher, never memory
-├── agents/docs-researcher.md   # Context7-backed documentation lookups, source-cited
-├── skills/
-│   ├── shepherd/               # Watches an open PR until a human merges or closes it
-│   └── gh-stack/               # Stacked PRs (vendored from github/gh-stack)
-├── docs/skill-anatomy.md       # Ruling for writing and auditing skills
-└── statusline/                 # ccstatusline layout
-```
 
-An ignore-all `.gitignore` whitelists only these paths, so Claude Code's runtime files (history, caches, telemetry) never enter version control.
+## Requirements
 
-## How it fits together
+- Claude Code
+- System packages: `gh`, `jq`, `npm`
 
-**agent-skills supplies process.** Its lifecycle skills — `/spec`, `/plan`, `/build`, `/test`, `/review`, `/ship` and the rest — and its reviewer personas run the work from idea to pull request. `settings.json` registers the marketplace and enables the plugin.
+## Quick Start
 
-**`CLAUDE.md` supplies the bar.** Where the two conflict, `CLAUDE.md` wins: options ranked by outcome quality only, a green-field proposal on every decision, no lint suppressions, warnings treated as findings, docstrings on every public symbol, conceptual architecture docs, and merges reserved for humans.
-
-**This repo's skills pick up after the PR exists.** `shepherd` arms a single monitor on the open PR and wakes the session on reviewer comments, failed checks, and drift or conflicts; the session fixes, pushes, replies, and re-arms until a human merges or closes, then reports and cleans up the branch and worktree. `gh-stack` drives the `gh stack` extension for chains of dependent PRs.
-
-**`docs-researcher` answers from current documentation.** Any question about a library, framework, SDK, CLI, or cloud service is delegated to it — a Sonnet subagent querying the Context7 CLI — and answered from the returned report, never from memory. `rules/context7.md` makes that routing mandatory.
-
-## Setup
+The following instructions are meant for a fresh installation where Claude Code doesn't
+have a global `~/.claude` config folder yet:
 
 ```bash
+# Custom Harness
 git clone git@github.com:palazzem/claude-config.git ~/.claude
+
+# Agent-skills plugin
+claude plugin marketplace add addyosmani/agent-skills
+claude plugin install agent-skills@addy-agent-skills
+
+# GitHub configuration
+gh auth login
+gh extension install github/gh-stack
+
+# Claude Code Statusline
+npm install -g ccstatusline
+mkdir -p ~/.config/ccstatusline
+cp ~/.claude/statusline/ccstatusline-config.json ~/.config/ccstatusline/settings.json
+
+claude
 ```
 
-`~/.claude` usually already exists; on a machine with configuration to keep, clone elsewhere and copy the pieces you want.
+## Commands
 
-Prerequisites:
+Development lifecycle commands come from agent-skills
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI
-- [GitHub CLI](https://cli.github.com/) (`gh`), authenticated, plus `jq` — used by `shepherd`
-- `gh extension install github/gh-stack` — used by `gh-stack`
-- [ccstatusline](https://github.com/sirmalloc/ccstatusline) — copy `statusline/ccstatusline-config.json` to `~/.config/ccstatusline/settings.json`
-- Context7 runs through `npx ctx7@latest`; nothing to install
+| What you're doing | Command | Key principle |
+| --- | --- | --- |
+| Define what to build | `/spec` | Spec before code |
+| Plan how to build it | `/plan` | Small, atomic tasks |
+| Build incrementally | `/build` | One slice at a time |
+| Split a change into dependent PRs | `/gh-stack` | One concern per PR, reviewed in order |
+| Carry the open PR to merge | `/shepherd` | The PR is done when a human merges it |
+| Prove it works | `/test` | Tests are proof |
+| Set the quality bar | `/constraints` | Decide it once, enforce it everywhere |
+| Review before merge | `/review` | Improve code health |
+| Audit web performance | `/webperf` | Measure before you optimize |
+| Simplify the code | `/code-simplify` | Clarity over cleverness |
+| Ship to production | `/ship` | Faster is safer |
+
+Skills also activate on their own: a library question routes to `docs-researcher`, a chain of dependent branches triggers `gh-stack`, a freshly opened PR triggers `shepherd`.
+
+## How It Fits Together
+
+| Layer | Lives in | Decides |
+| --- | --- | --- |
+| Process | agent-skills plugin | How work moves — spec, plan, build, test, review, ship — and which reviewer persona looks at it |
+| Bar | `CLAUDE.md` | What "good" means |
+| PR lifecycle | `skills/shepherd`, `skills/gh-stack` | What happens after the PR exists |
+| Knowledge | `agents/docs-researcher.md`, `rules/context7.md` | Where facts about libraries, frameworks, and tools come from |
+| Config | `settings.json`, `statusline/` | Model, effort, permissions, plugin registration, what the status line shows |
+
+## Project Structure
+
+```text
+~/.claude/
+├── CLAUDE.md                          # The bar — user-level instructions, loaded into every session
+├── settings.json                      # Model, effort, permissions, plugin registration, status line
+├── rules/
+│   └── context7.md                    # Library questions go to docs-researcher, never memory
+├── agents/
+│   └── docs-researcher.md             # Context7-backed documentation lookups, source-cited
+├── skills/
+│   ├── shepherd/
+│   │   ├── SKILL.md                   # Watch an open PR until a human merges or closes it
+│   │   └── scripts/
+│   │       ├── watch-pr.sh            # The one PR reader: baseline, then watch
+│   │       ├── query.graphql          # One request reads every PR surface
+│   │       └── jq/                    # baseline, pass, and events filters
+│   └── gh-stack/
+│       └── SKILL.md                   # Stacked PRs, vendored from github/gh-stack
+├── statusline/
+│   └── ccstatusline-config.json       # Three-line ccstatusline layout
+├── docs/
+│   └── skill-anatomy.md               # Ruling for writing and auditing skills
+```
 
 ## License
 
-Licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
+Apache License 2.0. See [LICENSE](LICENSE).
