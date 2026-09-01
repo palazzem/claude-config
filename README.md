@@ -67,6 +67,7 @@ Development lifecycle commands come from agent-skills
 | Audit web performance | `/webperf` | Measure before you optimize |
 | Simplify the code | `/code-simplify` | Clarity over cleverness |
 | Ship to production | `/ship` | Faster is safer |
+| Consolidate memories into rules | `/reflect` | A lesson lives once, globally |
 
 Skills also activate on their own: a library question routes to `docs-researcher`, a chain of dependent branches triggers `gh-stack`, a freshly opened PR triggers `shepherd`.
 
@@ -78,6 +79,7 @@ Skills also activate on their own: a library question routes to `docs-researcher
 | Bar | `CLAUDE.md` | What "good" means |
 | PR lifecycle | `skills/shepherd`, `skills/gh-stack` | What happens after the PR exists |
 | Knowledge | `agents/docs-researcher.md`, `rules/context7.md` | Where facts about libraries, frameworks, and tools come from |
+| Memory | `.claude/skills/reflect` | Which project lessons become global rules |
 | Config | `settings.json`, `statusline/` | Model, effort, permissions, plugin registration, what the status line shows |
 
 ## Project Structure
@@ -103,6 +105,13 @@ Skills also activate on their own: a library question routes to `docs-researcher
 │   └── ccstatusline-config.json       # Three-line ccstatusline layout
 ├── docs/
 │   └── skill-anatomy.md               # Ruling for writing and auditing skills
+└── .claude/
+    └── skills/
+        └── reflect/                   # Repo-local: visible only in this checkout
+            ├── SKILL.md               # Triage memories, promote rules via PR, prune after merge
+            └── scripts/
+                ├── inventory.sh       # Every project memory as one JSON stream
+                └── prune.sh           # Delete manifest files and their MEMORY.md lines
 ```
 
 ## License
