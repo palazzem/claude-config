@@ -19,11 +19,25 @@ The session opened a PR; shepherd keeps it moving until a human merges or closes
 
 One monitor at a time, re-armed after every fire, until terminal. `${CLAUDE_SKILL_DIR}/scripts/watch-pr.sh` is the only reader: the pre-arm read and the armed monitor run the same filter, so they cannot disagree — a hand-written `gh api` read applies a second filter and silently drops or duplicates events. Reading one comment by the `url` an event carries is not a read; polling is.
 
-Every arm — Watch entry and every re-arm — is one fixed sequence:
+The loop, from Watch entry until a terminal event:
 
-1. **Watermark** — `watch-pr.sh baseline <number>`. Captured before the read, so an event landing mid-sequence double-fires later and is deduped rather than lost.
-2. **Read** — `watch-pr.sh watch <number> '<watermark>' --once` prints everything standing now. On the PR's first arm in this session — Watch entry or a resume — add `--catch-up`: the script reads comments, reviews, and replies from the epoch while merge and CI keep the watermark, so threads left before the session started surface through the script instead of hiding under a watermark taken from the PR's current state. Re-arms read without it. Handle every line not already handled before arming. Exit 1 is an incomplete read — re-run it; exit 2 is a bad invocation — fix the call. Never arm on either.
-3. **Arm** — Monitor tool, `persistent: true` (a human reply can take days), command `watch-pr.sh watch <number> '<watermark>'` with the step-1 watermark — the script refuses `--catch-up` here: a monitor reading from the epoch would refire everything the read just showed. It prints its first qualifying events as JSON lines on stdout and exits; every line wakes the session. A monitor that exits without an event line gave up after repeated failed reads: re-arm from step 1, and tell the user if it happens twice.
+1. **Baseline** — capture the watermark. Before the read, so an event landing mid-sequence double-fires later and is deduped rather than lost.
+2. **Read** — the first time on this PR in this session with `--catch-up`, every time after with `--once` alone. Handle every line not already handled. Exit 1: re-run it; exit 2: fix the call. Never arm on either.
+3. **Arm** — the Monitor tool, `persistent: true`, running `watch` with the step-1 watermark. It prints the first qualifying events as JSON lines and exits; every line wakes the session. Handle them, then repeat from 1. A monitor that exits without an event line gave up after repeated failed reads: repeat from 1, and tell the user if it happens twice.
+
+### Commands
+
+```bash
+watch-pr.sh baseline <number>                        # the watermark: newest activity, merge state, CI, PR state
+watch-pr.sh watch <number> '<watermark>' --once      # one pass: print everything standing now, exit
+watch-pr.sh watch <number> '<watermark>' --once --catch-up
+                                                     # the same pass reading comments, reviews and replies
+                                                     # from the epoch (merge/CI from the watermark) — a PR's
+                                                     # first read, so what was left before the session shows
+watch-pr.sh watch <number> '<watermark>'             # the monitor: poll until the first qualifying events, print, exit
+```
+
+`--catch-up` is refused without `--once`: a monitor reading from the epoch would refire everything the read just showed.
 
 | Event | Meaning | The session |
 |---|---|---|
