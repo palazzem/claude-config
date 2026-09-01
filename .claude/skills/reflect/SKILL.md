@@ -71,19 +71,19 @@ _N memory files across M projects are pruned locally after merge._
 
 Nothing derived from a memory — slug, filename, description, body, project name — goes in a commit message, the PR title or body, or any tracked file. The drafted rule text is safe by construction: the `promote` test already forbids project domain, tools, people, and paths. Conflicts stay in the session.
 
-6. Write the manifest: `mkdir -p ~/.claude/.claude/reflect` and one line per entry into `~/.claude/.claude/reflect/<number>.manifest`, `<number>` from `gh pr view --json number -q .number`. This file is the only record of what to prune.
+6. Write the manifest: `mkdir -p ~/.claude/reflect` and one line per entry into `~/.claude/reflect/<YYYY-MM-DD>.manifest` — the date is the branch's. This file is the only record of what to prune.
 7. Invoke `shepherd`.
 
 ## Prune
 
 Runs after `shepherd` reaches Terminal — after its summary, its cleanup, and its sync of the main checkout.
 
-- `MERGED`: confirm the rule is live — `git -C ~/.claude fetch --quiet && git -C ~/.claude merge-base --is-ancestor origin/main HEAD` — then `${CLAUDE_SKILL_DIR}/scripts/prune.sh < ~/.claude/.claude/reflect/<number>.manifest`, print its JSON summary, and `rm` the manifest. A failed sync check → report, prune nothing, tell the user to run `/reflect <number>` once the checkout is synced. A missing manifest → report and stop; never rebuild one from the triage, the session, or the PR.
+- `MERGED`: confirm the rule is live — `git -C ~/.claude fetch --quiet && git -C ~/.claude merge-base --is-ancestor origin/main HEAD` — then `${CLAUDE_SKILL_DIR}/scripts/prune.sh < ~/.claude/reflect/<YYYY-MM-DD>.manifest`, print its JSON summary, and `rm` the manifest. A failed sync check → report, prune nothing, tell the user to run `/reflect <number>` once the checkout is synced. A missing manifest → report and stop; never rebuild one from the triage, the session, or the PR.
 - `CLOSED`: nothing under `~/.claude/projects/` changes; `rm` the manifest. Report.
 
 ## Resume
 
-`/reflect <number>` → `gh pr view <number> --json state`. `MERGED` → Prune (idempotent: files already gone are `skipped`). `OPEN` → `shepherd` on the PR's branch. `CLOSED` → Prune's `CLOSED` branch.
+`/reflect <number>` → `gh pr view <number> --json state,headRefName`; the head branch `reflect/<YYYY-MM-DD>` names the manifest. `MERGED` → Prune (idempotent: files already gone are `skipped`). `OPEN` → `shepherd` on the PR's branch. `CLOSED` → Prune's `CLOSED` branch.
 
 ## Common Rationalizations
 
@@ -102,7 +102,7 @@ Runs after `shepherd` reaches Terminal — after its summary, its cleanup, and i
 
 - A deletion under `~/.claude/projects/` before the watcher printed `MERGED` and the sync check passed.
 - A memory slug, filename, description, or project name in a commit message, a PR title or body, or a tracked file.
-- A manifest rebuilt from the triage, the session, or the PR; a manifest kept anywhere but `~/.claude/.claude/reflect/`.
+- A manifest rebuilt from the triage, the session, or the PR; a manifest kept anywhere but `~/.claude/reflect/`.
 - `rm`, `sed`, or an edit on a memory file or a `MEMORY.md` outside `prune.sh`.
 - A PR opened without a passing `prune.sh --dry-run`; a draft PR.
 - A selection inferred from "sounds good", "whatever you think", or silence.
@@ -116,5 +116,5 @@ Before ending a run:
 - [ ] The triage listed every project and every memory `inventory.sh` printed, each with a verdict and a reason.
 - [ ] The selection was explicit; nothing was written before it.
 - [ ] `prune.sh --dry-run` accepted the manifest before `gh pr create`; the leak guard printed nothing.
-- [ ] The PR is ready, its body matches the contract exactly, and `~/.claude/.claude/reflect/<number>.manifest` exists.
+- [ ] The PR is ready, its body matches the contract exactly, and `~/.claude/reflect/<YYYY-MM-DD>.manifest` exists.
 - [ ] After `MERGED`: the sync check passed, `prune.sh` ran on the manifest, its `deleted` list matches, and the manifest is gone. After `CLOSED`: nothing under `~/.claude/projects/` changed, and the manifest is gone.
