@@ -17,7 +17,7 @@ skills/
 
 `SKILL.md` is the only required file. Add `scripts/` or `references/` only when the skill actually needs them, and omit them entirely for simpler skills.
 
-A skill is installed by placing `skills/<name>/` under `~/.claude/skills/`, as a copy or a symlink. At runtime a skill can reach only what lives inside its own directory — never a sibling skill, never a repository-root file. See [Self-Contained Skills](#self-contained-skills).
+A skill is installed by placing `skills/<name>/` under `~/.claude/skills/`, as a copy or a symlink; a skill meant only for this repository lives at `.claude/skills/<name>/` instead, where Claude Code loads it as a project skill visible in this checkout alone. At runtime a skill can reach only what lives inside its own directory — never a sibling skill, never a repository-root file. See [Self-Contained Skills](#self-contained-skills).
 
 ## SKILL.md Format
 
