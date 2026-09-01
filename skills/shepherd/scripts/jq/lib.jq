@@ -17,7 +17,16 @@ def ci_state:
     elif length == 0 then "NONE"
     else "OK" end;
 
+# mergeStateStatus says BEHIND only when the base branch rule requires up-to-date
+# heads; the base-to-head comparison sees a moved base regardless.
+def merge_state:
+  if .mergeStateStatus == "DIRTY" then "DIRTY"
+  elif .mergeStateStatus == "BEHIND" or ((.baseRef.compare.behindBy // 0) > 0) then "BEHIND"
+  else .mergeStateStatus end;
+
 def newest(s): [s | .updatedAt] | max // $epoch;
+
+def submitted: .pullRequestReview.state != "PENDING";
 
 def unmarked:
   ((.body // "") | ltrimstr("﻿") | gsub("^\\s+"; "") | startswith($marker)) | not;

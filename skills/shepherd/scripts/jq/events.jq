@@ -7,4 +7,4 @@ def ev($e; $b):
 (.reviews.nodes[]
   | select((.body // "") != "" or .state != "COMMENTED")
   | . as $r | ev("REVIEW"; $review) | .state = $r.state),
-(.reviewThreads.nodes[].comments.nodes[] | ev("THREAD_REPLY"; $reply))
+(.reviewThreads.nodes[].comments.nodes[] | select(submitted) | ev("THREAD_REPLY"; $reply))

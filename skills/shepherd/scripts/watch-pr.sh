@@ -25,12 +25,15 @@
 #
 # Never fires: marked bodies (first line <!-- claude -->, leading whitespace
 # ignored); body-less COMMENTED reviews — GitHub wraps every API thread reply in
-# one under our own account; pending reviews; UNKNOWN merge state; pending or
-# passing checks. Activity is compared on updatedAt, so an edited comment fires
-# again. baseline reads activity from the epoch and drift and CI from current
-# state; watch fires on activity newer than the watermark and on drift or CI
-# that differs from it, so a state the session already handled stays quiet
-# until it changes. Diagnostics go to stderr.
+# one under our own account; pending reviews and their thread comments; UNKNOWN
+# merge state; pending or passing checks. Activity is compared on updatedAt, so
+# an edited comment fires again. BEHIND is read from the base-to-head comparison
+# (refs/pull/<number>/head against the base branch), because mergeStateStatus
+# reports it only when the base branch rule requires up-to-date heads. baseline
+# reads activity from the epoch and drift and CI from current state; watch fires
+# on activity newer than the watermark and on drift or CI that differs from it,
+# so a state the session already handled stays quiet until it changes.
+# Diagnostics go to stderr.
 #
 # One GraphQL request per pass (query.graphql) reads every surface; watermark
 # and events come from the same response, and nothing prints unless the whole
@@ -65,7 +68,7 @@ pr="${2:-}"
 }
 
 fetch() {
-  gh api graphql -F owner='{owner}' -F name='{repo}' -F pr="$pr" -f query="$(cat "$DIR/query.graphql")" \
+  gh api graphql -F owner='{owner}' -F name='{repo}' -F pr="$pr" -F head="refs/pull/$pr/head" -f query="$(cat "$DIR/query.graphql")" \
     | jq -e '.data.repository.pullRequest | select(. != null)'
 }
 filter() {

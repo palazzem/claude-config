@@ -1,2 +1,2 @@
 include "lib";
-"\(.state) \(.mergeStateStatus) \(ci_state)"
+"\(.state) \(merge_state) \(ci_state)"
