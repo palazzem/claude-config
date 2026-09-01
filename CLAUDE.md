@@ -1,28 +1,28 @@
 # Claude Globals
 
-## Rules
+Skills and plugins supply process; this file supplies the bar. Where they conflict, this file wins — in particular over scope-discipline and "boring solution" defaults, feasibility- or effort-based ranking, match-the-neighbors consistency rules, and lint-exception mechanisms.
 
-- You must challenge my thinking, question my assumptions, and expose blind spots. If my reasoning is weak, break it down and show me why.
-- Provide options only by outcome quality: correctness, security, maintainability, performance, operability. Implementation time, team size, migration or rollout costs must not be taken into consideration when ranking options. Mention risks and caveats.
-- Always include the green-field option: what this would look like designed from scratch today. In that option you are allowed to extend the scope of the change and provide a refactoring before the implementation of the change.
-- When you apply TDD, test our codebase and not library behavior.
+## Decisions
+
+- Rank options by outcome quality only: correctness, security, maintainability, performance, operability. Report implementation time, team size, and migration or rollout cost as caveats, never as ranking inputs.
+- Always include the green-field option — what this would look like designed from scratch today, with the refactoring it implies — as a proposal. Extend scope beyond the ask only when I pick it.
 
 ## Code Quality
 
-- Never disable linting rules.
-- If existing code violates best practices, suggest a refactoring while working on a task. Never use existing code as your quality baseline for consistency if a refactor improves the end result.
-- Warnings must always be addressed. Compiler warnings, linter warnings, test-runner warnings, deprecation notices, and build warnings are actionable findings, not background noise. Addressing a warning means fixing its cause. Where feasible, promote warnings to errors project-wide.
+- Never disable a lint rule or add a suppression or exception. Exceptions are mine to grant, with an owner and an expiry.
+- Warnings are findings. Fix the cause of compiler, linter, test-runner, build, and deprecation warnings; promote warnings to errors project-wide where feasible.
+- Existing code is not the quality bar. When it violates best practice, improve the pattern and migrate its neighbors — or file that migration — never introduce a third way.
 
-## Comments
+## Docstrings and Comments
 
-- Default: write no comment. Add one only when removing it would leave a future maintainer confused about a non-obvious WHY (hidden constraint, subtle invariant, workaround). If it restates the code, drop it.
-- When a comment is warranted, explain WHY, never WHAT. Always on its own line, never inline.
+- Every public or exported module, class, function, and method gets a docstring stating its contract — semantics, invariants, side effects, errors, an example where it helps — never a restatement of the signature. Internal code only when non-obvious. Enforce with the linter's missing-docs rule.
+- Inside bodies, no comment by default. Write one only for a non-obvious WHY (hidden constraint, subtle invariant, workaround), on its own line, never inline.
 
 ## Documentation
 
-- Architecture documents, ADRs, long-lived READMEs and design docs describe the system at the conceptual level: responsibilities, boundaries, data flow, invariants, and the reasoning behind a decision. Never file paths, directory layouts, class or function names, or code snippets.
-- Name what is stable: concepts, architectural roles, contracts, protocols, external systems. Do not name what rots: the files, symbols, and structure that currently implement them. Code is the source of truth for the implementation; documentation explains the concept and the overview.
+- Architecture documents, ADRs, and design docs stay conceptual: responsibilities, boundaries, data flow, invariants, and the reasoning behind decisions. Name what is stable — concepts, contracts, protocols, external systems — never files, symbols, layouts, or code.
+- Operational docs — agent instructions, constraints files, runbooks, quick-starts — name what they must, and are verified in the same change that alters what they name.
 
 ## Review Workflow
 
-- Developers review and merge code changes. Never merge, close, or approve a PR autonomously.
+- Developers review and merge. Never approve, merge, or close a PR, push a tag, or push to a protected branch.
