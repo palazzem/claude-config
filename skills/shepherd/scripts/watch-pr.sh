@@ -8,6 +8,11 @@
 #                                                    qualifying events, then exit
 #   watch-pr.sh watch <number> '<watermark>' --once  one pass: print everything
 #                                                    qualifying right now, then exit
+#   watch-pr.sh watch <number> '<watermark>' --once --catch-up
+#                                                    the same pass, reading comments,
+#                                                    reviews and replies from the epoch
+#                                                    (merge/CI from the watermark) — a
+#                                                    PR's first read in a session
 # <number> is the PR number; the repository is the current checkout (or GH_REPO).
 #
 # Events — one JSON object per line on stdout; every line wakes the session:
@@ -46,7 +51,7 @@ MAX_FAILURES="${WATCH_PR_MAX_FAILURES:-20}"
 cmd="${1:-}"
 pr="${2:-}"
 [[ -z "$cmd" || -z "$pr" ]] && {
-  echo "usage: watch-pr.sh baseline|watch <number> ['<watermark>'] [--once]" >&2
+  echo "usage: watch-pr.sh baseline|watch <number> ['<watermark>'] [--once [--catch-up]]" >&2
   exit 2
 }
 [[ "$pr" =~ ^[0-9]+$ ]] || { echo "watch-pr: <number> must be the PR number" >&2; exit 2; }
@@ -73,14 +78,26 @@ fi
 [[ "$cmd" != "watch" ]] && { echo "watch-pr: unknown command: $cmd" >&2; exit 2; }
 wm="${3:-}"
 [[ -z "$wm" ]] && { echo "watch-pr: watch needs the watermark from 'watch-pr.sh baseline'" >&2; exit 2; }
-once=false; [[ "${4:-}" == "--once" ]] && once=true
+once=false; catchup=false
+for flag in "${@:4}"; do
+  case "$flag" in
+    --once) once=true ;;
+    --catch-up) catchup=true ;;
+    *) echo "watch-pr: unknown flag: $flag" >&2; exit 2 ;;
+  esac
+done
+if $catchup && ! $once; then
+  echo "watch-pr: --catch-up needs --once; a monitor reading from the epoch would refire every handled event" >&2
+  exit 2
+fi
 
 parsed=$(jq -er '"\(.comment|strings) \(.review|strings) \(.reply|strings) \(.merge|strings) \(.ci|strings)"' <<<"$wm" 2>/dev/null) || {
   echo "watch-pr: malformed watermark: $wm" >&2
   exit 2
 }
 read -r b_comment b_review b_reply b_merge b_ci <<<"$parsed"
-echo "watch-pr: pr=$pr once=$once baseline=$wm" >&2
+if $catchup; then b_comment=$EPOCH; b_review=$EPOCH; b_reply=$EPOCH; fi
+echo "watch-pr: pr=$pr once=$once catch-up=$catchup baseline=$wm" >&2
 
 last_merge=$b_merge
 last_ci=$b_ci
