@@ -1,14 +1,15 @@
-query($owner: String!, $name: String!, $pr: Int!) {
+query($owner: String!, $name: String!, $pr: Int!, $head: String!) {
   repository(owner: $owner, name: $name) {
     pullRequest(number: $pr) {
       state
       mergeStateStatus
+      baseRef { compare(headRef: $head) { behindBy } }
       comments(last: 50) { nodes { url updatedAt body authorAssociation author { login } } }
       reviews(last: 50, states: [APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED]) {
         nodes { url updatedAt body state authorAssociation author { login } }
       }
       reviewThreads(last: 50) {
-        nodes { comments(last: 20) { nodes { url updatedAt body authorAssociation author { login } } } }
+        nodes { comments(last: 20) { nodes { url updatedAt body authorAssociation author { login } pullRequestReview { state } } } }
       }
       commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
         __typename
