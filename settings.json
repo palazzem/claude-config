@@ -16,6 +16,14 @@
     "padding": 0,
     "refreshInterval": 10
   },
+  "extraKnownMarketplaces": {
+    "addy-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "addyosmani/agent-skills"
+      }
+    }
+  },
   "feedbackDrafts": "off",
   "effortLevel": "xhigh",
   "modelSettings": {
@@ -33,5 +41,8 @@
   "crossSessionInbound": "refuse",
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "useAutoModeDuringPlan": true
+  "useAutoModeDuringPlan": true,
+  "enabledPlugins": {
+    "agent-skills@addy-agent-skills": true
+  }
 }
