@@ -1,6 +1,6 @@
-# Claude Globals
+# Conventions
 
-Skills and plugins supply process; this file supplies the bar. Where they conflict, this file wins — in particular over scope-discipline and "boring solution" defaults, feasibility- or effort-based ranking, match-the-neighbors consistency rules, and lint-exception mechanisms.
+Skills and plugins supply process; this file supplies the quality bar and conventions.
 
 ## Decisions
 
