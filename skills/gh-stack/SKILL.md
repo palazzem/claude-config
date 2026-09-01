@@ -53,7 +53,7 @@ git config remote.pushDefault origin     # if multiple remotes exist (skips remo
 **All `gh stack` commands must be run non-interactively.** Every command invocation must include the flags and positional arguments needed to avoid prompts, TUIs, and interactive menus. If a command would prompt for input, it will hang indefinitely.
 
 1. **Always supply branch names as positional arguments** to `init`, `add`, and `checkout`. Running these commands without arguments triggers interactive prompts. Branch names are used exactly as given — a name is never prefixed or transformed, so `gh stack add refactor/foo` creates a branch named `refactor/foo`.
-2. **Fix every PR's title and body before shipping** — see [PR titles and bodies](#pr-titles-and-bodies). `submit` and `link` accept neither. `--auto` is the only non-interactive form of `submit` (without it, `submit` prompts for a title for each new PR) and it titles a multi-commit layer after its branch name, so run `gh stack submit --auto` only when every layer is a single commit; otherwise create the PRs with `gh pr create` and group them with `gh stack link`.
+2. **Always use `--auto` with `gh stack submit`** to auto-generate PR titles. Without `--auto`, `submit` prompts for a title for each new PR.
 3. **Always use `--json` with `gh stack view`.** Without `--json`, the command launches an interactive TUI that cannot be operated by agents. There is no other appropriate flag — always pass `--json`.
 4. **Handle multiple remotes.** If more than one remote is configured, pre-configure `git config remote.pushDefault origin`, or pass `--remote <name>` to the commands that accept it: `push`, `submit`, `sync`, `rebase`, and `link`. `checkout`, `modify`, and `trunk` resolve a remote but have **no `--remote` flag** — they rely on `remote.pushDefault`. With multiple remotes and no configured default, these commands exit with an error in non-interactive mode.
 5. **Avoid branches shared across multiple stacks.** If a branch belongs to multiple stacks, commands exit with code 6. Check out a non-shared branch first.
@@ -70,49 +70,6 @@ git config remote.pushDefault origin     # if multiple remotes exist (skips remo
 - ❌ `gh stack add` without a branch name — always provide a branch name
 - ❌ `gh stack checkout` without an argument — always provide a PR number or branch name
 - ❌ `gh stack checkout <pr-number>` when a different local stack already exists on those branches — this triggers an unbypassable conflict resolution prompt; use `gh stack unstack --local` first to remove the local tracking state (this keeps the stack on GitHub intact), then retry the checkout
-
-## PR titles and bodies
-
-Neither `submit` nor `link` takes a title or body: there is no `--title`, `--body`, `--fill`, `--body-file`, config key, or environment variable on either command (v0.1.0). The only place to type them is `submit`'s interactive editor, which an agent cannot drive. `--auto` skips the editor and keeps the auto-generated values, which follow one rule:
-
-- One commit on the branch → the commit subject is the title and the commit body is the body.
-- More than one commit → the branch name with `-` and `_` turned into spaces is the title (slashes stay, so `reflect/foundation` ships as "reflect/foundation") and the body is empty.
-- A repository pull request template, when one exists, replaces the body on the auto path; the commit body is discarded.
-
-Decide every layer's title and body before shipping — the plan names one conventional-commit subject and one body file per layer — then put them on GitHub with one of these two methods, ranked by outcome.
-
-### Default: create the PRs, then link them
-
-Titles and bodies land exactly as written, whatever the commit count and regardless of a PR template. `link` reuses the existing open PR for every argument that is a branch with one, a PR number, or a PR URL, and corrects any base that does not match the chain; it auto-generates only for a branch with no PR. A PR number or URL must already exist, hence push and create first.
-
-```bash
-# Layers are committed: gh-stack/pr-titles (bottom) and gh-stack/docs (top)
-gh stack push
-
-# Bottom-up: the base is the layer below; the bottom's base is the trunk
-gh pr create --head gh-stack/pr-titles --base main \
-  --title "docs(gh-stack): fix PR titles and bodies before shipping a stack" \
-  --body-file .claude/specs/gh-stack-pr-titles/pr-1.md
-gh pr create --head gh-stack/docs --base gh-stack/pr-titles \
-  --title "docs: mark the local gh-stack workflow in README" \
-  --body-file .claude/specs/gh-stack-pr-titles/pr-2.md
-# → each prints the new PR's URL; add --draft for a draft
-
-# Group the existing PRs as a GitHub stack, bottom to top
-gh stack link gh-stack/pr-titles gh-stack/docs
-
-# Verify: titles verbatim, bases chained, one stack
-gh stack view --json
-```
-
-### Shortcut: one commit per layer
-
-When every layer is exactly one commit whose subject and body are the intended title and body, `gh stack submit --auto --open` reproduces them verbatim (drafts without `--open`; a PR template still replaces the body). A second commit on a layer before it is submitted silently switches its title to the branch name — use this only when each layer is, and stays, one commit.
-
-### Never
-
-- `gh stack submit --auto` on a layer with more than one commit — the title becomes the branch name.
-- `gh pr edit` to repair a title or body after creation — the default method makes it unnecessary; a workflow that plans on it is the workflow to fix.
 
 ## Thinking about stack structure
 
@@ -282,14 +239,8 @@ git commit -m "Add frontend dashboard"
 
 # ── Stack complete: auth → api-routes → frontend ──
 
-# 7. Push everything and create PRs. auth carries two commits, so
-#    `gh stack submit --auto` would title its PR "auth" — create the PRs
-#    with their planned titles and link them (see PR titles and bodies)
-gh stack push
-gh pr create --head auth --base main --title "Add auth middleware" --body-file pr-auth.md
-gh pr create --head api-routes --base auth --title "Add user API routes" --body-file pr-api.md
-gh pr create --head frontend --base api-routes --title "Add frontend dashboard" --body-file pr-frontend.md
-gh stack link auth api-routes frontend
+# 7. Push everything and create PRs (drafts by default)
+gh stack submit --auto
 
 # 8. Verify the stack
 gh stack view --json
@@ -578,7 +529,7 @@ gh stack push --remote upstream
 
 ### Submit branches and create PRs — `gh stack submit`
 
-Push all stack branches and create PRs on GitHub. **Always pass `--auto`** — without it, `submit` prompts for a PR title for each new branch. `submit` has no title or body flags; on a layer with more than one commit, create the PRs first — see [PR titles and bodies](#pr-titles-and-bodies).
+Push all stack branches and create PRs on GitHub. **Always pass `--auto`** — without it, `submit` prompts for a PR title for each new branch.
 
 ```bash
 # Submit and auto-title new PRs (required for non-interactive use)
@@ -607,9 +558,7 @@ gh stack submit --auto --open
 **PR title auto-generation (`--auto`):**
 
 - Single commit on branch → uses the commit subject as the PR title, commit body as PR body
-- Multiple commits on branch → humanizes the branch name (hyphens/underscores → spaces; slashes kept) as the title, with an empty body
-- A repository pull request template, when present, is used as the body and the commit body is discarded
-- New PRs are drafts unless `--open` is passed
+- Multiple commits on branch → humanizes the branch name (hyphens/underscores → spaces) as the title
 
 **Output (stderr):**
 
@@ -656,9 +605,9 @@ When the first argument is a stack number, the remaining arguments are appended 
 **Behavior:**
 
 - Arguments are provided in stack order (bottom to top)
-- Each argument can be a branch name or a PR number. Numeric arguments are tried as PR numbers first; if no PR with that number exists, the argument is treated as a branch name. A PR number or URL must already exist on GitHub — push the branch and create the PR before linking by number
+- Each argument can be a branch name or a PR number. Numeric arguments are tried as PR numbers first; if no PR with that number exists, the argument is treated as a branch name
 - Branch arguments are pushed to the remote automatically (non-force, atomic)
-- For branches without open PRs, new PRs are created with auto-generated titles (the same rules as `submit --auto`) and the correct base branch chaining (first branch uses `--base`, subsequent branches use the previous branch). To control the titles, create the PRs first — see [PR titles and bodies](#pr-titles-and-bodies)
+- For branches without open PRs, new PRs are created with auto-generated titles and the correct base branch chaining (first branch uses `--base`, subsequent branches use the previous branch)
 - Existing PRs whose base branch doesn't match the expected chain are corrected automatically
 - If the PRs are not yet in a stack, a new stack is created. If some PRs are already in a stack, the stack is updated (additive only — existing PRs are never removed)
 - Does **not** create or modify any local state
@@ -939,4 +888,4 @@ gh stack unstack --local
 2. **Stack disambiguation cannot be bypassed.** If the current branch is the trunk of multiple stacks, commands error with code 6. Check out a non-shared branch first.
 3. **Multiple remotes require `--remote` or config.** If more than one remote is configured, set `remote.pushDefault` in git config, or pass `--remote <name>` to the commands that accept it (`push`, `submit`, `sync`, `rebase`, `link`). `checkout`, `modify`, and `trunk` have no `--remote` flag and rely on `remote.pushDefault`.
 4. **Remote stack checkout requires a stack or PR number.** `checkout` with a branch name only works with locally tracked stacks. Use a stack number or PR number (e.g. `gh stack checkout 7` or `gh stack checkout 123`) to pull a stack from GitHub.
-5. **PR title and body cannot be passed to `submit` or `link`.** Both auto-generate them: one commit → the commit subject and body; more → the humanized branch name and an empty body; a pull request template replaces the body. Create the PRs with `gh pr create --title --body-file` and group them with `gh stack link` instead of repairing them afterwards — see [PR titles and bodies](#pr-titles-and-bodies).
+5. **PR title and body are auto-generated.** There is no flag to set a custom PR title or body during `submit`. The title and body are generated from commit messages plus a footer. Use `gh pr edit` to modify PR title and body after creation.
