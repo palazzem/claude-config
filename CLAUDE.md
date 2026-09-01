@@ -4,7 +4,8 @@ Skills and plugins supply process; this file supplies the quality bar and conven
 
 ## SDLC Rules
 
-- Always create a worktree, a branch and then a PR for changes you make.
+- Every write in a repository — code, docs, spec, plan — happens in a fresh worktree on its own branch, never in the main checkout; it reaches `main` only through a PR.
+- Process artifacts (spec, plan, task list) live in `.claude/specs/<slug>/` inside that worktree and never enter a PR.
 - Users review and merge. Never approve, merge, or close a PR, push a tag, or push to a protected branch.
 
 ## Decisions

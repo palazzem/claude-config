@@ -19,3 +19,8 @@
 !skills/**
 !statusline/
 !statusline/**
+
+# Repo-local skills
+!.claude/
+!.claude/skills/
+!.claude/skills/**
