@@ -71,6 +71,49 @@ git config remote.pushDefault origin     # if multiple remotes exist (skips remo
 - ❌ `gh stack checkout` without an argument — always provide a PR number or branch name
 - ❌ `gh stack checkout <pr-number>` when a different local stack already exists on those branches — this triggers an unbypassable conflict resolution prompt; use `gh stack unstack --local` first to remove the local tracking state (this keeps the stack on GitHub intact), then retry the checkout
 
+## PR titles and bodies
+
+Neither `submit` nor `link` takes a title or body: there is no `--title`, `--body`, `--fill`, `--body-file`, config key, or environment variable on either command (v0.1.0). The only place to type them is `submit`'s interactive editor, which an agent cannot drive. `--auto` skips the editor and keeps the auto-generated values, which follow one rule:
+
+- One commit on the branch → the commit subject is the title and the commit body is the body.
+- More than one commit → the branch name with `-` and `_` turned into spaces is the title (slashes stay, so `reflect/foundation` ships as "reflect/foundation") and the body is empty.
+- A repository pull request template, when one exists, replaces the body on the auto path; the commit body is discarded.
+
+Decide every layer's title and body before shipping — the plan names one conventional-commit subject and one body file per layer — then put them on GitHub with one of these two methods, ranked by outcome.
+
+### Default: create the PRs, then link them
+
+Titles and bodies land exactly as written, whatever the commit count and regardless of a PR template. `link` reuses the existing open PR for every argument that is a branch with one, a PR number, or a PR URL, and corrects any base that does not match the chain; it auto-generates only for a branch with no PR. A PR number or URL must already exist, hence push and create first.
+
+```bash
+# Layers are committed: gh-stack/pr-titles (bottom) and gh-stack/docs (top)
+gh stack push
+
+# Bottom-up: the base is the layer below; the bottom's base is the trunk
+gh pr create --head gh-stack/pr-titles --base main \
+  --title "docs(gh-stack): fix PR titles and bodies before shipping a stack" \
+  --body-file .claude/specs/gh-stack-pr-titles/pr-1.md
+gh pr create --head gh-stack/docs --base gh-stack/pr-titles \
+  --title "docs: mark the local gh-stack workflow in README" \
+  --body-file .claude/specs/gh-stack-pr-titles/pr-2.md
+# → each prints the new PR's URL; add --draft for a draft
+
+# Group the existing PRs as a GitHub stack, bottom to top
+gh stack link gh-stack/pr-titles gh-stack/docs
+
+# Verify: titles verbatim, bases chained, one stack
+gh stack view --json
+```
+
+### Shortcut: one commit per layer
+
+When every layer is exactly one commit whose subject and body are the intended title and body, `gh stack submit --auto --open` reproduces them verbatim (drafts without `--open`; a PR template still replaces the body). A second commit on a layer before it is submitted silently switches its title to the branch name — use this only when each layer is, and stays, one commit.
+
+### Never
+
+- `gh stack submit --auto` on a layer with more than one commit — the title becomes the branch name.
+- `gh pr edit` to repair a title or body after creation — the default method makes it unnecessary; a workflow that plans on it is the workflow to fix.
+
 ## Thinking about stack structure
 
 Each branch in a stack should represent a **discrete, logical unit of work** that can be reviewed independently. The changes within a branch should be cohesive—they belong together and make sense as a single PR.
