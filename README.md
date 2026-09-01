@@ -77,7 +77,7 @@ Skills also activate on their own: a library question routes to `docs-researcher
 | --- | --- | --- |
 | Process | agent-skills plugin, overridden by `rules/agent-skills.md` | How work moves — spec, plan, build, test, review, ship — and which reviewer persona looks at it |
 | Bar | `CLAUDE.md` | What "good" means |
-| PR lifecycle | `skills/shepherd`, `skills/gh-stack` | What happens after the PR exists |
+| PR lifecycle | `skills/shepherd`, `skills/gh-stack`, `rules/gh-stack.md` | What happens after the PR exists |
 | Knowledge | `agents/docs-researcher.md`, `rules/context7.md` | Where facts about libraries, frameworks, and tools come from |
 | Memory | `.claude/skills/reflect` | Which project lessons become global rules |
 | Config | `settings.json`, `statusline/` | Model, effort, permissions, plugin registration, what the status line shows |
@@ -90,7 +90,8 @@ Skills also activate on their own: a library question routes to `docs-researcher
 ├── settings.json                      # Model, effort, permissions, plugin registration, status line
 ├── rules/
 │   ├── agent-skills.md                # agent-skills overrides — spec, plan, todo under .claude/specs/<slug>/
-│   └── context7.md                    # Library questions go to docs-researcher, never memory
+│   ├── context7.md                    # Library questions go to docs-researcher, never memory
+│   └── gh-stack.md                    # Stack PR titles and bodies come from the plan, never gh pr edit
 ├── agents/
 │   └── docs-researcher.md             # Context7-backed documentation lookups, source-cited
 ├── skills/
