@@ -9,12 +9,15 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-fable-5[1m]",
+  "model": "claude-fable-5-1[1m]",
   "statusLine": {
     "type": "command",
     "command": "ccstatusline",
     "padding": 0,
     "refreshInterval": 10
+  },
+  "enabledPlugins": {
+    "agent-skills@addy-agent-skills": true
   },
   "extraKnownMarketplaces": {
     "addy-agent-skills": {
@@ -34,6 +37,7 @@
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
   "askUserQuestionTimeout": "never",
+  "skipWorkflowUsageWarning": true,
   "verbose": false,
   "switchModelsOnFlag": false,
   "autoContinueAtUsageLimit": false,
@@ -41,8 +45,5 @@
   "crossSessionInbound": "refuse",
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "useAutoModeDuringPlan": true,
-  "enabledPlugins": {
-    "agent-skills@addy-agent-skills": true
-  }
+  "useAutoModeDuringPlan": true
 }
