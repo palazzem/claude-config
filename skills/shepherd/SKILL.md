@@ -1,6 +1,6 @@
 ---
 name: shepherd
-description: Watches a published pull request — or, with --stack, a gh-stack stack one layer at a time, bottom first — until a human merges or closes it, waking the session when reviewers leave comments, a check fails, or the branch falls behind or conflicts. Use when the PR on the current branch has just been opened and awaits review, when a stack has just been submitted, or to resume watching either. Takes --stack or nothing.
+description: Watches a published pull request — or, with --stack, a gh-stack stack one layer at a time, bottom first — until a human merges or closes it, waking the session when reviewers leave comments, a check fails, or the branch falls behind or conflicts. Use in the same turn as `gh pr create` or `gh pr ready` (plain), or as `gh stack submit` or `gh stack link` (--stack), before reporting the PR to the user, since a published PR is not done until a human merges it. Use also to resume watching the PR or stack on the current branch. Not for a draft, which is still in flight. Takes --stack or nothing.
 argument-hint: "[--stack]"
 ---
 
