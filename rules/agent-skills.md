@@ -22,3 +22,7 @@ The check for an existing incomplete plan looks only at `.claude/specs/<slug>/`.
 ## Other slugs
 
 `.claude/specs/<other-slug>/` is another agent's work in flight. Never read, overwrite, or delete it, and never count it when checking for an existing plan.
+
+## Published PRs
+
+A PR the session publishes is not the end of a command; the merge is. In the same turn as `gh pr create` or `gh pr ready`, invoke the `shepherd` skill; in the same turn as `gh stack submit` or `gh stack link`, invoke `shepherd --stack`. Report the PR to the user only once shepherd's monitor is armed. A draft is still in flight: it is shepherded when `gh pr ready` hands it over.
