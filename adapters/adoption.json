@@ -1,0 +1,26 @@
+{
+  "generated/claude/CLAUDE.md": [
+    "2114cf3d9b93302ab83eba308865449712006a29b1bfa668a94346ffaabb5b1e"
+  ],
+  "adapters/claude/settings.json": [
+    "570d3b1867ab0e4aa7cf465080c8d6967ce566b1d8187ae6f3f17800fbeb5ad3"
+  ],
+  "statusline/ccstatusline-config.json": [
+    "684f27f1447bfc024a733c4cccc5e02c3e21f0855940e606728358f5bd3cd5d4"
+  ],
+  "rules/agent-skills.md": [
+    "bc360e5e49f866790019912ba51ae93e95071aaa28f110d333a56e287155ee57"
+  ],
+  "rules/context7.md": [
+    "a02e9694e36d18dc92cbf4fa8694abf5d9cdcb5c61b45fc4045dd2485a488988"
+  ],
+  "rules/gh-stack.md": [
+    "c5f13386b71d0bfb90f947fe238c5900f6eabab148ad87f9f5229b069ae073bc"
+  ],
+  "generated/claude/agents/docs-researcher.md": [
+    "14fbc750c0332cdb29d7f68867d7707e21c9db5cf75bac07796846f3ef9eae2f"
+  ],
+  "generated/claude/skills/shepherd": [
+    "a6c4a502d94d04b6427561442971440bd1826dcc8ed128f41c40dd9314f0f52a"
+  ]
+}
