@@ -97,6 +97,8 @@ class InstallerTests(unittest.TestCase):
         self.settings.write_text("{}")
         auth = self.settings.parent / "credentials.json"
         auth.write_text("private fixture")
+        proposal = self.install(dry_run=True)
+        self.assertIn(str(self.settings), proposal["backup_required"])
         receipt = self.install()
         backup = Path(receipt["links"][str(self.settings)]["backup"])
         self.assertEqual(backup.read_text(), "{}")
@@ -296,3 +298,16 @@ class InstallerTests(unittest.TestCase):
         with self.assertRaisesRegex(Conflict, "overlap"):
             self.install()
         self.assertFalse(self.data.exists())
+
+    def test_first_install_write_through_keeps_recovery_journal(self) -> None:
+        """Dirty native content remains recoverable even without a previous revision."""
+
+        def write(root: Path, targets: set[str]) -> None:
+            self.settings.write_text('{"first native edit":true}')
+
+        with self.assertRaisesRegex(Conflict, "Dirty"):
+            self.install(native=write)
+        self.assertIn(
+            "first native edit", (self.checkout / "adapters/claude/settings.json").read_text()
+        )
+        self.assertTrue((self.data / "pending.json").exists())

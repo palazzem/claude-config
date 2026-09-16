@@ -215,10 +215,11 @@ def rollback(checkout: Path, journal: dict[str, Any]) -> list[str]:
                 raise Conflict(f"New destination write preserved: {path}")
         except (OSError, Conflict) as error:
             conflicts.append(str(error))
-    if journal["prior_revision"]:
+    if checkout.exists():
         try:
             clean(checkout)
-            git(checkout, "reset", "--keep", journal["prior_revision"])
+            if journal["prior_revision"]:
+                git(checkout, "reset", "--keep", journal["prior_revision"])
         except (Conflict, subprocess.CalledProcessError) as error:
             conflicts.append(str(error))
     return conflicts
@@ -283,6 +284,11 @@ def deploy(
         "checkout": str(checkout),
         "links": selected,
         "remove": list(obsolete),
+        "backup_required": [
+            destination
+            for destination in selected
+            if Path(destination).exists() and not Path(destination).is_symlink()
+        ],
         "targets": sorted(targets),
     }
     print(json.dumps(proposal, indent=2))
