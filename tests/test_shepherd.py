@@ -438,3 +438,16 @@ cat "$FIXTURE_ROOT/response-$n.json"
                     json.loads(output.splitlines()[1])["head"],
                     reads[-1]["data"]["repository"]["pullRequest"]["headRefOid"],
                 )
+
+    def test_explicit_handoff_preserves_pending_work(self) -> None:
+        """Releasing session ownership keeps interrupted effects available for reconciliation."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory).resolve() / "state.json"
+            journal = state.Journal(path, "owner/repo#1")
+            journal.data["pending"] = {"event-key": {"phase": "handling"}}
+            journal.release()
+            journal.close()
+            self.assertIsNone(json.loads(path.read_text())["owner_pid"])
+            resumed = state.Journal(path, "owner/repo#1")
+            self.assertEqual(resumed.data["pending"]["event-key"]["phase"], "handling")
+            resumed.close()

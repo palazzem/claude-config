@@ -66,6 +66,11 @@ class Journal:
         """Release ownership; process exit also releases the kernel lock."""
         self.lock.close()
 
+    def release(self) -> None:
+        """Make an explicit handoff resumable without discarding pending work or watermark."""
+        self.data["owner_pid"] = None
+        self.save()
+
     def save(self) -> None:
         """Atomically persist pending events together with their watermark."""
         safe_path(self.path)
@@ -118,7 +123,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("state", type=Path)
     parser.add_argument("identity", help="verified owner/repository#PR")
-    parser.add_argument("action", choices=["read", "show", "start", "complete"])
+    parser.add_argument("action", choices=["read", "show", "start", "complete", "release"])
     parser.add_argument("value", nargs="?")
     parser.add_argument("--evidence", default="")
     parser.add_argument(
@@ -146,6 +151,8 @@ def main() -> None:
             )
             environment = dict(os.environ, GH_REPO=args.identity.rsplit("#", 1)[0])
             journal.ingest(subprocess.check_output(command, text=True, env=environment))
+        elif args.action == "release":
+            journal.release()
         elif args.action == "start":
             if args.value is None:
                 parser.error("start requires an event key")
