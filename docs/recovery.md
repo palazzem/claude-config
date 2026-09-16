@@ -27,19 +27,26 @@ To recover an interrupted transaction:
 
 1. Ensure the owning installer process has exited. Read `pending.json` and the
    previous `installation.json`; save copies before changing anything.
-2. Inspect every journal destination. If it is still exactly the intended owned
+2. First determine whether the receipt was already committed. If
+   `installation.json` records the journal's new revision, and the checkout and
+   every recorded link verify at that revision, the deployment succeeded and only
+   journal cleanup remains. Preserve that revision and its links; archive the
+   journal without replaying rollback. This also covers interruption immediately
+   after receipt replacement, before the journal phase could be updated. If the
+   receipt or links disagree, retain all evidence and reconcile before proceeding.
+3. For a transaction whose new receipt was not committed, inspect every journal destination. If it is still exactly the intended owned
    link, remove just that link and restore its recorded backup if one exists.
    Leave any replaced file or changed link intact and reconcile it with source.
    For an obsolete-link removal, restore the prior link only when its destination
    is still absent. Do not alter unrelated directory entries.
-3. Inspect `git -C <checkout> status --short` and `git -C <checkout> diff`.
+4. Inspect `git -C <checkout> status --short` and `git -C <checkout> diff`.
    Preserve intended edits in a fresh feature worktree and PR. Do not reset dirty
    state. If clean, use `git -C <checkout> reset --keep <prior_revision>` from the
    journal and confirm the resulting revision matches the previous receipt.
-4. Verify prior owned links resolve to their expected tracked files. Keep native
+5. Verify prior owned links resolve to their expected tracked files. Keep native
    package state and registration backups; consult the native installers to
    reconcile their versions. A local rollback does not downgrade dependencies.
-5. Only after recovery is verified, archive `pending.json` outside the active state
+6. Only after recovery is verified, archive `pending.json` outside the active state
    path. Rerun the same installer against a clean reviewed source revision.
 
 A failed first installation may leave a clean `install/local` checkout without an
