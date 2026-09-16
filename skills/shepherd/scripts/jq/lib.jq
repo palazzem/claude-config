@@ -29,4 +29,4 @@ def newest(s): [s | .updatedAt] | max // $epoch;
 def submitted: .pullRequestReview.state != "PENDING";
 
 def unmarked:
-  ((.body // "") | ltrimstr("﻿") | gsub("^\\s+"; "") | startswith($marker)) | not;
+  ((.body // "") | ltrimstr("﻿") | gsub("^\\s+"; "") | (startswith($marker) or startswith("<!-- codex -->"))) | not;

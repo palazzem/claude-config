@@ -1,0 +1,7 @@
+{
+  "name": "docs-researcher",
+  "description": "Research current library and native-client documentation; return citations or explicit UNVERIFIED gaps without modifying project code.",
+  "model": "claude-sonnet-5",
+  "tools": "Bash, WebFetch",
+  "permissionMode": "plan"
+}

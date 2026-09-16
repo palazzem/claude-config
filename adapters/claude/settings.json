@@ -19,8 +19,8 @@
   "extraKnownMarketplaces": {
     "addy-agent-skills": {
       "source": {
-        "source": "github",
-        "repo": "addyosmani/agent-skills"
+        "source": "url",
+        "url": "https://raw.githubusercontent.com/palazzem/claude-config/main/adapters/claude/marketplace/.claude-plugin/marketplace.json"
       }
     }
   },

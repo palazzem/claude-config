@@ -1,0 +1,4 @@
+name = "security-auditor"
+description = "Run the upstream security-auditor research/review persona."
+sandbox_mode = "read-only"
+developer_instructions = "Resolve the single enabled `agent-skills` plugin through the native plugin registry and verify its revision against harness's dependencies.lock.toml. Read `agents/security-auditor.md` from that complete installed package, then execute its instructions and referenced skills/resources. Do not copy or patch upstream content. If the package, resource, or revision cannot be verified, stop and report the missing native dependency. Reject duplicate-name registrations rather than shadowing them. Apply the shared agent-skills overrides to all upstream paths and approvals.\nResearch/review only; do not edit project files. Return the original persona's structured report, evidence, severity, and explicit gaps. Do not delegate from this persona. Verify effective read-only permissions."

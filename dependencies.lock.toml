@@ -1,0 +1,30 @@
+# Reviewed versions. Changes require native compatibility and payload verification.
+[agent_skills]
+repository = "addyosmani/agent-skills"
+revision = "d2c37ef6225dd8726cdd369a8030307f48592d26"
+version = "0.6.8"
+claude_payload_sha256 = "30aa009792550fd4076027ff0bee25aa198ffcf6d65e894c8818b00b857b4f91"
+codex_payload_sha256 = "506d7e85184a8366fdf28c881056475279b735510b23be8544faac9c538d5b3a"
+claude_catalog = "https://raw.githubusercontent.com/palazzem/claude-config/main/adapters/claude/marketplace/.claude-plugin/marketplace.json"
+
+[gh_stack]
+repository = "github/gh-stack"
+release = "v0.1.0"
+revision = "a1b4a3d4d0bcde9ec3a78ab99b2d63af121857a9"
+skill_sha256 = "fd6298acc66248817bd8aa612d0e6d82297250d024f3bfeed4ecf08ef26c65b6"
+legacy_skill_sha256 = "d02c3b73baacaded037f7c1dac95b45987f91facbce402dc252b652636991402"
+skill_tree = "c95c8b5b4dd850f3fef007b304428f5684f2fb87"
+
+[context7]
+package = "ctx7"
+version = "0.5.11"
+
+[ccstatusline]
+package = "ccstatusline"
+version = "2.2.27"
+
+[tested_clients]
+codex = "0.154.0"
+claude = "2.1.273"
+gh = "2.100.0"
+node = "24.20.0"

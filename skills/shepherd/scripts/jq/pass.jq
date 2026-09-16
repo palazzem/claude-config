@@ -1,2 +1,2 @@
 include "lib";
-"\(.state) \(merge_state) \(ci_state)"
+"\(.state) \(merge_state) \(ci_state) \(.headRefOid // "UNKNOWN")"

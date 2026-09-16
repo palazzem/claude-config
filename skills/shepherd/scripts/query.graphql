@@ -2,16 +2,19 @@ query($owner: String!, $name: String!, $pr: Int!, $head: String!) {
   repository(owner: $owner, name: $name) {
     pullRequest(number: $pr) {
       state
+      headRefOid
       mergeStateStatus
       baseRef { compare(headRef: $head) { behindBy } }
-      comments(last: 50) { nodes { url updatedAt body authorAssociation author { login } } }
+      comments(last: 50) { pageInfo { hasPreviousPage hasNextPage } nodes { url updatedAt body authorAssociation author { login } } }
       reviews(last: 50, states: [APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED]) {
+        pageInfo { hasPreviousPage hasNextPage }
         nodes { url updatedAt body state authorAssociation author { login } }
       }
       reviewThreads(last: 50) {
-        nodes { comments(last: 20) { nodes { url updatedAt body authorAssociation author { login } pullRequestReview { state } } } }
+        pageInfo { hasPreviousPage hasNextPage }
+        nodes { comments(last: 20) { pageInfo { hasPreviousPage hasNextPage } nodes { url updatedAt body authorAssociation author { login } pullRequestReview { state } } } }
       }
-      commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
+      commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { pageInfo { hasPreviousPage hasNextPage } nodes {
         __typename
         ... on CheckRun { status conclusion }
         ... on StatusContext { state }

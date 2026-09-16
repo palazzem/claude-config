@@ -4,4 +4,5 @@ include "lib";
   reply:   newest(.reviewThreads.nodes[].comments.nodes[] | select(submitted)),
   merge:   merge_state,
   ci:      ci_state,
-  state:   .state }
+  state:   .state,
+  head:    (.headRefOid // "UNKNOWN") }
