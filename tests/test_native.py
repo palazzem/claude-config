@@ -1,6 +1,7 @@
 """Exercise native command scope, collision protection and partial-operation recovery."""
 
 import hashlib
+import io
 import json
 import os
 import subprocess
@@ -20,7 +21,11 @@ class NativeTests(unittest.TestCase):
     def test_selected_targets_and_pins(self) -> None:
         """Target selection never installs the other client and has no floating dependency."""
         for selected in ({"codex"}, {"claude"}, {"codex", "claude"}):
-            commands = native.commands(ROOT, selected)
+            with (
+                tempfile.TemporaryDirectory() as directory,
+                patch.dict(os.environ, {"XDG_DATA_HOME": str(Path(directory).resolve())}),
+            ):
+                commands = native.commands(ROOT, selected)
             self.assertEqual(
                 sum(command[:3] == ["gh", "extension", "install"] for command in commands), 1
             )
@@ -70,6 +75,7 @@ class NativeTests(unittest.TestCase):
         guard = Mock()
         with (
             patch.object(native, "preflight"),
+            patch.object(native, "_extension_needed", return_value=True),
             patch.object(native, "_snapshot") as snapshot,
             patch.object(native, "_run", side_effect=subprocess.CalledProcessError(1, ["gh"])),
             patch.object(native, "verify") as verify,
@@ -84,6 +90,7 @@ class NativeTests(unittest.TestCase):
         """A changed setting is retained for recovery before another installer can rewrite it."""
         with (
             patch.object(native, "preflight"),
+            patch.object(native, "_extension_needed", return_value=True),
             patch.object(native, "_snapshot"),
             patch.object(native, "_run") as run,
         ):
@@ -183,3 +190,50 @@ class NativeTests(unittest.TestCase):
                 + hashlib.sha256(b"nested").digest()
             ).hexdigest()
             self.assertEqual(native.payload_hash(root), expected)
+
+    def test_correct_extension_pin_is_skipped(self) -> None:
+        """Repeat installation never invokes GitHub's force-upgrade path for an existing pin."""
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.dict(os.environ, {"XDG_DATA_HOME": str(Path(directory).resolve())}),
+        ):
+            manifest = Path(directory).resolve() / "gh/extensions/gh-stack/manifest.yml"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                "owner: github\nname: gh-stack\nhost: github.com\ntag: v0.1.0\nispinned: true\n"
+            )
+            before = manifest.read_bytes()
+            for _ in range(2):
+                calls = native.commands(ROOT, {"codex"})
+                self.assertFalse(any(call[:2] == ["gh", "extension"] for call in calls))
+                self.assertEqual(manifest.read_bytes(), before)
+
+    def test_mismatched_extension_is_preserved(self) -> None:
+        """A shared unpinned or changed extension requires explicit native reinstallation."""
+        for tag, pinned in (("v0.1.0", "false"), ("v0.1.1", "true")):
+            with (
+                tempfile.TemporaryDirectory() as directory,
+                patch.dict(os.environ, {"XDG_DATA_HOME": str(Path(directory).resolve())}),
+            ):
+                manifest = Path(directory).resolve() / "gh/extensions/gh-stack/manifest.yml"
+                manifest.parent.mkdir(parents=True)
+                manifest.write_text(
+                    f"owner: github\nname: gh-stack\nhost: github.com\ntag: {tag}\nispinned: {pinned}\n"
+                )
+                before = manifest.read_bytes()
+                with self.assertRaisesRegex(RuntimeError, "preserved"):
+                    native.commands(ROOT, {"codex"})
+                self.assertEqual(manifest.read_bytes(), before)
+
+    def test_native_stderr_is_reported_before_failure(self) -> None:
+        """Native warnings and errors remain visible when subprocess output is captured."""
+        message = "native installer warned before failing\n"
+        result = subprocess.CompletedProcess(["native"], 1, stdout="", stderr=message)
+        output = io.StringIO()
+        with (
+            patch.object(native.subprocess, "run", return_value=result),
+            patch.object(native.sys, "stderr", output),
+        ):
+            with self.assertRaises(subprocess.CalledProcessError):
+                native._run(["native"])
+        self.assertEqual(output.getvalue(), message)

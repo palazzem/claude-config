@@ -14,17 +14,17 @@ Addy's pre-existing 0.6.8 checkout was inspected and retained deliberately. Its 
 
 The Claude catalog's published URL is versioned in both the dependency lock and Claude settings. Before deployment, the installer verifies the published catalog equals the selected checkout's catalog. This lets settings stay directly authored and portable across arbitrary installation worktree paths. **The URL first becomes available when this PR merges.** Until then, actual native smoke tests use the identical catalog via a disposable local-directory registration. The production URL path is consequently unverified before merge. Repository renaming must update and validate this URL in both tracked locations during the release step. A future dependency upgrade publishes its reviewed catalog before installing the upgraded revision; old revisions with a different catalog intentionally refuse deployment against changed catalog content.
 
-The extension installs once and skills install only for selected clients:
+The extension installs only when absent. An already correct pin is skipped; skills install only for selected clients:
 
 ```sh
-gh extension install github/gh-stack --pin v0.1.0 --force
+gh extension install github/gh-stack --pin v0.1.0
 gh skill install github/gh-stack gh-stack --agent codex --scope user \
   --pin a1b4a3d4d0bcde9ec3a78ab99b2d63af121857a9 --force
 gh skill install github/gh-stack gh-stack --agent claude-code --scope user \
   --pin a1b4a3d4d0bcde9ec3a78ab99b2d63af121857a9 --force
 ```
 
-`--force` is preceded by provenance checks: an existing extension must belong to `github/gh-stack`; an existing skill must have GitHub's source metadata or match the exact legacy vendored skill digest. Unknown entries and symlink traversal are refused. Codex's GitHub CLI skill destination is `$HOME/.agents/skills`; `CODEX_HOME` does not change that upstream convention. Claude skill installation honors `CLAUDE_CONFIG_DIR`.
+`--force` is used only for skills and is preceded by provenance checks: an existing skill must have GitHub's source metadata or match the exact legacy vendored skill digest. An existing extension must belong to `github/gh-stack` and already have the locked tag with `ispinned: true`; otherwise installation refuses before linking and preserves the shared extension. Unknown entries and symlink traversal are refused. Codex's GitHub CLI skill destination is `$HOME/.agents/skills`; `CODEX_HOME` does not change that upstream convention. Claude skill installation honors `CLAUDE_CONFIG_DIR`.
 
 The installer invokes `npm install --global` for the selected pinned CLI packages. Use the native Node installation's configured user-writable prefix and ensure its `bin` directory is on `PATH`. It does not change npm prefix configuration, install unrelated packages, or add another harness executable. The researcher uses the pinned `ctx7` package version; credentials continue to use native environment/authentication facilities.
 
@@ -44,6 +44,8 @@ Before native calls, private snapshots of settings, plugin registrations, existi
 
 Each native operation is followed by the installer’s settings/link guard, including when the native command fails. An unexpected write stops subsequent native operations. Native dependency state is not rolled back automatically: a successful extension installation remains present if a later plugin operation fails. Preserve that state and resolve the reported conflict through the source repository before rerunning.
 
-Upgrade the lock, catalog, and native settings together in a PR, rerun disposable native installations, and review changed payload hashes. A changed GitHub release-to-commit pairing, an unsupported native registry format, or an unexpected installed payload fails verification. Client authentication and interactive model behavior require the separate fresh-session checks documented in the compatibility runbook.
+Upgrade the lock, catalog, and native settings together in a PR, rerun disposable native installations, and review changed payload hashes. For an existing extension with a changed release or an unpinned registration, first save its manifest as recovery evidence. Explicitly use `gh extension remove gh-stack`, followed by `gh extension install github/gh-stack --pin <reviewed-release>` in the intended native environment, then rerun the installer. The installer never removes or upgrades a shared extension automatically.
+
+An integration repeat test exposed GitHub CLI 2.100.0 ignoring the requested pin when `gh extension install --pin v0.1.0 --force` encountered an existing extension: it upgraded to v0.1.1 with `ispinned: false`. Verification caught the drift. The installer consequently never invokes this force path; correct pins are no-ops and mismatches require the explicit native reinstallation above. The disposable extension was restored using native remove/install commands, without editing its metadata. Two complete subsequent native Codex dependency installations passed verification, skipped the extension command, and left the extension manifest byte-identical at v0.1.0 with `ispinned: true`. A changed GitHub release-to-commit pairing, an unsupported native registry format, or an unexpected installed payload fails verification. Client authentication and interactive model behavior require the separate fresh-session checks documented in the compatibility runbook.
 
 References: [Claude plugin source pinning](https://code.claude.com/docs/en/plugin-marketplaces#plugin-sources), [Addy native setup](https://github.com/addyosmani/agent-skills#quick-start), [gh-stack native setup](https://github.com/github/gh-stack#installation), [GitHub skill installation](https://cli.github.com/manual/gh_skill_install).

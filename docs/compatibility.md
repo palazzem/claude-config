@@ -2,7 +2,7 @@
 
 Implementation verification date: 2026-09-16. These are tested versions, not
 invented minimum requirements: Codex CLI 0.154.0, Claude Code 2.1.273, GitHub CLI
-2.100.0, Node 24.20.0, Python 3.12.14. CI targets Python 3.11 and 3.12 on Linux
+2.100.0, Node 24.20.0, Python 3.12.14 and 3.14.7. CI targets Python 3.11 and 3.12 on Linux
 and macOS. CI results must be checked on the PR; configured coverage is not proof
 of successful execution.
 
@@ -16,7 +16,10 @@ memories or sessions were copied or changed.
 
 - The complete public `scripts/install.sh --codex` path passed against an isolated
   clone with disposable runtime roots, including native dependency verification and
-  settings guards. The initial generation guard caught stale outputs during final
+  settings guards. Repeat testing exposed a GitHub CLI force/pin bug; matching
+  extension pins now skip installation and mismatches are preserved for explicit
+  native reconciliation. Two corrected native repeat runs preserved the pin.
+  The initial generation guard caught stale outputs during final
   edits; regeneration and a clean committed rerun passed.
 - GitHub's pinned extension and both user skill installs succeeded. Native source
   tracking matched the locked commit/tree; `gh stack --version` worked.

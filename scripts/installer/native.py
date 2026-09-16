@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import tomllib
 import urllib.request
@@ -31,7 +32,11 @@ def _home(name: str, fallback: Path) -> Path:
 
 
 def _run(args: list[str]) -> str:
-    return subprocess.run(args, check=True, text=True, capture_output=True).stdout
+    result = subprocess.run(args, check=False, text=True, capture_output=True)
+    if result.stderr:
+        print(result.stderr, end="", file=sys.stderr)
+    result.check_returncode()
+    return result.stdout
 
 
 def _skill(target: str) -> Path:
@@ -58,13 +63,36 @@ def payload_hash(root: Path) -> str:
     return digest.hexdigest()
 
 
+def _extension_needed(stack: dict[str, str]) -> bool:
+    extension = _home("XDG_DATA_HOME", Path.home() / ".local/share") / "gh/extensions/gh-stack"
+    manifest = extension / "manifest.yml"
+    safe_path(manifest)
+    if not extension.exists():
+        return True
+    if not manifest.is_file() or not {"owner: github", "name: gh-stack", "host: github.com"} <= set(
+        manifest.read_text().splitlines()
+    ):
+        raise RuntimeError(f"Unknown extension collision: {extension}")
+    fields = set(manifest.read_text().splitlines())
+    if not {f"tag: {stack['release']}", "ispinned: true"} <= fields:
+        raise RuntimeError(
+            "Existing gh-stack extension does not match the reviewed pin; it was preserved. "
+            "Save its manifest for recovery, then explicitly run native commands in the intended "
+            f"environment: gh extension remove gh-stack; gh extension install {stack['repository']} "
+            f"--pin {stack['release']}. Rerun the installer after native reinstallation."
+        )
+    return False
+
+
 def commands(root: Path, targets: set[str]) -> list[list[str]]:
     """Describe pinned native calls without executing them or modifying any destination."""
     lock = _lock(root)
     addy, stack = lock["agent_skills"], lock["gh_stack"]
-    result = [
-        ["gh", "extension", "install", stack["repository"], "--pin", stack["release"], "--force"]
-    ]
+    result = []
+    if _extension_needed(stack):
+        result.append(
+            ["gh", "extension", "install", stack["repository"], "--pin", stack["release"]]
+        )
     for target, agent in (("codex", "codex"), ("claude", "claude-code")):
         if target in targets:
             result.append(
@@ -142,16 +170,7 @@ def preflight(root: Path, targets: set[str]) -> None:
     ).strip()
     if reference != stack["revision"]:
         raise RuntimeError("gh-stack release and skill revision pairing changed")
-    extension = _home("XDG_DATA_HOME", Path.home() / ".local/share") / "gh/extensions/gh-stack"
-    safe_path(extension / "manifest.yml")
-    if extension.exists():
-        manifest = extension / "manifest.yml"
-        if not manifest.is_file() or not {
-            "owner: github",
-            "name: gh-stack",
-            "host: github.com",
-        } <= set(manifest.read_text().splitlines()):
-            raise RuntimeError(f"Unknown extension collision: {extension}")
+    _extension_needed(stack)
     if "claude" in targets:
         with urllib.request.urlopen(lock["agent_skills"]["claude_catalog"], timeout=30) as response:
             remote = json.load(response)
