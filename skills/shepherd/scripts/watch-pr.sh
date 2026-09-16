@@ -20,14 +20,15 @@
 #   {"event":"MERGED"} | {"event":"CLOSED"}                           the PR reached a terminal; no other event prints for that pass
 #   {"event":"BEHIND"} | {"event":"DIRTY"}                            merge readiness drifted (base moved / conflicts)
 #   {"event":"CI_FAILED"}                                             a check on the PR head failed or was cancelled
-#   {"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…,"head":…}    the watermark: newest updatedAt per activity
+#   {"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…,"head":…,"seen":…}    the watermark: newest updatedAt per activity
 #                                                                     surface, merge state, CI state, PR state, head SHA
 #
 # Never fires: marked bodies (first line <!-- claude -->, leading whitespace
 # ignored); body-less COMMENTED reviews — GitHub wraps every API thread reply in
 # one under our own account; pending reviews and their thread comments; UNKNOWN
 # merge state; pending or passing checks. Activity is compared on updatedAt, so
-# an edited comment fires again. BEHIND is read from the base-to-head comparison
+# exact boundary versions distinguish same-second arrivals and edits.
+# An edited comment fires again. BEHIND is read from the base-to-head comparison
 # (refs/pull/<number>/head against the base branch), because mergeStateStatus
 # reports it only when the base branch rule requires up-to-date heads. baseline
 # reads activity from the epoch and drift and CI from current state; watch fires
@@ -83,7 +84,7 @@ event() { printf '{"event":"%s"}\n' "$1"; }
 pass() {
   local parsed events state merge ci head
   parsed=$(filter -r -f "$DIR/jq/pass.jq" <<<"$1") || return 1
-  events=$(filter -c --arg comment "$b_comment" --arg review "$b_review" --arg reply "$b_reply" -f "$DIR/jq/events.jq" <<<"$1") || return 1
+  events=$(filter -c --arg comment "$b_comment" --arg review "$b_review" --arg reply "$b_reply" --argjson seen "$seen" -f "$DIR/jq/events.jq" <<<"$1") || return 1
   wm=$(filter -c -f "$DIR/jq/baseline.jq" <<<"$1") || return 1
   read -r state merge ci head <<<"$parsed"
   out=""
@@ -108,6 +109,7 @@ pass() {
 case "$cmd" in
   baseline)
     [[ $# -eq 2 ]] || usage
+    seen='{}'
     b_comment=$EPOCH; b_review=$EPOCH; b_reply=$EPOCH; last_merge=""; last_ci=""; last_head=""
     if ! { p=$(fetch) && pass "$p"; }; then
       echo "watch-pr: read failed; run it again" >&2
@@ -130,6 +132,10 @@ parsed=$(jq -er '"\(.comment|strings) \(.review|strings) \(.reply|strings) \(.me
   exit 2
 }
 read -r b_comment b_review b_reply last_merge last_ci last_head <<<"$parsed"
+seen=$(jq -ce '.seen // {} | select(type == "object")' <<<"$3") || {
+  echo "watch-pr: malformed boundary versions" >&2
+  exit 2
+}
 echo "watch-pr: pr=$pr watermark=$3" >&2
 
 failures=0

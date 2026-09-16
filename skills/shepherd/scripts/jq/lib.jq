@@ -30,3 +30,13 @@ def submitted: .pullRequestReview.state != "PENDING";
 
 def unmarked:
   ((.body // "") | ltrimstr("﻿") | gsub("^\\s+"; "") | (startswith($marker) or startswith("<!-- codex -->"))) | not;
+
+# Exact version identity (not a lossy timestamp or hash); includes same-second edits.
+def activity_version:
+  [.url, .updatedAt, (.body // ""), (.state // ""),
+   (.pullRequestReview.state // ""), .authorAssociation, .author.login];
+
+def boundary_versions(s):
+  [s] as $items
+  | ($items | map(.updatedAt) | max // $epoch) as $at
+  | [$items[] | select(.updatedAt == $at) | activity_version];

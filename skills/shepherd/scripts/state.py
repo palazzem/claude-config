@@ -90,7 +90,8 @@ class Journal:
         if not records or "event" in records[-1]:
             raise ValueError("missing watermark; reader output is incomplete")
         watermark = records.pop()
-        if set(watermark) != {"comment", "review", "reply", "merge", "ci", "state", "head"}:
+        required = {"comment", "review", "reply", "merge", "ci", "state", "head"}
+        if set(watermark) not in (required, required | {"seen"}):
             raise ValueError("invalid watermark")
         self.data["sequence"] = self.data.get("sequence", 0) + 1
         for event in records:
@@ -100,7 +101,10 @@ class Journal:
                 material = {"event": event}
             key = hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()
             if key not in self.data["handled"]:
-                self.data["pending"].setdefault(key, {"event": event, "phase": "pending"})
+                self.data["pending"].setdefault(
+                    key,
+                    {"event": event, "phase": "handling" if event.get("reconcile") else "pending"},
+                )
         self.data["watermark"] = watermark
         self.save()
 

@@ -451,3 +451,103 @@ cat "$FIXTURE_ROOT/response-$n.json"
             resumed = state.Journal(path, "owner/repo#1")
             self.assertEqual(resumed.data["pending"]["event-key"]["phase"], "handling")
             resumed.close()
+
+    def test_same_timestamp_arrivals_and_edits_are_not_missed(self) -> None:
+        """Boundary versions distinguish new URLs and body edits without repeated polling."""
+        stamp = "2026-09-16T12:00:00Z"
+
+        def activity(url: str, body: str) -> dict[str, Any]:
+            return dict(
+                url=url,
+                body=body,
+                updatedAt=stamp,
+                author={"login": "reviewer"},
+                authorAssociation="OWNER",
+                state="COMMENTED",
+                pullRequestReview={"state": "COMMENTED"},
+            )
+
+        def filter_output(
+            name: str, payload: dict[str, Any], watermark: dict[str, Any] | None = None
+        ) -> str:
+            args = [
+                "jq",
+                "-L",
+                str(SCRIPTS / "jq"),
+                "-c",
+                "--arg",
+                "epoch",
+                "1970-01-01T00:00:00Z",
+                "--arg",
+                "marker",
+                "<!-- claude -->",
+            ]
+            if watermark is not None:
+                for surface in ("comment", "review", "reply"):
+                    args.extend(["--arg", surface, watermark[surface]])
+                if "seen" in watermark:
+                    args.extend(["--argjson", "seen", json.dumps(watermark["seen"])])
+            return subprocess.check_output(
+                [*args, "-f", str(SCRIPTS / "jq" / name)], input=json.dumps(payload), text=True
+            )
+
+        for surface in ("comment", "review", "reply"):
+            with self.subTest(surface=surface):
+                payload: dict[str, Any] = {
+                    "state": "OPEN",
+                    "headRefOid": "head",
+                    "mergeStateStatus": "CLEAN",
+                    "comments": {"nodes": []},
+                    "reviews": {"nodes": []},
+                    "reviewThreads": {"nodes": [{"comments": {"nodes": []}}]},
+                    "commits": {"nodes": []},
+                }
+                records = (
+                    payload["comments"]["nodes"]
+                    if surface == "comment"
+                    else payload["reviews"]["nodes"]
+                    if surface == "review"
+                    else payload["reviewThreads"]["nodes"][0]["comments"]["nodes"]
+                )
+                records.append(activity("first", "original"))
+                before = json.loads(filter_output("baseline.jq", payload))
+                self.assertEqual(filter_output("events.jq", payload, before), "")
+                records.append(activity("new-at-same-second", "new"))
+                events = [
+                    json.loads(line)
+                    for line in filter_output("events.jq", payload, before).splitlines()
+                ]
+                self.assertEqual([event["url"] for event in events], ["new-at-same-second"])
+                after = json.loads(filter_output("baseline.jq", payload))
+                self.assertEqual(filter_output("events.jq", payload, after), "")
+                records[0]["body"] = "edited in same second"
+                changed = [
+                    json.loads(line)
+                    for line in filter_output("events.jq", payload, after).splitlines()
+                ]
+                self.assertEqual([event["url"] for event in changed], ["first"])
+                self.assertNotEqual(changed[0]["version"], before["seen"][surface][0])
+                legacy = dict(before)
+                legacy.pop("seen")
+                replayed = [
+                    json.loads(line)
+                    for line in filter_output("events.jq", payload, legacy).splitlines()
+                ]
+                self.assertEqual(len(replayed), 2)
+                self.assertTrue(all(event["reconcile"] for event in replayed))
+                with tempfile.TemporaryDirectory() as directory:
+                    journal = state.Journal(
+                        Path(directory).resolve() / "journal.json", "owner/repo#1"
+                    )
+                    journal.ingest(
+                        "\n".join(json.dumps(event) for event in replayed)
+                        + "\n"
+                        + json.dumps(json.loads(filter_output("baseline.jq", payload)))
+                    )
+                    self.assertTrue(
+                        all(
+                            entry["phase"] == "handling"
+                            for entry in journal.data["pending"].values()
+                        )
+                    )
+                    journal.close()

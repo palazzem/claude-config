@@ -35,7 +35,7 @@ watch-pr.sh baseline <number>              # once per PR: everything standing, t
 watch-pr.sh watch <number> '<watermark>'   # the monitor: the first events past the watermark, then the watermark of that pass
 ```
 
-The watermark is one JSON line, `{"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…,"head":…}`: the newest `updatedAt` per activity surface, the merge state, the CI state, the PR state, and head commit SHA. A failed check on a new head fires even when the previous head also failed and no intervening pending state was observed. Activity newer than it fires; drift and CI fire when they differ from it, so a state already handled stays quiet until it changes.
+The watermark is one JSON line, `{"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…,"head":…,"seen":…}`: the newest `updatedAt` per activity surface, the merge state, the CI state, the PR state, and head commit SHA. A failed check on a new head fires even when the previous head also failed and no intervening pending state was observed. The `seen` lists retain exact URL/time/body/review versions at each timestamp boundary; same-second new activity or edits fire while already observed versions stay quiet. A legacy watermark without these lists conservatively replays boundary events as `handling` work: reconcile remote effects before acting. Activity newer than it fires; drift and CI fire when they differ from it, so a state already handled stays quiet until it changes.
 
 | Event | Meaning | The session |
 |---|---|---|
