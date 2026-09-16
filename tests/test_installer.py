@@ -289,3 +289,10 @@ class InstallerTests(unittest.TestCase):
         receipt = json.loads((self.data / "installation.json").read_text())
         self.assertEqual(receipt["revision"], git(self.checkout, "rev-parse", "HEAD"))
         self.assertIn("new", self.settings.read_text())
+
+    def test_source_runtime_overlap_refused(self) -> None:
+        """Runtime destinations must not turn the source checkout into a client home."""
+        self.env["CLAUDE_CONFIG_DIR"] = str(self.root)
+        with self.assertRaisesRegex(Conflict, "overlap"):
+            self.install()
+        self.assertFalse(self.data.exists())

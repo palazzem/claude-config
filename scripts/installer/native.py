@@ -254,6 +254,7 @@ def verify(root: Path, targets: set[str]) -> None:
 
 def _snapshot() -> None:
     base = _home("XDG_DATA_HOME", Path.home() / ".local/share") / "harness/backups/native"
+    safe_path(base / "entry")
     base.mkdir(parents=True, exist_ok=True, mode=0o700)
     backup = Path(tempfile.mkdtemp(prefix="registration-", dir=base))
     homes = {

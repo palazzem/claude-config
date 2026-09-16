@@ -44,7 +44,7 @@ class NativeTests(unittest.TestCase):
     def test_unknown_skill_and_extension_preserved(self) -> None:
         """Force flags are gated by identity checks for both extension and skill collisions."""
         with tempfile.TemporaryDirectory() as directory:
-            home = Path(directory)
+            home = Path(directory).resolve()
             with (
                 patch.dict(os.environ, {"HOME": str(home), "XDG_DATA_HOME": str(home / "data")}),
                 patch.object(native.shutil, "which", return_value="tool"),
@@ -94,7 +94,7 @@ class NativeTests(unittest.TestCase):
     def test_payload_hash_detects_helpers_and_symlink_changes(self) -> None:
         """Whole-package verification includes helpers and link text, without following links."""
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             (root / "SKILL.md").write_text("skill")
             helper = root / "helper.sh"
             helper.write_text("first")
@@ -119,7 +119,7 @@ class NativeTests(unittest.TestCase):
     def test_registration_snapshot_keeps_original_bytes(self) -> None:
         """Recovery snapshots preserve native registries and settings before mutation."""
         with tempfile.TemporaryDirectory() as directory:
-            home = Path(directory)
+            home = Path(directory).resolve()
             claude = home / "claude"
             (claude / "plugins").mkdir(parents=True)
             content = b'{"plugins": {"unrelated": []}}\n'
@@ -147,7 +147,7 @@ class NativeTests(unittest.TestCase):
     def test_bad_dependency_revision_is_rejected(self) -> None:
         """An invalid immutable pin never reaches a native command."""
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             (root / "dependencies.lock.toml").write_text(
                 (ROOT / "dependencies.lock.toml")
                 .read_text()
@@ -172,7 +172,7 @@ class NativeTests(unittest.TestCase):
     def test_payload_hash_uses_portable_path_order(self) -> None:
         """Native payload hashes order full relative names, independent of Path part ordering."""
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             (root / "a").mkdir()
             (root / "a/file").write_bytes(b"nested")
             (root / "a.md").write_bytes(b"flat")

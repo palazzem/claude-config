@@ -13,7 +13,7 @@ class FileTests(unittest.TestCase):
     def test_parent_link_rejected(self) -> None:
         """A directory link must not redirect a nominally scoped write."""
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             (root / "outside").mkdir()
             (root / "client").symlink_to(root / "outside")
             with self.assertRaises(Conflict):
@@ -22,7 +22,7 @@ class FileTests(unittest.TestCase):
     def test_link_and_private_receipt(self) -> None:
         """Link text is stable and recovery metadata is private."""
         with tempfile.TemporaryDirectory(prefix="harness space ") as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             source = root / "tracked"
             source.write_text("versioned")
             destination = root / "client" / "settings"

@@ -1,121 +1,63 @@
-# claude-config
+# harness
 
-A versioned `~/.claude` that turns Claude Code into a disciplined engineer.
+Shared engineering conventions and native Codex/Claude configuration. Keep the
+source checkout separate from client runtime homes. Existing workflow names and
+upstream packages remain intact.
 
-```text
-  DEFINE     /spec        ┐
-    │                     │
-  PLAN       /plan        ├─ agent-skills
-    │                     │
-  BUILD      /build       ┘
-    │
-  STACK      /gh-stack    ┐
-    │                     ├─ this repo
-  WATCH      /shepherd    ┘
-    │
-  VERIFY     /test        ┐
-    │                     │
-  REVIEW     /review      ├─ agent-skills
-    │                     │
-  SHIP       /ship        ┘
-```
-
-## Requirements
-
-- Claude Code
-- System packages: `gh`, `jq`, `npm`
-
-## Quick Start
-
-The following instructions are meant for a fresh installation where Claude Code doesn't
-have a global `~/.claude` config folder yet:
+After the implementation PR is accepted, install a clean reviewed revision:
 
 ```bash
-# Custom Harness
-git clone git@github.com:palazzem/claude-config.git ~/.claude
-
-# Agent-skills plugin
-claude plugin marketplace add addyosmani/agent-skills
-claude plugin install agent-skills@addy-agent-skills
-
-# GitHub configuration
-gh auth login
-gh extension install github/gh-stack
-
-# Claude Code Statusline
-npm install -g ccstatusline
-mkdir -p ~/.config/ccstatusline
-cp ~/.claude/statusline/ccstatusline-config.json ~/.config/ccstatusline/settings.json
-
-claude
+./scripts/install.sh --codex --claude --dry-run
+./scripts/install.sh --codex --claude
 ```
 
-## Commands
+Choose either target independently with `--codex` or `--claude`. The installer
+links tracked configuration, instructions, agents and skills through a persistent
+Git worktree at `~/.local/share/harness/checkout` (`install/local`). Native clients
+own credentials, sessions, memories, caches and third-party package payloads.
+Changes to managed configuration go through a source PR; rerun the installer to
+advance the clean installation worktree after acceptance.
 
-Development lifecycle commands come from agent-skills
-
-| What you're doing | Command | Key principle |
+| Workflow | Claude | Codex |
 | --- | --- | --- |
-| Define what to build | `/spec` | Spec before code |
-| Plan how to build it | `/plan` | Small, atomic tasks |
-| Build incrementally | `/build` | One slice at a time |
-| Split a change into dependent PRs | `/gh-stack` | One concern per PR, reviewed in order |
-| Carry the open PR to merge | `/shepherd` | The PR is done when a human merges it |
-| Prove it works | `/test` | Tests are proof |
-| Set the quality bar | `/constraints` | Decide it once, enforce it everywhere |
-| Review before merge | `/review` | Improve code health |
-| Audit web performance | `/webperf` | Measure before you optimize |
-| Simplify the code | `/code-simplify` | Clarity over cleverness |
-| Ship to production | `/ship` | Faster is safer |
-| Consolidate memories into rules | `/reflect` | A lesson lives once, globally |
+| Specification, planning, implementation | `/spec`, `/plan`, `/build` | `$spec`, `$plan`, `$build` |
+| Verification and constraints | `/test`, `/constraints` | `$test`, `$constraints` |
+| Review, performance, simplification | `/review`, `/webperf`, `/code-simplify` | `$review`, `$webperf`, `$code-simplify` |
+| Publication and maintenance | `/ship`, `/shepherd`, `/gh-stack` | `$ship`, `$shepherd`, `$gh-stack` |
+| Explicit memory promotion, only in this repo | `/reflect` | `$reflect` |
 
-Skills also activate on their own: a library question routes to `docs-researcher`, a chain of dependent branches triggers `gh-stack`, a freshly opened PR triggers `shepherd`.
+Addy's complete upstream plugin supplies lifecycle processes and review personas.
+Codex wrappers reference its installed command resources. GitHub's native extension
+and skill installers supply `gh-stack`; no upstream skill is vendored here.
+`docs-researcher` uses a pinned Context7 CLI and reports cited findings or explicit
+gaps. Human review and merge remain mandatory.
 
-## How It Fits Together
+Read [installation](docs/installation.md), [recovery](docs/recovery.md),
+[native dependencies](docs/native-dependencies.md),
+[compatibility and evidence](docs/compatibility.md), and
+[stateful skills](docs/stateful-skills.md) before deployment.
 
-| Layer | Lives in | Decides |
-| --- | --- | --- |
-| Process | agent-skills plugin, overridden by `rules/agent-skills.md` | How work moves — spec, plan, build, test, review, ship — and which reviewer persona looks at it |
-| Bar | `CLAUDE.md` | What "good" means |
-| PR lifecycle | `skills/shepherd`, `skills/gh-stack`, `rules/gh-stack.md` | What happens after the PR exists |
-| Knowledge | `agents/docs-researcher.md`, `rules/context7.md` | Where facts about libraries, frameworks, and tools come from |
-| Memory | `.claude/skills/reflect` | Which project lessons become global rules |
-| Config | `settings.json`, `statusline/` | Model, effort, permissions, plugin registration, what the status line shows |
+## Development
 
-## Project Structure
+Work in a fresh feature worktree. Shared instructions live in `rules/` and
+`repository/`; native metadata and settings live in `adapters/`. Commit shared
+changes and regenerated native outputs together. Process artifacts stay ignored.
 
-```text
-~/.claude/
-├── CLAUDE.md                          # The bar — user-level instructions, loaded into every session
-├── settings.json                      # Model, effort, permissions, plugin registration, status line
-├── rules/
-│   ├── agent-skills.md                # agent-skills overrides — spec, plan, todo under .claude/specs/<slug>/
-│   ├── context7.md                    # Library questions go to docs-researcher, never memory
-│   └── gh-stack.md                    # Stack PR titles and bodies come from the plan, never gh pr edit
-├── agents/
-│   └── docs-researcher.md             # Context7-backed documentation lookups, source-cited
-├── skills/
-│   ├── shepherd/
-│   │   ├── SKILL.md                   # Watch an open PR until a human merges or closes it
-│   │   └── scripts/
-│   │       ├── watch-pr.sh            # The one PR reader: baseline, then watch
-│   │       ├── query.graphql          # One request reads every PR surface
-│   │       └── jq/                    # baseline, pass, and events filters
-│   └── gh-stack/
-│       └── SKILL.md                   # Stacked PRs, vendored from github/gh-stack
-├── statusline/
-│   └── ccstatusline-config.json       # Three-line ccstatusline layout
-├── docs/
-│   └── skill-anatomy.md               # Ruling for writing and auditing skills
-└── .claude/
-    └── skills/
-        └── reflect/                   # Repo-local: visible only in this checkout
-            ├── SKILL.md               # Triage memories, promote rules via PR, prune after merge
-            └── scripts/
-                ├── inventory.sh       # Every project memory as one JSON stream
-                └── prune.sh           # Delete manifest files and their MEMORY.md lines
+```bash
+uv sync --locked
+uv run python scripts/render.py
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy scripts tests skills
+uv run python -W error -m unittest discover -v
+uv run python scripts/render.py --check
 ```
 
-## License
+The repository remains at `palazzem/claude-config` until the human-reviewed release
+renames it to `harness`. Do not rename it, merge the PR, or install into real client
+homes during implementation. After rename update remotes and the catalog URL in a
+reviewed change before deployment.
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Apache-2.0; see [LICENSE](LICENSE). Addy's agent-skills remains upstream under MIT;
+GitHub's gh-stack remains upstream under its license. We install those packages
+through their native tools and retain their original names and attribution.

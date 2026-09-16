@@ -241,6 +241,15 @@ def deploy(
         raise Conflict("Select --codex, --claude, or both")
     revision = validate(root)
     paths = locations(environment)
+    source = root.resolve()
+    for name, path in paths.items():
+        runtime = path.resolve()
+        if source.is_relative_to(runtime) or runtime.is_relative_to(source):
+            raise Conflict(f"Source and runtime locations overlap: {name} {path}")
+    if paths["codex"].is_relative_to(paths["claude"]) or paths["claude"].is_relative_to(
+        paths["codex"]
+    ):
+        raise Conflict("Codex and Claude runtime homes must not overlap")
     data, checkout = paths["data"], paths["data"] / "checkout"
     receipt, journal_path = data / "installation.json", data / "pending.json"
     for state_path in (receipt, journal_path):

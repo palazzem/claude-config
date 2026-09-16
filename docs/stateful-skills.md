@@ -1,6 +1,6 @@
 # Stateful skills
 
-Shepherd keeps the portable Bash/GraphQL/jq reader. Its `state.py` companion journals a complete read before exposing events: PR identity, watermark, pending/handling events, and handled evidence. Keep the journal private under the client runtime home. Supply the long-lived client PID to every operation; a kernel lock serializes operations and the saved live-owner PID prevents concurrent sessions handling the same PR. A dead owner allows resume. PID reuse requires checking ownership manually before transfer. Do not remove a live owner's state.
+Shepherd keeps the portable Bash/GraphQL/jq reader. Its `state.py` companion journals a complete read before exposing events: PR identity, watermark including head commit, pending/handling events, and handled evidence. A persisted ingestion sequence distinguishes later CI/drift transitions with identical event bodies. A failed new head wakes the watcher even when the prior head failed too. Keep the journal private under the client runtime home. Supply the long-lived client PID to every operation; a kernel lock serializes operations and the saved live-owner PID prevents concurrent sessions handling the same PR. A dead owner allows resume. PID reuse requires checking ownership manually before transfer. Do not remove a live owner's state.
 
 On resume, inspect `show`, reconcile every `handling` event against the remote effect, and record `complete` with the effect URL/commit or no-action reason. Never replay a remote action blindly or take a fresh baseline. There is no atomic transaction spanning GitHub and local disk. A crash after remote posting and before completion is resolved by examining attribution and event references. Both `<!-- claude -->` and `<!-- codex -->` are filtered.
 
@@ -8,7 +8,7 @@ Claude monitoring uses the native Monitor capability only when available and tes
 
 Reflection is explicit-only and repository-local. It can run on either client but only operates selected Claude memories. The Claude runtime memory root is separate from the Git source and installation worktree. The helper rejects path and ancestor symlinks, including sibling indexes; run without concurrent memory writers. Do not point it at Codex generated memories.
 
-Private manifests live outside the repository, in `${CLAUDE_CONFIG_DIR:-~/.claude}/reflect/`, with mode 0600 and a private parent directory. Store explicit selected paths and hashes before promotion, then PR identity and deployment evidence after the separate authorized installation. Example schema (use real hashes and paths):
+Private manifests live outside the repository, in `${CLAUDE_CONFIG_DIR:-~/.claude}/reflect/`, with mode 0600 and a private parent directory. Explicitly select every deletion, including already redundant memories; promotion selection alone never authorizes deletion, and `none` ends without changes. Store explicit selected paths and hashes before promotion, then PR identity and deployment evidence after the separate authorized installation. Example schema (use real hashes and paths):
 
 ```json
 {
