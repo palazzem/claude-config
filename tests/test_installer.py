@@ -24,18 +24,25 @@ class InstallerTests(unittest.TestCase):
         self.root = self.base / "source"
         self.root.mkdir()
         self.env = {"HOME": str(self.base / "home")}
-        for client, instruction, config in (
-            ("codex", "AGENTS.md", "config.toml"),
-            ("claude", "CLAUDE.md", "settings.json"),
-        ):
-            self.write(f"generated/{client}/{instruction}", "shared rules")
-            self.write(f"generated/{client}/agents/docs-researcher.txt", "research")
-            self.write(f"generated/{client}/skills/shepherd/SKILL.md", "shepherd")
-            self.write(f"generated/{client}/skills/reflect/SKILL.md", "local")
-            self.write(f"adapters/{client}/{config}", "{}" if client == "claude" else "")
-        self.write("statusline/ccstatusline-config.json", "{}")
-        self.write("rules/context7.md", "research")
-        self.write("scripts/render.py", "pass")
+        sources = {
+            "CLAUDE.md": "shared rules",
+            "agents/docs-researcher.md": "research",
+            "adapters/claude/docs-researcher.json": '{"name":"docs-researcher"}',
+            "adapters/codex/docs-researcher.toml": 'name = "docs-researcher"\n',
+            "adapters/claude/settings.json": "{}",
+            "adapters/codex/config.toml": 'model = "fixture"\n',
+            "dependencies.lock.toml": '[agent_skills]\nrevision = "fixture"\n[context7]\nversion = "0.5.11"\n',
+            "skills/shepherd/SKILL.md": "shepherd",
+            "skills/reflect/SKILL.md": "local",
+            "statusline/ccstatusline-config.json": "{}",
+            "rules/context7.md": "research",
+            ".gitignore": "generated/\n.agents/skills/reflect\n.claude/skills/reflect\n",
+            "scripts/render.py": (
+                Path(__file__).resolve().parents[1] / "scripts/render.py"
+            ).read_text(),
+        }
+        for relative, content in sources.items():
+            self.write(relative, content)
         git(self.root, "init", "-b", "main")
         git(self.root, "config", "user.email", "fixture@example.invalid")
         git(self.root, "config", "user.name", "Fixture")
@@ -88,6 +95,7 @@ class InstallerTests(unittest.TestCase):
         """Dry run leaves even state directories absent; no-target invocation refuses."""
         self.install(dry_run=True)
         self.assertFalse((self.base / "home").exists())
+        self.assertFalse((self.root / "generated").exists())
         with self.assertRaises(Conflict):
             self.install(set())
 
@@ -255,21 +263,62 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(self.settings.read_text(), "{}")
         self.assertTrue(self.settings.is_symlink())
 
-    def test_known_legacy_directory_adoption(self) -> None:
-        """Only exact reviewed legacy packages are eligible for backup and adoption."""
-        from scripts.installer.core import directory_hash
-
+    def test_unknown_skill_directory_preserved(self) -> None:
+        """An existing package is not silently adopted or replaced."""
         legacy = self.base / "home/.claude/skills/shepherd"
         legacy.mkdir(parents=True)
         (legacy / "SKILL.md").write_text("old maintained package")
-        self.write(
-            "adapters/adoption.json",
-            json.dumps({"generated/claude/skills/shepherd": [directory_hash(legacy)]}),
-        )
-        self.commit()
+        with self.assertRaisesRegex(Conflict, "Unknown collision"):
+            self.install()
+        self.assertEqual((legacy / "SKILL.md").read_text(), "old maintained package")
+        self.assertFalse(self.checkout.exists())
+
+    def test_generated_write_through_preserved(self) -> None:
+        """Ignored native edits are detected even when Git reports a clean worktree."""
         self.install()
-        self.assertTrue(legacy.is_symlink())
-        self.assertEqual((legacy / "SKILL.md").read_text(), "shepherd")
+        instruction = self.base / "home/.codex/AGENTS.md"
+        instruction.write_text("native instruction edit")
+        self.assertEqual(git(self.checkout, "status", "--porcelain"), "")
+        with self.assertRaisesRegex(Conflict, "Generated installation files changed"):
+            self.install()
+        self.assertEqual(instruction.read_text(), "native instruction edit")
+
+    def test_generated_failure_preserves_native_edit_and_journal(self) -> None:
+        """Rollback never regenerates over an ignored output changed by a native client."""
+        self.install()
+        instruction = self.base / "home/.codex/AGENTS.md"
+
+        def write(root: Path, targets: set[str]) -> None:
+            instruction.write_text("native instruction edit")
+
+        with self.assertRaisesRegex(Conflict, "Generated installation files changed"):
+            self.install(native=write)
+        self.assertEqual(instruction.read_text(), "native instruction edit")
+        self.assertTrue((self.data / "pending.json").exists())
+
+    def test_new_rule_and_failed_update_regenerate_prior_outputs(self) -> None:
+        """New source rules reach both clients; a failed update restores prior generated content."""
+        self.install()
+        instruction = self.base / "home/.codex/AGENTS.md"
+        before = instruction.read_text()
+        self.write("rules/new-rule.md", "A new authored rule")
+        self.commit()
+        self.assertEqual(instruction.read_text(), before)
+
+        def fail(root: Path, targets: set[str]) -> None:
+            self.assertIn("A new authored rule", instruction.read_text())
+            raise RuntimeError("fixture native failure")
+
+        with self.assertRaisesRegex(RuntimeError, "native failure"):
+            self.install(native=fail)
+        self.assertEqual(instruction.read_text(), before)
+        self.assertFalse((self.settings.parent / "rules/new-rule.md").exists())
+        self.install()
+        self.assertIn("A new authored rule", instruction.read_text())
+        self.assertEqual(
+            (self.settings.parent / "rules/new-rule.md").read_text(), "A new authored rule"
+        )
+        self.assertEqual(git(self.checkout, "ls-files", "generated"), "")
 
     def test_failed_journal_cleanup_keeps_committed_revision(self) -> None:
         """A cleanup error after the receipt commit cannot roll back committed provenance."""

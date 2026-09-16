@@ -7,7 +7,7 @@ web_search = "live"
 [marketplaces.agent-skills]
 source_type = "git"
 source = "https://github.com/addyosmani/agent-skills.git"
-ref = "d2c37ef6225dd8726cdd369a8030307f48592d26"
+ref = "{agent_skills_revision}"
 
 [plugins."agent-skills@agent-skills"]
 enabled = true

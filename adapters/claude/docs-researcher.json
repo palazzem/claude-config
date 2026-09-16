@@ -1,7 +1,6 @@
 {
   "name": "docs-researcher",
-  "description": "Research current library and native-client documentation; return citations or explicit UNVERIFIED gaps without modifying project code.",
+  "description": "Looks up current documentation for any library, framework, SDK, CLI tool, or cloud service through the Context7 CLI and returns a comprehensive, source-cited report. Use for API syntax, configuration options, version migration, setup instructions, and library-specific debugging \u2014 even for well-known technologies like React, Next.js, Prisma, Django, or Spring Boot, and even when the answer seems known. Pass the complete question as the prompt with library, version if known, and exactly what to look up.",
   "model": "claude-sonnet-5",
-  "tools": "Bash, WebFetch",
-  "permissionMode": "plan"
+  "tools": "Bash, WebFetch"
 }

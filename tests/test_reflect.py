@@ -1,195 +1,137 @@
-"""Synthetic reflection fixtures; never use real client memories."""
+"""Exercise reflection's newline manifest and memory reader using disposable files."""
 
-import importlib.util
+import json
+import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any
 
-ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location(
-    "reflect_prune", ROOT / "skills/reflect/scripts/prune.py"
-)
-assert spec and spec.loader
-prune = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(prune)
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills/reflect/scripts"
 
 
 class ReflectTests(unittest.TestCase):
-    """Verify synthetic safety and recovery contracts."""
+    """Keep the original stdin interface and reject escaping deletion paths."""
 
-    def test_hash_selection_dry_run_and_prune(self) -> None:
-        """Hash selection dry run and prune."""
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory).resolve()
-            memory = root / "project/memory/lesson.md"
-            memory.parent.mkdir(parents=True)
-            memory.write_text("lesson")
-            index = memory.parent / "MEMORY.md"
-            index.write_text("[lesson](lesson.md)\nkeep\n")
-            manifest: dict[str, Any] = {
-                "explicit_selection": True,
-                "entries": [{"path": "project/memory/lesson.md", "sha256": prune.digest(memory)}],
-            }
-            manifest["explicit_selection"] = False
-            with self.assertRaises(ValueError):
-                prune.prune(root, manifest, False)
-            self.assertTrue(memory.exists())
-            manifest["explicit_selection"] = True
-            prune.prune(root, manifest, True)
-            self.assertTrue(memory.exists())
-            memory.write_text("changed")
-            with self.assertRaises(ValueError):
-                prune.prune(root, manifest, False)
-            self.assertTrue(memory.exists())
-            memory.write_text("lesson")
-            self.assertEqual(
-                prune.prune(root, manifest, False)["deleted"], ["project/memory/lesson.md"]
-            )
-            self.assertEqual(index.read_text(), "keep\n")
-            self.assertEqual(
-                prune.prune(root, manifest, False)["skipped"], ["project/memory/lesson.md"]
-            )
+    def setUp(self) -> None:
+        """Create private synthetic memories, never a real client's memory root."""
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.base = Path(self.temporary.name).resolve()
+        self.root = self.base / "projects"
+        self.memory = self.root / "project/memory"
+        self.memory.mkdir(parents=True)
+        self.lesson = self.memory / "lesson.md"
+        self.lesson.write_text("A synthetic lesson.\n")
+        self.index = self.memory / "MEMORY.md"
+        self.index.write_text("[Lesson](lesson.md)\n[Retained](other.md)\n")
 
-    def test_symlink_ancestors_and_indexes(self) -> None:
-        """Symlink ancestors and indexes."""
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory).resolve()
-            outside = root / "outside"
-            outside.mkdir()
-            (root / "project").symlink_to(outside, target_is_directory=True)
-            with self.assertRaises(ValueError):
-                prune.memory_path(root, "project/memory/file.md")
-            (root / "project").unlink()
-            (root / "project/memory").mkdir(parents=True)
-            (root / "project/memory/MEMORY.md").symlink_to(outside / "index")
-            with self.assertRaises(ValueError):
-                prune.memory_path(root, "project/memory/file.md")
+    def run_helper(
+        self, name: str, manifest: str = "", *args: str
+    ) -> subprocess.CompletedProcess[str]:
+        """Run a real Bash helper with a synthetic memory root and captured output."""
+        return subprocess.run(
+            ["bash", str(SCRIPTS / name), *args],
+            input=manifest,
+            text=True,
+            capture_output=True,
+            env=dict(os.environ, REFLECT_MEMORY_ROOT=str(self.root)),
+            check=False,
+        )
 
-    def test_invalid_selection_and_paths(self) -> None:
-        """Invalid selection and paths."""
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory).resolve()
-            for relative in [
-                "../memory/a.md",
-                "/project/memory/a.md",
-                "project/memory/MEMORY.md",
-                "project/memory/../a.md",
-            ]:
-                with self.subTest(relative=relative), self.assertRaises(ValueError):
-                    prune.memory_path(root, relative)
-            with self.assertRaises(ValueError):
-                prune.prune(root, {}, False)
+    def test_dry_run_then_prune_and_idempotent_resume(self) -> None:
+        """The same newline manifest previews, deletes, and safely skips absent memories."""
+        manifest = "project/memory/lesson.md\n"
+        preview = self.run_helper("prune.sh", manifest, "--dry-run")
+        self.assertEqual(preview.returncode, 0, preview.stderr)
+        self.assertEqual(json.loads(preview.stdout)["deleted"], [manifest.strip()])
+        self.assertTrue(self.lesson.exists())
+        result = self.run_helper("prune.sh", manifest)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.lesson.exists())
+        self.assertEqual(self.index.read_text(), "[Retained](other.md)\n")
+        resumed = self.run_helper("prune.sh", manifest)
+        self.assertEqual(json.loads(resumed.stdout)["skipped"], [manifest.strip()])
 
-    def test_deployment_revision_links_and_discovery(self) -> None:
-        """Deployment revision links and discovery."""
-        import subprocess
+    def test_absolute_path_blank_lines_and_missing_final_newline(self) -> None:
+        """Existing absolute-path, blank-line, and final-line handling remains compatible."""
+        result = self.run_helper("prune.sh", f"\n  \n{self.lesson}", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["deleted"], ["project/memory/lesson.md"])
 
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory).resolve()
-            checkout = root / "checkout"
-            checkout.mkdir()
+    def test_entire_manifest_is_validated_before_deleting(self) -> None:
+        """One invalid line prevents every deletion, including earlier valid entries."""
+        for invalid in ["../memory/lesson.md", "project/memory/MEMORY.md", "/outside.md"]:
+            with self.subTest(invalid=invalid):
+                result = self.run_helper("prune.sh", f"project/memory/lesson.md\n{invalid}\n")
+                self.assertEqual(result.returncode, 2)
+                self.assertTrue(self.lesson.exists())
+                self.assertIn("lesson.md", self.index.read_text())
 
-            def git(*args: str) -> str:
-                return subprocess.check_output(
-                    ["git", "-C", str(checkout), *args], text=True
-                ).strip()
+    def test_reject_project_memory_file_and_index_symlinks(self) -> None:
+        """Symlinks in every relevant path component fail before memory or index writes."""
+        outside = self.base / "outside"
+        outside.mkdir()
+        victim = outside / "victim.md"
+        victim.write_text("Never change this")
+        for relative in [
+            "linked",
+            "project/memory",
+            "project/memory/link.md",
+            "project/memory/MEMORY.md",
+        ]:
+            with self.subTest(relative=relative):
+                link = self.root / relative
+                if link == self.memory:
+                    self.memory.rename(self.base / "saved-memory")
+                if link == self.index:
+                    self.index.unlink()
+                link.symlink_to(outside if relative in {"linked", "project/memory"} else victim)
+                manifest = {
+                    "linked": "linked/memory/victim.md",
+                    "project/memory": "project/memory/victim.md",
+                }.get(
+                    relative,
+                    "project/memory/link.md"
+                    if relative.endswith("link.md")
+                    else "project/memory/lesson.md",
+                )
+                result = self.run_helper("prune.sh", manifest + "\n")
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertEqual(victim.read_text(), "Never change this")
+                self.assertTrue(
+                    (self.base / "saved-memory/lesson.md").exists()
+                    if link == self.memory
+                    else self.lesson.exists()
+                )
+                link.unlink()
+                if link == self.memory:
+                    (self.base / "saved-memory").rename(self.memory)
+                if link == self.index:
+                    self.index.write_text("[Lesson](lesson.md)\n")
 
-            git("init", "-q")
-            git("checkout", "-qb", "install/local")
-            git("config", "user.email", "test@example.invalid")
-            git("config", "user.name", "Test")
-            git("remote", "add", "origin", "git@github.com:owner/repo.git")
-            rule = checkout / "generated/codex/AGENTS.md"
-            rule.parent.mkdir(parents=True)
-            rule.write_text("reviewed promotion")
-            git("add", ".")
-            git("commit", "-qm", "fixture")
-            revision = git("rev-parse", "HEAD")
-            link = root / "AGENTS.md"
-            link.symlink_to(rule)
-            transcript = root / "discovery.txt"
-            transcript.write_text("fresh Codex loaded reviewed promotion")
-            receipt: dict[str, Any] = {
-                "checkout": str(checkout),
-                "revision": revision,
-                "targets": ["codex"],
-                "links": {
-                    str(link): {
-                        "source": "generated/codex/AGENTS.md",
-                        "backup": None,
-                        "target": "codex",
-                    }
-                },
-            }
-            manifest: dict[str, Any] = {
-                "merge_commit": revision,
-                "repository": "owner/repo",
-                "targets": ["codex"],
-                "deployment": {
-                    "codex": {
-                        "revision": revision,
-                        "discovery_command": "codex",
-                        "discovery_output": str(transcript),
-                        "discovery_output_sha256": prune.digest(transcript),
-                        "confirmed_loaded": "codex",
-                        "links": {str(link): prune.digest(rule)},
-                    }
-                },
-            }
-            prune.deployment(manifest, receipt)
-            manifest["repository"] = "other/repository"
-            with self.assertRaises(ValueError):
-                prune.deployment(manifest, receipt)
-            manifest["repository"] = "owner/repo"
-            receipt["links"][str(link)]["target"] = "claude"
-            with self.assertRaises(ValueError):
-                prune.deployment(manifest, receipt)
-            receipt["links"][str(link)]["target"] = "codex"
-            receipt["links"][str(link)]["source"] = "unrelated.md"
-            with self.assertRaises(ValueError):
-                prune.deployment(manifest, receipt)
-            receipt["links"][str(link)]["source"] = "generated/codex/AGENTS.md"
-            redirected = root / "redirected"
-            redirected.symlink_to(checkout, target_is_directory=True)
-            receipt["checkout"] = str(redirected)
-            with self.assertRaises(ValueError):
-                prune.deployment(manifest, receipt)
-            receipt["checkout"] = str(checkout)
-            manifest["targets"].append("claude")
-            with self.assertRaises(ValueError):
-                prune.deployment(manifest, receipt)
-            manifest["targets"].pop()
-            transcript.write_text("changed")
-            with self.assertRaises(ValueError):
-                prune.deployment(manifest, receipt)
-            transcript.write_text("fresh Codex loaded reviewed promotion")
-            link.unlink()
-            link.write_text(rule.read_text())
-            with self.assertRaises(ValueError):
-                prune.deployment(manifest, receipt)
+    def test_reject_symlink_in_memory_root_ancestors(self) -> None:
+        """A linked runtime ancestor cannot redirect the accepted memory root."""
+        link = self.base / "runtime-link"
+        link.symlink_to(self.root)
+        self.root = link
+        result = self.run_helper("prune.sh", "project/memory/lesson.md\n")
+        self.assertEqual(result.returncode, 2)
+        self.assertTrue(self.lesson.exists())
 
-    def test_cli_unmerged_and_missing_manifest_block(self) -> None:
-        """Cli unmerged and missing manifest block."""
-        import json
-        import sys
-        from unittest.mock import patch
+    def test_inventory_preserves_frontmatter_and_excludes_index(self) -> None:
+        """The sole memory reader retains metadata and emits one record per memory."""
+        self.lesson.write_text(
+            '---\nname: "Lesson"\ndescription: "Useful"\nmetadata:\n  type: feedback\n---\nBody\n'
+        )
+        result = self.run_helper("inventory.sh")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = [json.loads(line) for line in result.stdout.splitlines()]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["name"], "Lesson")
+        self.assertEqual(rows[0]["type"], "feedback")
+        self.assertEqual(rows[0]["body"], "Body")
 
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory).resolve() / "manifest.json"
-            with patch.object(sys, "argv", ["prune.py", str(path)]):
-                with self.assertRaises(FileNotFoundError):
-                    prune.main()
-            path.write_text(json.dumps({"pr": 1, "repository": "owner/repo"}))
-            path.chmod(0o600)
-            for state in ["OPEN", "CLOSED"]:
-                with (
-                    patch.object(sys, "argv", ["prune.py", str(path)]),
-                    patch.object(
-                        prune.subprocess,
-                        "check_output",
-                        return_value=json.dumps({"state": state, "mergeCommit": None}),
-                    ),
-                ):
-                    with self.assertRaises(ValueError):
-                        prune.main()
+
+if __name__ == "__main__":
+    unittest.main()

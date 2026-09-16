@@ -2,7 +2,6 @@
 
 import hashlib
 import io
-import json
 import os
 import subprocess
 import tempfile
@@ -98,31 +97,6 @@ class NativeTests(unittest.TestCase):
                 native.install(ROOT, {"codex"}, Mock(side_effect=RuntimeError("settings conflict")))
             self.assertEqual(run.call_count, 1)
 
-    def test_payload_hash_detects_helpers_and_symlink_changes(self) -> None:
-        """Whole-package verification includes helpers and link text, without following links."""
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory).resolve()
-            (root / "SKILL.md").write_text("skill")
-            helper = root / "helper.sh"
-            helper.write_text("first")
-            link = root / "resources"
-            link.symlink_to("outside")
-            before = native.payload_hash(root)
-            helper.write_text("tampered")
-            self.assertNotEqual(before, native.payload_hash(root))
-            helper.write_text("first")
-            link.unlink()
-            link.symlink_to("elsewhere")
-            self.assertNotEqual(before, native.payload_hash(root))
-
-    def test_native_catalog_matches_lock(self) -> None:
-        """Claude pins the plugin payload itself instead of only its marketplace revision."""
-        lock = native._lock(ROOT)
-        catalog = json.loads(
-            (ROOT / "adapters/claude/marketplace/.claude-plugin/marketplace.json").read_text()
-        )
-        self.assertEqual(catalog["plugins"][0]["source"]["sha"], lock["agent_skills"]["revision"])
-
     def test_registration_snapshot_keeps_original_bytes(self) -> None:
         """Recovery snapshots preserve native registries and settings before mutation."""
         with tempfile.TemporaryDirectory() as directory:
@@ -158,7 +132,7 @@ class NativeTests(unittest.TestCase):
             (root / "dependencies.lock.toml").write_text(
                 (ROOT / "dependencies.lock.toml")
                 .read_text()
-                .replace("d2c37ef6225dd8726cdd369a8030307f48592d26", "main")
+                .replace("be4e44a9fbc5e8df0beaefadbb28bd22ee61cc39", "main")
             )
             with (
                 patch.object(native, "_run") as run,
@@ -175,21 +149,6 @@ class NativeTests(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, "pairing changed"),
         ):
             native.preflight(ROOT, {"codex"})
-
-    def test_payload_hash_uses_portable_path_order(self) -> None:
-        """Native payload hashes order full relative names, independent of Path part ordering."""
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory).resolve()
-            (root / "a").mkdir()
-            (root / "a/file").write_bytes(b"nested")
-            (root / "a.md").write_bytes(b"flat")
-            expected = hashlib.sha256(
-                b"a.md\0"
-                + hashlib.sha256(b"flat").digest()
-                + b"a/file\0"
-                + hashlib.sha256(b"nested").digest()
-            ).hexdigest()
-            self.assertEqual(native.payload_hash(root), expected)
 
     def test_correct_extension_pin_is_skipped(self) -> None:
         """Repeat installation never invokes GitHub's force-upgrade path for an existing pin."""
@@ -237,3 +196,132 @@ class NativeTests(unittest.TestCase):
             with self.assertRaises(subprocess.CalledProcessError):
                 native._run(["native"])
         self.assertEqual(output.getvalue(), message)
+
+    def test_claude_upstream_drift_blocks_new_install(self) -> None:
+        """An unpinned upstream Claude source cannot silently install an unreviewed revision."""
+        revision = native._lock(ROOT)["gh_stack"]["revision"]
+        with (
+            patch.object(native.shutil, "which", return_value="tool"),
+            patch.object(native, "_extension_needed", return_value=False),
+            patch.object(native, "_claude_current", return_value=False),
+            patch.object(native, "_run", side_effect=["help", revision, "0" * 40 + "\tHEAD"]),
+            self.assertRaisesRegex(RuntimeError, "source moved"),
+        ):
+            native.preflight(ROOT, {"claude"})
+
+    def test_existing_claude_package_is_skipped_or_reinstalled(self) -> None:
+        """Exact packages stay installed; stale registrations use one scoped native reinstall pair."""
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.dict(os.environ, {"XDG_DATA_HOME": str(Path(directory).resolve())}),
+            patch.object(native, "_claude_registration", return_value={"version": "older"}),
+        ):
+            with patch.object(native, "_claude_current", return_value=True):
+                calls = native.commands(ROOT, {"claude"})
+                self.assertFalse(
+                    any(
+                        call[:3]
+                        in (["claude", "plugin", "install"], ["claude", "plugin", "uninstall"])
+                        for call in calls
+                    )
+                )
+            with patch.object(native, "_claude_current", return_value=False):
+                calls = native.commands(ROOT, {"claude"})
+                self.assertIn(
+                    [
+                        "claude",
+                        "plugin",
+                        "uninstall",
+                        "agent-skills@addy-agent-skills",
+                        "--scope",
+                        "user",
+                        "--keep-data",
+                    ],
+                    calls,
+                )
+                removal = next(
+                    index
+                    for index, command in enumerate(calls)
+                    if command[:3] == ["claude", "plugin", "uninstall"]
+                )
+                self.assertEqual(
+                    calls[removal + 1],
+                    [
+                        "claude",
+                        "plugin",
+                        "install",
+                        "agent-skills@addy-agent-skills",
+                        "--scope",
+                        "user",
+                    ],
+                )
+            self.assertIn(
+                ["claude", "plugin", "marketplace", "add", "addyosmani/agent-skills"], calls
+            )
+
+    def test_reinstall_failure_runs_guard_and_stops(self) -> None:
+        """A failed second native command exposes intermediate settings changes to recovery."""
+        removal = [
+            "claude",
+            "plugin",
+            "uninstall",
+            "agent-skills@addy-agent-skills",
+            "--scope",
+            "user",
+            "--keep-data",
+        ]
+        addition = [
+            "claude",
+            "plugin",
+            "install",
+            "agent-skills@addy-agent-skills",
+            "--scope",
+            "user",
+        ]
+        guard = Mock()
+        with (
+            patch.object(native, "preflight"),
+            patch.object(native, "_snapshot"),
+            patch.object(native, "commands", return_value=[removal, addition, ["npm", "install"]]),
+            patch.object(
+                native, "_run", side_effect=["removed", subprocess.CalledProcessError(1, addition)]
+            ) as run,
+            patch.object(native, "verify") as verify,
+        ):
+            with self.assertRaises(subprocess.CalledProcessError):
+                native.install(ROOT, {"claude"}, guard)
+            self.assertEqual(run.call_count, 2)
+            guard.assert_called_once_with()
+            verify.assert_not_called()
+
+    def test_reinstall_success_checks_settings_after_pair(self) -> None:
+        """Native uninstall temporarily removes enablement; only the complete pair is guarded."""
+        removal = [
+            "claude",
+            "plugin",
+            "uninstall",
+            "agent-skills@addy-agent-skills",
+            "--scope",
+            "user",
+            "--keep-data",
+        ]
+        addition = [
+            "claude",
+            "plugin",
+            "install",
+            "agent-skills@addy-agent-skills",
+            "--scope",
+            "user",
+        ]
+        sequence = Mock()
+        with (
+            patch.object(native, "preflight"),
+            patch.object(native, "_snapshot"),
+            patch.object(native, "commands", return_value=[removal, addition]),
+            patch.object(native, "_run", side_effect=lambda args: sequence.command(args)),
+            patch.object(native, "verify"),
+        ):
+            native.install(ROOT, {"claude"}, lambda: sequence.guard())
+        self.assertEqual(
+            [entry[0] for entry in sequence.mock_calls], ["command", "command", "guard"]
+        )

@@ -1,5 +1,4 @@
 .claude/specs/
-.harness/work/
 .venv/
 __pycache__/
 *.py[cod]
@@ -9,3 +8,6 @@ __pycache__/
 .coverage
 htmlcov/
 .DS_Store
+generated/
+.agents/skills/reflect
+.claude/skills/reflect

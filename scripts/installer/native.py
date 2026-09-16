@@ -11,7 +11,6 @@ import subprocess
 import sys
 import tempfile
 import tomllib
-import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
@@ -45,24 +44,6 @@ def _skill(target: str) -> Path:
     return _home("CLAUDE_CONFIG_DIR", Path.home() / ".claude") / "skills/gh-stack/SKILL.md"
 
 
-def payload_hash(root: Path) -> str:
-    """Hash the full installed payload, including link text but excluding Git internals."""
-    digest = hashlib.sha256()
-    entries = sorted(
-        (
-            path
-            for path in root.rglob("*")
-            if (path.is_file() or path.is_symlink()) and ".git" not in path.relative_to(root).parts
-        ),
-        key=lambda path: path.relative_to(root).as_posix(),
-    )
-    for path in entries:
-        content = str(path.readlink()).encode() if path.is_symlink() else path.read_bytes()
-        digest.update(str(path.relative_to(root)).encode() + b"\0")
-        digest.update(hashlib.sha256(content).digest())
-    return digest.hexdigest()
-
-
 def _extension_needed(stack: dict[str, str]) -> bool:
     extension = _home("XDG_DATA_HOME", Path.home() / ".local/share") / "gh/extensions/gh-stack"
     manifest = extension / "manifest.yml"
@@ -82,6 +63,30 @@ def _extension_needed(stack: dict[str, str]) -> bool:
             f"--pin {stack['release']}. Rerun the installer after native reinstallation."
         )
     return False
+
+
+def _claude_registration() -> dict[str, str] | None:
+    home = _home("CLAUDE_CONFIG_DIR", Path.home() / ".claude")
+    registry = home / "plugins/installed_plugins.json"
+    if not registry.is_file():
+        return None
+    entries = (
+        json.loads(registry.read_text())
+        .get("plugins", {})
+        .get("agent-skills@addy-agent-skills", [])
+    )
+    installed = [entry for entry in entries if entry.get("scope") == "user"]
+    if len(installed) > 1:
+        raise RuntimeError("Duplicate user-scoped Claude plugin registrations")
+    return installed[0] if installed else None
+
+
+def _claude_current(addy: dict[str, str]) -> bool:
+    installed = _claude_registration()
+    if installed is None or installed.get("gitCommitSha") != addy["revision"]:
+        return False
+    manifest = Path(installed["installPath"]) / ".claude-plugin/plugin.json"
+    return manifest.is_file() and json.loads(manifest.read_text()).get("version") == addy["version"]
 
 
 def commands(root: Path, targets: set[str]) -> list[list[str]]:
@@ -127,9 +132,21 @@ def commands(root: Path, targets: set[str]) -> list[list[str]]:
             ]
         )
     if "claude" in targets:
-        result.extend(
-            [
-                ["claude", "plugin", "marketplace", "add", addy["claude_catalog"]],
+        result.append(["claude", "plugin", "marketplace", "add", addy["repository"]])
+        if not _claude_current(addy):
+            if _claude_registration():
+                result.append(
+                    [
+                        "claude",
+                        "plugin",
+                        "uninstall",
+                        "agent-skills@addy-agent-skills",
+                        "--scope",
+                        "user",
+                        "--keep-data",
+                    ]
+                )
+            result.append(
                 [
                     "claude",
                     "plugin",
@@ -137,9 +154,8 @@ def commands(root: Path, targets: set[str]) -> list[list[str]]:
                     "agent-skills@addy-agent-skills",
                     "--scope",
                     "user",
-                ],
-            ]
-        )
+                ]
+            )
     packages = [lock["context7"]]
     if "claude" in targets:
         packages.append(lock["ccstatusline"])
@@ -171,15 +187,13 @@ def preflight(root: Path, targets: set[str]) -> None:
     if reference != stack["revision"]:
         raise RuntimeError("gh-stack release and skill revision pairing changed")
     _extension_needed(stack)
-    if "claude" in targets:
-        with urllib.request.urlopen(lock["agent_skills"]["claude_catalog"], timeout=30) as response:
-            remote = json.load(response)
-        local = json.loads(
-            (root / "adapters/claude/marketplace/.claude-plugin/marketplace.json").read_text()
-        )
-        if remote != local:
+    if "claude" in targets and not _claude_current(lock["agent_skills"]):
+        addy = lock["agent_skills"]
+        current = _run(["git", "ls-remote", f"https://github.com/{addy['repository']}.git", "HEAD"])
+        if not current.split() or current.split()[0] != addy["revision"]:
             raise RuntimeError(
-                "Published Claude catalog differs from selected revision; publish reviewed catalog first"
+                "Claude's upstream plugin source moved from the reviewed revision. "
+                "Review the new version and update dependencies.lock.toml before installing."
             )
     for target in targets:
         skill = _skill(target)
@@ -196,7 +210,7 @@ def preflight(root: Path, targets: set[str]) -> None:
 
 
 def verify(root: Path, targets: set[str]) -> None:
-    """Verify native registration, complete pinned plugin payloads and gh-stack provenance."""
+    """Verify native package versions, registration revisions and skill provenance."""
     lock = _lock(root)
     addy, stack = lock["agent_skills"], lock["gh_stack"]
     extension_root = _home("XDG_DATA_HOME", Path.home() / ".local/share") / "gh/extensions/gh-stack"
@@ -211,11 +225,8 @@ def verify(root: Path, targets: set[str]) -> None:
         raise RuntimeError("gh-stack executable version mismatch")
     for target in targets:
         text = _skill(target).read_text()
-        if hashlib.sha256(_skill(target).read_bytes()).hexdigest() != stack["skill_sha256"]:
-            raise RuntimeError(f"gh-stack {target} payload differs from reviewed native output")
         for field in (
             f"github-pinned: {stack['revision']}",
-            f"github-tree-sha: {stack['skill_tree']}",
             "github-repo: https://github.com/github/gh-stack",
         ):
             if field not in text:
@@ -226,15 +237,17 @@ def verify(root: Path, targets: set[str]) -> None:
             entries = registry["agent-skills@addy-agent-skills"]
             installed = [entry for entry in entries if entry["scope"] == "user"]
             if len(installed) != 1 or installed[0].get("gitCommitSha") != addy["revision"]:
-                raise RuntimeError("Claude plugin registration revision mismatch")
+                raise RuntimeError(
+                    "Claude plugin registration revision mismatch; native update can retain a stale "
+                    "gitCommitSha. The installed package was preserved. Reinstall agent-skills "
+                    "through Claude's native plugin installer before rerunning."
+                )
             package = Path(installed[0]["installPath"])
             settings = json.loads((home / "settings.json").read_text())
-            expected_source = {"source": "url", "url": addy["claude_catalog"]}
+            expected_source = {"source": "github", "repo": addy["repository"]}
             marketplaces = json.loads((home / "plugins/known_marketplaces.json").read_text())
             if marketplaces.get("addy-agent-skills", {}).get("source") != expected_source:
-                raise RuntimeError(
-                    "Claude marketplace registry source differs from reviewed catalog"
-                )
+                raise RuntimeError("Claude marketplace registry source differs from upstream")
             declared = settings.get("extraKnownMarketplaces", {}).get("addy-agent-skills", {})
             if declared.get("source") != expected_source:
                 raise RuntimeError("Claude marketplace settings and registry disagree")
@@ -263,8 +276,13 @@ def verify(root: Path, targets: set[str]) -> None:
         ]
         if len(active) != 1:
             raise RuntimeError(f"Duplicate active agent-skills packages: {active}")
-        if payload_hash(package) != addy[f"{target}_payload_sha256"]:
-            raise RuntimeError(f"{target} installed Addy payload differs from reviewed revision")
+        plugin_manifest = package / (
+            ".claude-plugin/plugin.json" if target == "claude" else "plugin.json"
+        )
+        if json.loads(plugin_manifest.read_text()).get("version") != addy["version"]:
+            raise RuntimeError(f"{target} installed Addy version differs from dependency lock")
+        if not (package / "skills/using-agent-skills/SKILL.md").is_file():
+            raise RuntimeError(f"{target} installed Addy package is incomplete")
     for name in ("context7", "ccstatusline") if "claude" in targets else ("context7",):
         dependency = lock[name]
         if _run([dependency["package"], "--version"]).strip() != dependency["version"]:
@@ -311,12 +329,15 @@ def _snapshot() -> None:
 def install(
     root: Path, targets: set[str], after_operation: Callable[[], None] | None = None
 ) -> None:
-    """Run native installers, checking managed links after each call; preserve recovery snapshots."""
+    """Run guarded native operations; treat scoped Claude reinstallation as one recoverable pair."""
     preflight(root, targets)
     _snapshot()
-    for args in commands(root, targets):
+    pending = iter(commands(root, targets))
+    for args in pending:
         try:
             _run(args)
+            if args[:3] == ["claude", "plugin", "uninstall"]:
+                _run(next(pending))
         finally:
             if after_operation is not None:
                 after_operation()

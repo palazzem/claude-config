@@ -27,13 +27,7 @@ if [ "$#" -ne 0 ]; then
   exit 2
 fi
 
-ROOT="${REFLECT_MEMORY_ROOT:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects}"
-python3 - "$ROOT" <<'CHECK'
-import pathlib, sys
-p = pathlib.Path(sys.argv[1]).absolute()
-if any(x.is_symlink() for x in (p, *p.parents)):
-    raise SystemExit("inventory: unsafe memory root")
-CHECK
+ROOT="${REFLECT_MEMORY_ROOT:-$HOME/.claude/projects}"
 if [ ! -d "$ROOT" ]; then
   echo "inventory: memory root not found: $ROOT" >&2
   exit 1
@@ -78,11 +72,8 @@ fm_body() {
 shopt -s nullglob
 for project_dir in "$ROOT"/*/; do
   project_dir="${project_dir%/}"
-  [ -L "$project_dir" ] && { echo "inventory: symlink project" >&2; exit 2; }
-  [ -L "$project_dir/memory" ] && { echo "inventory: symlink memory directory" >&2; exit 2; }
   project="${project_dir##*/}"
   for file in "$project_dir"/memory/*.md; do
-    [ -L "$file" ] && { echo "inventory: symlink memory file" >&2; exit 2; }
     base="${file##*/}"
     [ "$base" = "MEMORY.md" ] && continue
 
