@@ -19,7 +19,7 @@ The session opened a PR; shepherd keeps it moving until a human merges or closes
 
 ## Watch
 
-One monitor at a time, re-armed after every fire, until terminal. ``scripts/watch-pr.sh` resolved from this installed skill package` is the only reader: the first read and the armed monitor run the same filter, so they cannot disagree — a hand-written `gh api` read applies a second filter and silently drops or duplicates events. Reading one comment by the `url` an event carries is not a read; polling is.
+One monitor at a time, re-armed after every fire, until terminal. `scripts/watch-pr.sh`, resolved from this installed skill package, is the only reader: the first read and the armed monitor run the same filter, so they cannot disagree — a hand-written `gh api` read applies a second filter and silently drops or duplicates events. Reading one comment by the `url` an event carries is not a read; polling is.
 
 The loop, from Watch entry until a terminal event:
 
@@ -35,7 +35,7 @@ watch-pr.sh baseline <number>              # once per PR: everything standing, t
 watch-pr.sh watch <number> '<watermark>'   # the monitor: the first events past the watermark, then the watermark of that pass
 ```
 
-The watermark is one JSON line, `{"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…}`: the newest `updatedAt` per activity surface, the merge state, the CI state, the PR state. Activity newer than it fires; drift and CI fire when they differ from it, so a state already handled stays quiet until it changes.
+The watermark is one JSON line, `{"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…,"head":…}`: the newest `updatedAt` per activity surface, the merge state, the CI state, the PR state, and head commit SHA. A failed check on a new head fires even when the previous head also failed and no intervening pending state was observed. Activity newer than it fires; drift and CI fire when they differ from it, so a state already handled stays quiet until it changes.
 
 | Event | Meaning | The session |
 |---|---|---|

@@ -28,7 +28,13 @@ class ShepherdTests(unittest.TestCase):
                 state.Journal(path, "owner/repo#1")
             event = {"event": "COMMENT", "url": "url", "at": "2026-01-01"}
             watermark = dict(
-                comment="2026-01-01", review="", reply="", merge="CLEAN", ci="OK", state="OPEN", head="old-head"
+                comment="2026-01-01",
+                review="",
+                reply="",
+                merge="CLEAN",
+                ci="OK",
+                state="OPEN",
+                head="old-head",
             )
             journal.ingest(json.dumps(event) + "\n" + json.dumps(watermark))
             key = next(iter(journal.data["pending"]))
@@ -255,7 +261,13 @@ class ShepherdTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             journal = state.Journal(Path(directory).resolve() / "state.json", "owner/repo#1")
             watermark = dict(
-                comment="", review="", reply="", merge="CLEAN", ci="FAILED", state="OPEN", head="old-head"
+                comment="",
+                review="",
+                reply="",
+                merge="CLEAN",
+                ci="FAILED",
+                state="OPEN",
+                head="old-head",
             )
             output = json.dumps({"event": "CI_FAILED"}) + "\n" + json.dumps(watermark)
             journal.ingest(output)
@@ -332,3 +344,97 @@ class ShepherdTests(unittest.TestCase):
             )
             self.assertEqual(json.loads(output.splitlines()[0]), {"event": "MERGED"})
             self.assertEqual(json.loads(output.splitlines()[1])["state"], "MERGED")
+
+    def test_failure_on_new_head_and_repeated_transition(self) -> None:
+        """A failed new head and pending-to-failed rerun both wake the watcher."""
+        import os
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            binary = root / "bin"
+            binary.mkdir()
+            executable = binary / "gh"
+            executable.write_text("""#!/usr/bin/env bash
+n=0
+[ ! -f "$FIXTURE_ROOT/count" ] || n=$(cat "$FIXTURE_ROOT/count")
+n=$((n + 1))
+printf '%s' "$n" > "$FIXTURE_ROOT/count"
+cat "$FIXTURE_ROOT/response-$n.json"
+""")
+            executable.chmod(0o755)
+            watermark = dict(
+                comment="1970-01-01T00:00:00Z",
+                review="1970-01-01T00:00:00Z",
+                reply="1970-01-01T00:00:00Z",
+                merge="CLEAN",
+                ci="FAILED",
+                state="OPEN",
+                head="head-a",
+            )
+
+            def response(head: str, status: str) -> dict[str, Any]:
+                complete = {
+                    "nodes": [],
+                    "pageInfo": {"hasPreviousPage": False, "hasNextPage": False},
+                }
+                return {
+                    "data": {
+                        "repository": {
+                            "pullRequest": {
+                                "state": "OPEN",
+                                "headRefOid": head,
+                                "mergeStateStatus": "CLEAN",
+                                "comments": complete,
+                                "reviews": complete,
+                                "reviewThreads": complete,
+                                "commits": {
+                                    "nodes": [
+                                        {
+                                            "commit": {
+                                                "statusCheckRollup": {
+                                                    "contexts": {
+                                                        "pageInfo": complete["pageInfo"],
+                                                        "nodes": [
+                                                            {
+                                                                "__typename": "CheckRun",
+                                                                "status": status,
+                                                                "conclusion": "FAILURE",
+                                                            }
+                                                        ],
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                            }
+                        }
+                    }
+                }
+
+            environment = dict(
+                os.environ,
+                PATH=str(binary) + os.pathsep + os.environ["PATH"],
+                FIXTURE_ROOT=str(root),
+                WATCH_PR_INTERVAL="0",
+                WATCH_PR_MAX_FAILURES="1",
+            )
+            for reads in (
+                [response("head-b", "COMPLETED")],
+                [response("head-a", "IN_PROGRESS"), response("head-a", "COMPLETED")],
+            ):
+                (root / "count").unlink(missing_ok=True)
+                for index, payload in enumerate(reads, 1):
+                    (root / f"response-{index}.json").write_text(json.dumps(payload))
+                output = subprocess.check_output(
+                    [str(SCRIPTS / "watch-pr.sh"), "watch", "1", json.dumps(watermark)],
+                    env=environment,
+                    text=True,
+                    timeout=5,
+                    stderr=subprocess.PIPE,
+                )
+                self.assertEqual(json.loads(output.splitlines()[0]), {"event": "CI_FAILED"})
+                self.assertEqual(
+                    json.loads(output.splitlines()[1])["head"],
+                    reads[-1]["data"]["repository"]["pullRequest"]["headRefOid"],
+                )

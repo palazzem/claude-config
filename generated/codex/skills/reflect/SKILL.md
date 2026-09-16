@@ -29,7 +29,7 @@ Every memory gets exactly one verdict:
 | Verdict | Test | Consequence |
 |---|---|---|
 | `promote` | Its "How to apply" is a way of working that reads correctly in a repository that does not exist yet — no project domain, tool, person, path, issue number, or date — and the bar does not already state it. Recurrence across ≥2 projects is evidence, not a requirement. | Numbered candidate with drafted rule text and a target; the user picks. |
-| `redundant` | `rules/engineering.md` or a `rules/*.md` already states the behavior — cite the section. | Enters the prune manifest; no new rule. |
+| `redundant` | `rules/engineering.md` or a `rules/*.md` already states the behavior — cite the section. | Listed as a deletion candidate; enters the prune manifest only if explicitly selected. No new rule. |
 | `conflict` | Contradicts a statement in the bar — cite it. | Flagged with both sides; no action unless the user decides. |
 | `keep` | Everything else: domain facts, project decisions, tooling gotchas, references. | Listed, untouched. |
 
@@ -47,15 +47,15 @@ Print the triage in the session — never posted, committed, or saved:
 ## Promotion candidates
 | # | Drafted rule | Target | Sources | Recommend |
 
-## Redundant (pruned after merge unless you say `keep <n>`)
+## Redundant deletion candidates (untouched unless explicitly selected)
 ## Conflicts (your call)
 ```
 
-Then wait for an explicit selection: candidate numbers, `all`, or `none`. "Sounds good", "whatever you think", and silence are not selections — ask again. `none` with nothing redundant → report-only run, stop. `none` with redundant memories → the PR carries only the count line; the deletions still need the merge gate.
+Then wait for explicit selections of promotion candidates and every proposed memory deletion, including redundant memories: numbered entries, clearly scoped `all`, or `none`. Explain which source memories each selected promotion would delete and obtain explicit selection for those deletions too. "Sounds good", "whatever you think", and silence are not selections — ask again. `none` means no promotion or deletion and ends as a report-only run. A selection containing only redundant deletions produces a count-only PR; those deletions still require merge and deployment gates. Never infer deletion selection from promotion selection alone.
 
 ## Promote
 
-1. After explicit selection, write a private JSON manifest (mode 0600) under `${CLAUDE_CONFIG_DIR:-~/.claude}/reflect/`. Include source paths and SHA-256 hashes, the explicit selection, repository/PR identity and selected deployment targets; see docs/stateful-skills.md. Run `<resolved-skill-package>/scripts/prune.sh --dry-run <manifest>`; a refusal blocks the PR.
+1. After explicit selection, write a private JSON manifest (mode 0600) under `${CLAUDE_CONFIG_DIR:-~/.claude}/reflect/`. Include only explicitly selected deletion source paths and SHA-256 hashes, the explicit selection, repository/PR identity and selected deployment targets; see docs/stateful-skills.md. Run `<resolved-skill-package>/scripts/prune.sh --dry-run <manifest>`; a refusal blocks the PR.
 2. Create an isolated Git worktree using the current host tools; branch `reflect/<YYYY-MM-DD>`.
 3. Per picked candidate: edit the target, one commit `feat(rules): <slug of the rule text>`. Adding a line is the default; rewording an existing one is a question for the user first.
 4. Leak guard: for every manifest basename (without `.md`) and every project slug, `git log -p main..HEAD | grep -F <token>` and a grep of the PR title and body must print nothing. One hit blocks the PR.

@@ -31,6 +31,11 @@ class ReflectTests(unittest.TestCase):
                 "explicit_selection": True,
                 "entries": [{"path": "project/memory/lesson.md", "sha256": prune.digest(memory)}],
             }
+            manifest["explicit_selection"] = False
+            with self.assertRaises(ValueError):
+                prune.prune(root, manifest, False)
+            self.assertTrue(memory.exists())
+            manifest["explicit_selection"] = True
             prune.prune(root, manifest, True)
             self.assertTrue(memory.exists())
             memory.write_text("changed")
