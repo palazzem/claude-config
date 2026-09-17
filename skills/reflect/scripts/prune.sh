@@ -37,6 +37,19 @@ if [ ! -d "$ROOT" ]; then
   echo "prune: memory root not found: $ROOT" >&2
   exit 1
 fi
+ancestor="$ROOT"
+case "$ancestor" in /*) ;; *) ancestor="$PWD/$ancestor" ;; esac
+while [ "$ancestor" != / ] && [ "${ancestor%/}" != "$ancestor" ]; do
+  ancestor="${ancestor%/}"
+done
+while [ "$ancestor" != / ]; do
+  if [ -L "$ancestor" ]; then
+    echo "prune: unsafe symlink in memory root: $ancestor" >&2
+    exit 2
+  fi
+  ancestor="${ancestor%/*}"
+  [ -n "$ancestor" ] || ancestor=/
+done
 ROOT="$(cd "$ROOT" && pwd -P)"
 
 TMP=""
@@ -72,6 +85,17 @@ EOF
   if [ "$file" = "MEMORY.md" ]; then
     reject "index file is never pruned" "$line"; continue
   fi
+  unsafe=false
+  for component in "$ROOT/$slug" "$ROOT/$slug/memory" "$ROOT/$rel" "$ROOT/$slug/memory/MEMORY.md"; do
+    if [ -L "$component" ]; then
+      reject "unsafe symlink" "$component"
+      unsafe=true
+    elif [ -e "$component" ] && [ "$component" != "$ROOT/$slug" ] && [ "$component" != "$ROOT/$slug/memory" ] && [ ! -f "$component" ]; then
+      reject "not a regular memory file" "$component"
+      unsafe=true
+    fi
+  done
+  [ "$unsafe" = true ] && continue
   entries+=("$rel")
 done
 

@@ -1,0 +1,3 @@
+name = "docs-researcher"
+description = "Research current library and native-client documentation with citations or explicit gaps; never modify project code."
+sandbox_mode = "read-only"

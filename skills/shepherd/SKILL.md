@@ -8,7 +8,7 @@ argument-hint: "[--stack]"
 
 ## Overview
 
-The session opened a PR; shepherd keeps it moving until a human merges or closes it. One watcher polls the PR and wakes the session on anything that needs a response; the session — the author of the code — handles it, pushes, and re-arms. The current branch names the PR: its number is `gh pr view --json number -q .number` (with `--stack`, see Stacked PRs). Publishing, approving, merging, and closing are the human's.
+The session opened a PR; shepherd keeps it moving until a human merges or closes it. One watcher polls the PR and wakes the session on anything that needs a response; the session — the author of the code — handles it, pushes, and re-arms. The current branch names the PR: its number is `gh pr view --json number -q .number` (with `--stack`, see Stacked PRs). The publishing workflow may open or ready the PR when authorized; shepherd maintains an already published PR. Approving, merging, and closing are the human's.
 
 ## When to Use
 

@@ -17,7 +17,7 @@ skills/
 
 `SKILL.md` is the only required file. Add `scripts/` or `references/` only when the skill actually needs them, and omit them entirely for simpler skills.
 
-A skill is installed by placing `skills/<name>/` under `~/.claude/skills/`, as a copy or a symlink. At runtime a skill can reach only what lives inside its own directory — never a sibling skill, never a repository-root file. See [Self-Contained Skills](#self-contained-skills).
+A skill is installed by placing `skills/<name>/` under `~/.claude/skills/` for Claude or `~/.agents/skills/` for Codex, as a copy or a symlink. At runtime a skill can reach only what lives inside its own directory — never a sibling skill, never a repository-root file. See [Self-Contained Skills](#self-contained-skills).
 
 ## SKILL.md Format
 
@@ -115,7 +115,7 @@ If a skill does not need runnable helpers, do not create an empty `scripts/` dir
 
 A skill is a self-contained directory, and this repository keeps it that way: nothing a skill reads or runs lives outside `skills/<name>/`. There is no repository-root `references/` for material shared across skills.
 
-The reason is the install model. A skill reaches the harness as its own directory under `~/.claude/skills/`; a repository-root sibling does not travel with it, and a link to one resolves to nothing at runtime.
+The reason is the install model. A skill reaches the harness as its own directory under `~/.claude/skills/` or `~/.agents/skills/`; a repository-root sibling does not travel with it, and a link to one resolves to nothing at runtime.
 
 When two skills need the same material, one skill owns it and the other refers to that skill by name (see [Cross-Skill References](#cross-skill-references)). Do not copy the material into both — copies drift.
 
@@ -180,3 +180,13 @@ Recommended:
 - The standard section flow shown above
 - Equivalent headings such as `How It Works`, `Core Process`, or `Workflow` when they read more naturally for the skill
 - Supporting files only when they keep the main `SKILL.md` focused
+
+## Native Conversion
+
+Keep the skill's process, name, trigger conditions, rationalizations, red flags, and verification intact when adapting it to another client. Convert the client-specific entry points and metadata; do not replace the workflow with a description of the installation process. The `name` and `description` contract above is shared with agent-skills.
+
+Claude's `${CLAUDE_SKILL_DIR}` resolves the installed package. In Codex, resolve helpers relative to the `SKILL.md` path supplied by skill discovery; do not assume that the current project contains the skill's source. Native packages must carry every helper and supporting file the original skill needs.
+
+For an explicit-only skill, retain Claude's `disable-model-invocation: true` and generate Codex's `agents/openai.yaml` with `policy.allow_implicit_invocation: false`. Keep repository-scoped skills such as `reflect` in the repository's `.claude/skills/` and `.agents/skills/` discovery paths rather than installing them as personal skills.
+
+Native outputs are disposable renderer results in an ignored directory. Edit the skill source, not the rendered package; preserve the same self-contained package structure in both clients.

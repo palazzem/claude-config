@@ -1,26 +1,13 @@
-# Ignore everything
-*
-!.gitignore
-
-# Track these
-!CLAUDE.md
-!LICENSE
-!README.md
-!settings.json
-!agents/
-!agents/**
-!docs/
-!docs/**
-!hooks/
-!hooks/**
-!rules/
-!rules/**
-!skills/
-!skills/**
-!statusline/
-!statusline/**
-
-# Repo-local skills
-!.claude/
-!.claude/skills/
-!.claude/skills/**
+.claude/specs/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.DS_Store
+generated/
+.agents/skills/reflect
+.claude/skills/reflect

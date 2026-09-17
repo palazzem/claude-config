@@ -1,0 +1,13 @@
+# Native Codex policy; model selection inherits the client's account default.
+# https://learn.chatgpt.com/docs/config-file/config-basic
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+
+[marketplaces.agent-skills]
+source_type = "git"
+source = "https://github.com/addyosmani/agent-skills.git"
+ref = "{agent_skills_revision}"
+
+[plugins."agent-skills@agent-skills"]
+enabled = true

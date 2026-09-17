@@ -1,6 +1,6 @@
 ---
 name: reflect
-description: Triages every project's memories under ~/.claude/projects and promotes global lessons into CLAUDE.md or rules/ through a PR, pruning the redundant memories after a human merges it. Use from the ~/.claude checkout to consolidate memories, or with a PR number to resume a run. Not for editing a single memory and not for any other repository.
+description: Triages every project's memories under ~/.claude/projects and promotes global lessons into CLAUDE.md or rules/ through a PR, pruning the redundant memories after a human merges it. Use from the harness checkout to consolidate memories, or with a PR number to resume a run. Not for editing a single memory and not for any other repository.
 argument-hint: [pr-number]
 disable-model-invocation: true
 ---
@@ -13,13 +13,13 @@ Memories accumulate per project; some of them state a way of working that belong
 
 ## When to Use
 
-- From the `~/.claude` checkout, on `main`, clean, with `gh auth status` succeeding — a housekeeping pass, whenever the user asks.
+- From the harness checkout, on `main`, clean, with `gh auth status` succeeding — a housekeeping pass, whenever the user asks.
 - With a PR number (`/reflect 42`) → Resume.
 - Not for editing one memory (edit the file), not for any other repository, never on the model's own initiative.
 
 ## Inventory
 
-1. Preconditions: cwd is the `~/.claude` checkout on `main`; `git status --porcelain` is empty; `gh auth status` succeeds. Any failure → stop and report.
+1. Preconditions: cwd is a harness Git checkout on `main` (verify `git rev-parse --show-toplevel` and that `git remote get-url origin` identifies `palazzem/harness` or its previous name `palazzem/claude-config`); `git status --porcelain` is empty; `gh auth status` succeeds. Any failure → stop and report.
 2. `${CLAUDE_SKILL_DIR}/scripts/inventory.sh` — the only memory reader. One JSON object per memory file: `project`, `project_dir`, `file`, `name`, `description`, `type`, `modified`, `body`. `MEMORY.md` files are indexes and never appear. A `type` of `unknown` means no frontmatter; triage it from the body.
 3. Read the bar: `CLAUDE.md` and every `rules/*.md`. These decide `redundant` and `conflict`.
 
@@ -78,7 +78,7 @@ Nothing derived from a memory — slug, filename, description, body, project nam
 
 Runs after `shepherd` reaches Terminal — after its summary, its cleanup, and its sync of the main checkout.
 
-- `MERGED`: confirm the rule is live — `git -C ~/.claude fetch --quiet && git -C ~/.claude merge-base --is-ancestor origin/main HEAD` — then `${CLAUDE_SKILL_DIR}/scripts/prune.sh < ~/.claude/reflect/<YYYY-MM-DD>.manifest`, print its JSON summary, and `rm` the manifest. A failed sync check → report, prune nothing, tell the user to run `/reflect <number>` once the checkout is synced. A missing manifest → report and stop; never rebuild one from the triage, the session, or the PR.
+- `MERGED`: confirm the rule is live — `git -C <harness-main-checkout> fetch --quiet && git -C <harness-main-checkout> merge-base --is-ancestor origin/main HEAD` — then `${CLAUDE_SKILL_DIR}/scripts/prune.sh < ~/.claude/reflect/<YYYY-MM-DD>.manifest`, print its JSON summary, and `rm` the manifest. A failed sync check → report, prune nothing, tell the user to run `/reflect <number>` once the checkout is synced. A missing manifest → report and stop; never rebuild one from the triage, the session, or the PR.
 - `CLOSED`: nothing under `~/.claude/projects/` changes; `rm` the manifest. Report.
 
 ## Resume

@@ -20,14 +20,15 @@
 #   {"event":"MERGED"} | {"event":"CLOSED"}                           the PR reached a terminal; no other event prints for that pass
 #   {"event":"BEHIND"} | {"event":"DIRTY"}                            merge readiness drifted (base moved / conflicts)
 #   {"event":"CI_FAILED"}                                             a check on the PR head failed or was cancelled
-#   {"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…}    the watermark: newest updatedAt per activity
-#                                                                     surface, merge state, CI state, PR state
+#   {"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…,"head":…,"seen":…}    the watermark: newest updatedAt per activity
+#                                                                     surface, merge state, CI state, PR state, head SHA
 #
 # Never fires: marked bodies (first line <!-- claude -->, leading whitespace
 # ignored); body-less COMMENTED reviews — GitHub wraps every API thread reply in
 # one under our own account; pending reviews and their thread comments; UNKNOWN
 # merge state; pending or passing checks. Activity is compared on updatedAt, so
-# an edited comment fires again. BEHIND is read from the base-to-head comparison
+# exact boundary versions distinguish same-second arrivals and edits.
+# An edited comment fires again. BEHIND is read from the base-to-head comparison
 # (refs/pull/<number>/head against the base branch), because mergeStateStatus
 # reports it only when the base branch rule requires up-to-date heads. baseline
 # reads activity from the epoch and drift and CI from current state; watch fires
@@ -69,7 +70,7 @@ pr="${2:-}"
 
 fetch() {
   gh api graphql -F owner='{owner}' -F name='{repo}' -F pr="$pr" -F head="refs/pull/$pr/head" -f query="$(cat "$DIR/query.graphql")" \
-    | jq -e '.data.repository.pullRequest | select(. != null)'
+    | jq -e 'if (.errors | length) > 0 then error("GraphQL errors") else .data.repository.pullRequest | select(. != null) end' | jq -e -f "$DIR/jq/complete.jq"
 }
 filter() {
   jq -L "$DIR/jq" --arg epoch "$EPOCH" --arg marker "$MARKER" "$@"
@@ -81,11 +82,11 @@ event() { printf '{"event":"%s"}\n' "$1"; }
 # and b_reply. Leaves the event lines in out, the pass watermark in wm, and the
 # observed states in last_merge/last_ci. Fails when the response did not parse.
 pass() {
-  local parsed events state merge ci
+  local parsed events state merge ci head
   parsed=$(filter -r -f "$DIR/jq/pass.jq" <<<"$1") || return 1
-  events=$(filter -c --arg comment "$b_comment" --arg review "$b_review" --arg reply "$b_reply" -f "$DIR/jq/events.jq" <<<"$1") || return 1
+  events=$(filter -c --arg comment "$b_comment" --arg review "$b_review" --arg reply "$b_reply" --argjson seen "$seen" -f "$DIR/jq/events.jq" <<<"$1") || return 1
   wm=$(filter -c -f "$DIR/jq/baseline.jq" <<<"$1") || return 1
-  read -r state merge ci <<<"$parsed"
+  read -r state merge ci head <<<"$parsed"
   out=""
   if [[ "$state" == "MERGED" || "$state" == "CLOSED" ]]; then
     out="$(event "$state")"$'\n'
@@ -93,7 +94,7 @@ pass() {
     if [[ "$merge" == "BEHIND" || "$merge" == "DIRTY" ]] && [[ "$merge" != "$last_merge" ]]; then
       out+="$(event "$merge")"$'\n'
     fi
-    if [[ "$ci" == "FAILED" && "$ci" != "$last_ci" ]]; then
+    if [[ "$ci" == "FAILED" ]] && [[ "$ci" != "$last_ci" || "$head" != "$last_head" ]]; then
       out+="$(event CI_FAILED)"$'\n'
     fi
     if [[ -n "$events" ]]; then
@@ -102,12 +103,14 @@ pass() {
   fi
   last_merge=$merge
   last_ci=$ci
+  last_head=$head
 }
 
 case "$cmd" in
   baseline)
     [[ $# -eq 2 ]] || usage
-    b_comment=$EPOCH; b_review=$EPOCH; b_reply=$EPOCH; last_merge=""; last_ci=""
+    seen='{}'
+    b_comment=$EPOCH; b_review=$EPOCH; b_reply=$EPOCH; last_merge=""; last_ci=""; last_head=""
     if ! { p=$(fetch) && pass "$p"; }; then
       echo "watch-pr: read failed; run it again" >&2
       exit 1
@@ -124,11 +127,15 @@ case "$cmd" in
     ;;
 esac
 
-parsed=$(jq -er '"\(.comment|strings) \(.review|strings) \(.reply|strings) \(.merge|strings) \(.ci|strings)"' <<<"$3" 2>/dev/null) || {
+parsed=$(jq -er '"\(.comment|strings) \(.review|strings) \(.reply|strings) \(.merge|strings) \(.ci|strings) \(.head // "UNKNOWN" | strings)"' <<<"$3" 2>/dev/null) || {
   echo "watch-pr: malformed watermark: $3" >&2
   exit 2
 }
-read -r b_comment b_review b_reply last_merge last_ci <<<"$parsed"
+read -r b_comment b_review b_reply last_merge last_ci last_head <<<"$parsed"
+seen=$(jq -ce '.seen // {} | select(type == "object")' <<<"$3") || {
+  echo "watch-pr: malformed boundary versions" >&2
+  exit 2
+}
 echo "watch-pr: pr=$pr watermark=$3" >&2
 
 failures=0

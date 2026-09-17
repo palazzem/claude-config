@@ -1,0 +1,19 @@
+# Reviewed native dependency versions and source revisions.
+[agent_skills]
+repository = "addyosmani/agent-skills"
+revision = "be4e44a9fbc5e8df0beaefadbb28bd22ee61cc39"
+version = "0.6.9"
+
+[gh_stack]
+repository = "github/gh-stack"
+release = "v0.1.0"
+revision = "a1b4a3d4d0bcde9ec3a78ab99b2d63af121857a9"
+legacy_skill_sha256 = "d02c3b73baacaded037f7c1dac95b45987f91facbce402dc252b652636991402"
+
+[context7]
+package = "ctx7"
+version = "0.5.11"
+
+[ccstatusline]
+package = "ccstatusline"
+version = "2.2.27"
