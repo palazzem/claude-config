@@ -36,7 +36,7 @@ Every memory gets exactly one verdict:
 
 - Doubt between `promote` and `keep` resolves to `keep`, with the doubt stated; the user overrides by number.
 - Memories from different projects stating the same lesson are **one** candidate listing every source file.
-- Target: `CLAUDE.md` when the rule is a convention or quality-bar statement that fits an existing section or warrants a new one; `rules/<topic>.md` (the `context7.md` shape: `# Rule: <Title>` and one paragraph) when it governs one tool or workflow. Recommend; the user may override.
+- Target: `CLAUDE.md` when the rule is a convention or quality-bar statement that fits an existing section or warrants a new one; `rules/<topic>.md` (the `gh-stack.md` shape: `# Rule: <Title>` and a paragraph or two) when it governs one tool or workflow. Recommend; the user may override.
 - Drafted rule text: one imperative sentence in `CLAUDE.md`'s voice. No prose paragraphs.
 
 Print the triage in the session — never posted, committed, or saved:

@@ -1,3 +1,0 @@
-# Rule: Search Documentation
-
-Questions about a library, framework, SDK, API, CLI tool, or cloud service — API syntax, configuration options, version migration, setup instructions, library-specific debugging — are answered from current documentation, never from memory, even for well-known technologies and even when you think you know the answer. Delegate every such lookup to the `docs-researcher` agent (Agent tool, `subagent_type: docs-researcher`) with the complete question as the prompt: library, version if known, and exactly what to look up. Do not run `ctx7` yourself. Answer from the returned report, keeping its UNVERIFIED flags; if the report lists ambiguity candidates, ask the user which one before delegating again.
