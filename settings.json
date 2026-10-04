@@ -40,6 +40,8 @@
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
   "askUserQuestionTimeout": "never",
+  "dialogExpiry": "never",
+  "timeFormat": "12-hour",
   "skipWorkflowUsageWarning": true,
   "verbose": false,
   "switchModelsOnFlag": false,
