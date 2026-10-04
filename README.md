@@ -69,7 +69,7 @@ Development lifecycle commands come from agent-skills
 | Ship to production | `/ship` | Faster is safer |
 | Consolidate memories into rules | `/reflect` | A lesson lives once, globally |
 
-Skills also activate on their own: a library question routes to `docs-researcher`, a chain of dependent branches triggers `gh-stack`, a freshly opened PR triggers `shepherd`.
+Skills also activate on their own: a build task that touches a library is checked against current docs through `docs-researcher`, a chain of dependent branches triggers `gh-stack`, a freshly opened PR triggers `shepherd`.
 
 ## How It Fits Together
 
@@ -78,7 +78,7 @@ Skills also activate on their own: a library question routes to `docs-researcher
 | Process | agent-skills plugin, overridden by `rules/agent-skills.md` | How work moves — spec, plan, build, test, review, ship — and which reviewer persona looks at it |
 | Bar | `CLAUDE.md` | What "good" means |
 | PR lifecycle | `skills/shepherd`, `skills/gh-stack`, `rules/gh-stack.md` | What happens after the PR exists |
-| Knowledge | `agents/docs-researcher.md`, `rules/context7.md` | Where facts about libraries, frameworks, and tools come from |
+| Knowledge | `source-driven-development` from the plugin, `agents/docs-researcher.md` | Where facts about libraries, frameworks, and tools come from |
 | Memory | `.claude/skills/reflect` | Which project lessons become global rules |
 | Config | `settings.json`, `statusline/` | Model, effort, permissions, plugin registration, what the status line shows |
 
@@ -89,11 +89,10 @@ Skills also activate on their own: a library question routes to `docs-researcher
 ├── CLAUDE.md                          # The bar — user-level instructions, loaded into every session
 ├── settings.json                      # Model, effort, permissions, plugin registration, status line
 ├── rules/
-│   ├── agent-skills.md                # agent-skills overrides — spec, plan, todo under .claude/specs/<slug>/
-│   ├── context7.md                    # Library questions go to docs-researcher, never memory
+│   ├── agent-skills.md                # agent-skills overrides — artifacts under .claude/specs/<slug>/, docs lookups via docs-researcher
 │   └── gh-stack.md                    # Stack PR titles and bodies come from the plan, never gh pr edit
 ├── agents/
-│   └── docs-researcher.md             # Context7-backed documentation lookups, source-cited
+│   └── docs-researcher.md             # One documentation question per call, Context7-backed, quoted and cited
 ├── skills/
 │   ├── shepherd/
 │   │   ├── SKILL.md                   # Watch an open PR until a human merges or closes it

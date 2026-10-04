@@ -19,6 +19,14 @@ The check for an existing incomplete plan looks only at `.claude/specs/<slug>/`.
 - The clean-baseline check treats uncommitted files under `.claude/specs/<slug>/` as the expected planning artifacts; anything else uncommitted stops the run.
 - The plan is not committed before the first task: artifacts never enter a PR.
 
+## `source-driven-development`
+
+- `/build` and `/build auto` invoke it alongside `incremental-implementation` and `test-driven-development`; its own "When NOT to use" decides whether a task needs a lookup.
+- Its fetch step runs in the `docs-researcher` agent, never inline: one agent per question, briefed with the library, the version from the dependency file, the question, and what is out of scope.
+- One lookup per library, version, and question per session; reuse the earlier report.
+- Citations go in the conversation and the PR body, never in code comments.
+- A research request from the user uses the same agent and brief, without the skill.
+
 ## Other slugs
 
 `.claude/specs/<other-slug>/` is another agent's work in flight. Never read, overwrite, or delete it, and never count it when checking for an existing plan.
