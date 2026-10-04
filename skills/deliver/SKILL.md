@@ -28,7 +28,7 @@ spec → plan → APPROVAL → layer 1 → layer 2 → … → gate → publish 
 2. **Plan.** With no plan, invoke `agent-skills:planning-and-task-breakdown`. The plan is cut into layers, each naming its branch, its conventional-commit title, its concern, its tasks, and a checkpoint.
 3. **Approval.** Present every layer and wait for an unambiguous yes; a hedge is not a yes. This is the only approval the run asks for.
 4. **Layers.** Bottom first, one at a time, each through the Layer Loop to its end before the next opens.
-5. **Gate.** On the top layer, invoke `agent-skills:ship` over the whole change, `<trunk>...HEAD`. `GO` with no recommended fix: publish. Every blocker and every recommended fix is fixed on the layer that owns the code (see Fixing a Lower Layer), and the gate runs again. What still stands after two gate runs goes to the user.
+5. **Gate.** On the top layer, invoke `agent-skills:ship` over the whole change, `<trunk>...HEAD`. `GO` with no recommended fix: publish. Otherwise every blocker and every recommended fix is fixed on the layer it belongs to (see Fixing a Lower Layer), and the gate runs once more. That second run decides: `GO` publishes, with any recommended fix it still lists reported to the user alongside the PRs; `NO-GO` goes to the user.
 6. **Publish.** Never a draft, and never `gh pr edit` afterwards: titles come from the plan, bodies from `.claude/specs/<slug>/pr/<branch>.md`.
    - One layer: `git push -u origin HEAD`, then `gh pr create --title "<title>" --body-file <file>`.
    - A stack: `gh stack push`; per layer, bottom-up, `gh pr create --head <branch> --base <base> --title "<title>" --body-file <file>`; `gh stack link <bottom> … <top>`; verify with `gh stack view --json`.
@@ -41,7 +41,7 @@ spec → plan → APPROVAL → layer 1 → layer 2 → … → gate → publish 
 **Build and simplify.** Who builds depends on the plan:
 
 - *One layer* — the session builds it. For each unticked task, invoke `agent-skills:incremental-implementation` with `agent-skills:test-driven-development`, and `agent-skills:source-driven-development` where a library is involved, one commit per task, applying the split check of the Layers rule at every task boundary. Then invoke `agent-skills:code-simplification` over `git diff <base>...HEAD` and commit the result apart. Then write the PR body.
-- *A stack* — one `layer-builder` agent per layer, never two running at once. Brief it with the spec, plan, and task list paths, the layer's branch, title, concern, and tasks, `<base>`, the PR body path, and any `docs-researcher` report already in hand. The session reads its report, not its diff.
+- *A stack* — one `layer-builder` agent per layer, never two running at once. Brief it with the spec, plan, and task list paths, the layer's branch, title, concern, and tasks, `<base>`, the PR body path, and any `docs-researcher` report already in hand. The session reads its report, not its diff. Every later change to the layer goes back to the same builder, resumed; one that cannot be resumed is replaced by a fresh builder with the same brief, which skips the tasks already ticked.
 
 **Review.** One `agent-skills:code-reviewer` agent per layer, in a fresh context. Give it the spec path, the layer's concern and tasks, and the range `<base>...<branch>` — the code, never the builder's account of it. Ask it also to measure the range and to report a layer that is past the size the Layers rule names, or that holds a second concern.
 
@@ -50,7 +50,7 @@ spec → plan → APPROVAL → layer 1 → layer 2 → … → gate → publish 
 | The review holds | Then |
 |---|---|
 | A Critical or Required finding | The layer's author — the same `layer-builder`, resumed with the findings, or the session — fixes it on the layer's branch, and the reviewer is resumed on the fix commits. |
-| The layer is too large, or holds two concerns | Stop for the user: an oversized PR is an exception. |
+| The layer is too large, or holds two concerns | Stop for the user: an oversized PR is an exception. Granted, the layer goes on through this table; refused, it is split as the user directs. |
 | Optional or Nit findings only, or nothing | The layer is done: tick its checkpoint in the plan, then open the next one. |
 
 A finding the author disputes, or one still standing after two fix rounds, goes to the user.
@@ -69,8 +69,6 @@ A single layer the session is building splits the same way: `gh stack init <bran
 | A change that belongs to a lower layer | Fix the lower layer (see Fixing a Lower Layer), return to the builder's branch, and resume it. |
 | Anything else | Stop and put its question to the user; resume the builder with the answer. |
 
-A builder that cannot be resumed is replaced by a fresh one with the same brief: it skips the tasks already ticked.
-
 ## Fixing a Lower Layer
 
 A fix belongs to the layer that owns the code, never to the top of the stack:
@@ -82,12 +80,14 @@ gh stack rebase --upstack --no-trunk
 gh stack up
 ```
 
-Repeat `gh stack up` to the top, running the full test suite on every layer on the way: each layer passes on its own, not only the top. A conflict in the rebase is resolved with the `gh-stack` skill's conflict workflow. A fix made for the gate is reviewed by the next gate run.
+Repeat `gh stack up` to the top, running the full test suite on every layer on the way: each layer passes on its own, not only the top. The session resolves a conflict in the rebase with the `gh-stack` skill's conflict workflow.
+
+No fix goes unreviewed: the layer's reviewer is resumed on the fix commits before anything builds on them, and a fix made for the gate is reviewed by the gate's next run.
 
 ## Resuming
 
 - A plan with nothing ticked was never approved: present it.
-- Otherwise continue, without asking again, at the first layer whose checkpoint is unticked: at Build while it has an unticked task, at Simplify once it has none.
+- Otherwise continue, without asking again, at the first layer whose checkpoint is unticked: build its unticked tasks, simplify, review. In a stack that is a fresh `layer-builder` with the layer's brief.
 - Every checkpoint ticked and no PR: Gate.
 - A PR on the branch: `shepherd`, or `shepherd --stack` for a stack.
 
@@ -109,9 +109,9 @@ Repeat `gh stack up` to the top, running the full test suite on every layer on t
 - A layer opened while the checkpoint of the one below it is unticked.
 - Two `layer-builder` agents running at once, or one briefed with more than one layer.
 - A reviewer briefed with the builder's report or reasoning.
-- The session committing on a layer that a `layer-builder` built.
+- The session fixing a finding itself on a layer that a `layer-builder` built.
 - A commit on a layer after its last review that neither the reviewer nor the gate saw.
-- `gh pr create` before the gate says `GO`; `--draft`; `gh stack submit` for a layer of more than one commit; `gh pr edit` to repair a title or a body.
+- `gh pr create` before the gate says `GO` or the user accepts its blockers; `--draft`; `gh stack submit` for a layer of more than one commit; `gh pr edit` to repair a title or a body.
 - The PRs reported to the user before `shepherd`'s monitor is armed.
 
 ## Verification
@@ -120,7 +120,7 @@ Before reporting the run:
 
 - [ ] Every layer in the plan has a branch, a ticked checkpoint, and a PR body file, and `git log --oneline <base>..<branch>` shows only its tasks, its simplification, and its fixes.
 - [ ] Every layer's review ended with no Critical or Required finding, and covered its fix commits.
-- [ ] The gate returned `GO` with no recommended fix on the final state of the top layer, or the user accepted what stood.
+- [ ] The gate's last run returned `GO` on the final state of the top layer, or the user accepted its blockers; recommended fixes it still listed are in the report to the user.
 - [ ] After the last lower-layer fix, the full test suite passed on every layer from that one to the top.
 - [ ] Every PR is open and not a draft, with the plan's title and the body file's text; for a stack, `gh stack view --json` lists every layer with its PR.
 - [ ] Nothing under `.claude/specs/<slug>/` was staged or committed.
