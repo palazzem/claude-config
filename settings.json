@@ -48,5 +48,6 @@
   "crossSessionInbound": "refuse",
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "useAutoModeDuringPlan": true
+  "useAutoModeDuringPlan": true,
+  "syncClaudeAiSkills": false
 }
