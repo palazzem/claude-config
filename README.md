@@ -57,7 +57,7 @@ Development lifecycle commands come from agent-skills
 | What you're doing | Command | Key principle |
 | --- | --- | --- |
 | Define what to build | `/spec` | Spec before code |
-| Plan how to build it | `/plan` | Small, atomic tasks |
+| Plan how to build it | `/plan` | One PR per concern, atomic tasks |
 | Build incrementally | `/build` | One slice at a time |
 | Split a change into dependent PRs | `/gh-stack` | One concern per PR, reviewed in order |
 | Carry the open PR to merge | `/shepherd` | The PR is done when a human merges it |
@@ -89,8 +89,8 @@ Skills also activate on their own: a build task that touches a library is checke
 ├── CLAUDE.md                          # The bar — user-level instructions, loaded into every session
 ├── settings.json                      # Model, effort, permissions, plugin registration, status line
 ├── rules/
-│   ├── agent-skills.md                # agent-skills overrides — artifacts under .claude/specs/<slug>/, docs lookups via docs-researcher
-│   └── gh-stack.md                    # Stack PR titles and bodies come from the plan, never gh pr edit
+│   ├── agent-skills.md                # agent-skills overrides — artifacts under .claude/specs/<slug>/, plans cut into PR layers, docs lookups via docs-researcher
+│   └── gh-stack.md                    # Stack PR titles and bodies are decided before shipping, never gh pr edit
 ├── agents/
 │   └── docs-researcher.md             # One documentation question per call, Context7-backed, quoted and cited
 ├── skills/

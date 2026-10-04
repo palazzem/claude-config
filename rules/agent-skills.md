@@ -9,9 +9,28 @@ The `agent-skills` plugin supplies the process; `CLAUDE.md` supplies the bar. Th
 - Spec → `.claude/specs/<slug>/spec.md`. Replaces `SPEC.md` at the repository root wherever `/spec`, `/plan`, `/build`, or `/build auto` names it. Module specs from a capability map sit alongside it as `.claude/specs/<slug>/spec-<module>.md`.
 - Plan → `.claude/specs/<slug>/plan.md`. Replaces `tasks/plan.md`.
 - Task list → `.claude/specs/<slug>/todo.md`. Replaces `tasks/todo.md` as the task list target.
+- PR body → `.claude/specs/<slug>/pr/<branch>.md`, one per layer, written when the layer is built.
 - `tasks/` is never created or written by these commands; in `~/.claude` it is Claude Code's own state directory.
 
 The check for an existing incomplete plan looks only at `.claude/specs/<slug>/`.
+
+## Layers
+
+A plan is cut into layers, and a layer is one PR. Layers replace the phases in the plan template of `planning-and-task-breakdown`: tasks nest under the layer that ships them, and the checkpoint after a layer is its review, ticked once the review leaves nothing that blocks a merge.
+
+A layer holds one concern:
+
+- One conventional-commit subject names it without an "and".
+- The build and the tests pass with only the layers below it merged.
+- A preparatory refactor, a mechanical change — rename, move, formatting, dependency bump — and a behaviour change never share a layer.
+- Each independently testable slice is its own layer. When two cuts are plausible, take the finer one.
+
+Each layer in the plan names its branch, its conventional-commit title, its concern in one sentence, and the layer it builds on. It carries no size estimate: the size of a change is not knowable before the code exists, so the planner cuts by concern and the builder cuts again.
+
+- A plan with more than one layer always ships as a `gh-stack` stack, bottom first in dependency order — never one branch carrying several concerns. A single layer ships from the worktree's own branch.
+- `/build` and `/build auto` commit each task on its layer's branch. In a stack, `gh stack init <branch>` opens the bottom layer and `gh stack add <branch>` each layer above it, before that layer's first task.
+- Whoever builds a layer measures it at every task boundary with `git diff --stat <base>...HEAD`, `<base>` being the branch the layer builds on, and ends the layer there when the next task is a second concern, or when the layer has passed about 300 changed lines — generated files and lockfiles aside — with tasks still to build. The tasks left become a new layer directly above, and the plan is updated to match.
+- A review that still finds a layer too large, or holding two concerns, goes to the user: an oversized PR is an exception.
 
 ## `/build auto`
 
