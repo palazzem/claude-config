@@ -16,7 +16,7 @@ The check for an existing incomplete plan looks only at `.claude/specs/<slug>/`.
 
 ## Layers
 
-A plan is cut into layers, and a layer is one PR. Layers replace the phases in the plan template of `planning-and-task-breakdown`: tasks nest under the layer that ships them, and the checkpoint after a layer is its review.
+A plan is cut into layers, and a layer is one PR. Layers replace the phases in the plan template of `planning-and-task-breakdown`: tasks nest under the layer that ships them, and the checkpoint after a layer is its review, ticked once the review leaves nothing that blocks a merge.
 
 A layer holds one concern:
 
@@ -29,7 +29,7 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 - A plan with more than one layer always ships as a `gh-stack` stack, bottom first in dependency order — never one branch carrying several concerns. A single layer ships from the worktree's own branch.
 - `/build` and `/build auto` commit each task on its layer's branch. In a stack, `gh stack init <branch>` opens the bottom layer and `gh stack add <branch>` each layer above it, before that layer's first task.
-- Whoever builds a layer measures it at every task boundary with `git diff --shortstat <base>...HEAD`, and ends the layer there when the next task is a second concern, or when the layer has passed about 300 changed lines — generated files and lockfiles aside — with tasks still to build. The tasks left become a new layer directly above, and the plan is updated to match.
+- Whoever builds a layer measures it at every task boundary with `git diff --stat <base>...HEAD`, `<base>` being the branch the layer builds on, and ends the layer there when the next task is a second concern, or when the layer has passed about 300 changed lines — generated files and lockfiles aside — with tasks still to build. The tasks left become a new layer directly above, and the plan is updated to match.
 - A review that still finds a layer too large, or holding two concerns, goes to the user: an oversized PR is an exception.
 
 ## `/build auto`
