@@ -3,21 +3,24 @@
 A versioned `~/.claude` that turns Claude Code into a disciplined engineer.
 
 ```text
-  DEFINE     /spec               ── agent-skills
+  DEFINE     /spec            ┐
+    │                         │
+  PLAN       /plan            │
+    │                         │
+  BUILD      /build           │
+    │                         ├─ agent-skills
+  SIMPLIFY   /code-simplify   │
+    │                         │
+  REVIEW     /review          │
+    │                         │
+  GATE       /ship            ┘
     │
-  DELIVER    /deliver            ── this repo, driving the rest:
-    │
-    ├─ PLAN        /plan             ── agent-skills
-    │
-    ├─ BUILD       /build            ┐
-    ├─ SIMPLIFY    /code-simplify    ├─ agent-skills, once per PR layer
-    ├─ REVIEW      /review           ┘
-    │
-    ├─ GATE        /ship             ── agent-skills
-    │
-    ├─ STACK       /gh-stack         ┐
-    └─ WATCH       /shepherd         ┴─ this repo
+  STACK      /gh-stack        ┐
+    │                         ├─ this repo
+  WATCH      /shepherd        ┘
 ```
+
+`/deliver` runs everything after `/spec` in one pass: BUILD, SIMPLIFY, and REVIEW repeat once per PR, then GATE covers the whole change.
 
 ## Requirements
 

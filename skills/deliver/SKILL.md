@@ -40,10 +40,10 @@ spec → plan → APPROVAL → layer 1 → layer 2 → … → gate → publish 
 
 **Build and simplify.** Who builds depends on the plan:
 
-- *One layer* — the session builds it. For each unticked task, invoke `agent-skills:incremental-implementation` with `agent-skills:test-driven-development`, and `agent-skills:source-driven-development` where a library is involved, one commit per task, applying the split check of the Layers rule at every task boundary. Then invoke `agent-skills:code-simplification` over `git diff <base>...HEAD` and commit the result apart. Then write the PR body.
+- *One layer* — the session builds it. For each unticked task, invoke `agent-skills:incremental-implementation` with `agent-skills:test-driven-development`, and `agent-skills:source-driven-development` where a library is involved, one commit per task, ending the layer at a task boundary when it has to split. Then invoke `agent-skills:code-simplification` over `git diff <base>...HEAD` and commit the result apart. Then write the PR body.
 - *A stack* — one `layer-builder` agent per layer, never two running at once. Brief it with the spec, plan, and task list paths, the layer's branch, title, concern, and tasks, `<base>`, the PR body path, and any `docs-researcher` report already in hand. The session reads its report, not its diff. Every later change to the layer goes back to the same builder, resumed; one that cannot be resumed is replaced by a fresh builder with the same brief, which skips the tasks already ticked.
 
-**Review.** One `agent-skills:code-reviewer` agent per layer, in a fresh context. Give it the spec path, the layer's concern and tasks, and the range `<base>...<branch>` — the code, never the builder's account of it. Ask it also to measure the range and to report a layer that is past the size the Layers rule names, or that holds a second concern.
+**Review.** One `agent-skills:code-reviewer` agent per layer, in a fresh context. Give it the spec path, the layer's concern and tasks, and the range `<base>...<branch>` — the code, never the builder's account of it. Ask it also to measure the range and to report a layer that is too large, or that holds a second concern.
 
 **Settle.**
 
@@ -98,7 +98,7 @@ No fix goes unreviewed: the layer's reviewer is resumed on the fix commits befor
 | "The layers are small; build them all, then review once." | A fix in a lower layer rebases every layer above it, and those were built on the unreviewed code. Each layer settles before the next opens. |
 | "I wrote this layer and I know it is fine." | The author's context is what a review must not share. The reviewer gets the range, not the story. |
 | "Review first, simplify after — that is the order the plugin lists." | Whatever changes after the review is unreviewed. Simplify, then review. |
-| "Only one task is left after the `SPLIT`; have the builder finish it here." | The builder ended the layer on the Layers rule. The task left is a layer: open it. |
+| "Only one task is left after the `SPLIT`; have the builder finish it here." | The builder ended the layer at its boundary. The task left is a layer: open it. |
 | "The reviewer calls it too large, but it is one concern." | An oversized PR is an exception, and exceptions are the user's to grant. |
 | "Every layer passed review; the gate is ceremony." | A layer review never sees two layers at once. The gate is the only look at the whole change. |
 | "These two layers don't touch; run both builders at once." | They share one worktree and one stack. One builder at a time. |
