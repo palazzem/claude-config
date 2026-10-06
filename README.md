@@ -3,21 +3,23 @@
 A versioned `~/.claude` that turns Claude Code into a disciplined engineer.
 
 ```text
-  DEFINE     /spec        ┐
-    │                     │
-  PLAN       /plan        ├─ agent-skills
-    │                     │
-  BUILD      /build       ┘
+  DEFINE     /spec            ── agent-skills
     │
-  STACK      /gh-stack    ┐
-    │                     ├─ this repo
-  WATCH      /shepherd    ┘
+  DELIVER    /deliver         ── this repo
     │
-  VERIFY     /test        ┐
-    │                     │
-  REVIEW     /review      ├─ agent-skills
-    │                     │
-  SHIP       /ship        ┘
+  PLAN       /plan            ┐
+    │                         │
+  BUILD      /build           │
+    │                         │
+  SIMPLIFY   /code-simplify   ├─ agent-skills
+    │                         │
+  REVIEW     /review          │
+    │                         │
+  GATE       /ship            ┘
+    │
+  STACK      /gh-stack        ┐
+    │                         ├─ this repo
+  WATCH      /shepherd        ┘
 ```
 
 ## Requirements
@@ -57,6 +59,7 @@ Development lifecycle commands come from agent-skills
 | What you're doing | Command | Key principle |
 | --- | --- | --- |
 | Define what to build | `/spec` | Spec before code |
+| Run everything after `/spec` in one pass | `/deliver` | Build, simplify, and review once per PR, then gate the whole change |
 | Plan how to build it | `/plan` | One PR per concern, atomic tasks |
 | Build incrementally | `/build` | One slice at a time |
 | Split a change into dependent PRs | `/gh-stack` | One concern per PR, reviewed in order |
@@ -77,6 +80,7 @@ Skills also activate on their own: a build task that touches a library is checke
 | --- | --- | --- |
 | Process | agent-skills plugin, overridden by `rules/agent-skills.md` | How work moves — spec, plan, build, test, review, ship — and which reviewer persona looks at it |
 | Bar | `CLAUDE.md` | What "good" means |
+| Delivery | `skills/deliver`, `agents/layer-builder.md` | The order of a run from spec to published PRs — one layer at a time, then a gate over the whole change |
 | PR lifecycle | `skills/shepherd`, `skills/gh-stack`, `rules/gh-stack.md` | What happens after the PR exists |
 | Knowledge | `source-driven-development` from the plugin, `agents/docs-researcher.md` | Where facts about libraries, frameworks, and tools come from |
 | Memory | `.claude/skills/reflect` | Which project lessons become global rules |
@@ -92,8 +96,11 @@ Skills also activate on their own: a build task that touches a library is checke
 │   ├── agent-skills.md                # agent-skills overrides — artifacts under .claude/specs/<slug>/, plans cut into PR layers, docs lookups via docs-researcher
 │   └── gh-stack.md                    # Stack PR titles and bodies are decided before shipping, never gh pr edit
 ├── agents/
-│   └── docs-researcher.md             # One documentation question per call, Context7-backed, quoted and cited
+│   ├── docs-researcher.md             # One documentation question per call, Context7-backed, quoted and cited
+│   └── layer-builder.md               # One PR layer per call: built test-first, simplified, reported
 ├── skills/
+│   ├── deliver/
+│   │   └── SKILL.md                   # Spec to published PRs: per-layer build, simplify, review, then a gate
 │   ├── shepherd/
 │   │   ├── SKILL.md                   # Watch an open PR until a human merges or closes it
 │   │   └── scripts/
