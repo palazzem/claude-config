@@ -3,13 +3,15 @@
 A versioned `~/.claude` that turns Claude Code into a disciplined engineer.
 
 ```text
-  DEFINE     /spec            ┐
-    │                         │
-  PLAN       /plan            │
+  DEFINE     /spec            ── agent-skills
+    │
+  DELIVER    /deliver         ── this repo
+    │
+  PLAN       /plan            ┐
     │                         │
   BUILD      /build           │
-    │                         ├─ agent-skills
-  SIMPLIFY   /code-simplify   │
+    │                         │
+  SIMPLIFY   /code-simplify   ├─ agent-skills
     │                         │
   REVIEW     /review          │
     │                         │
@@ -19,8 +21,6 @@ A versioned `~/.claude` that turns Claude Code into a disciplined engineer.
     │                         ├─ this repo
   WATCH      /shepherd        ┘
 ```
-
-`/deliver` runs everything after `/spec` in one pass: BUILD, SIMPLIFY, and REVIEW repeat once per PR, then GATE covers the whole change.
 
 ## Requirements
 
@@ -59,7 +59,7 @@ Development lifecycle commands come from agent-skills
 | What you're doing | Command | Key principle |
 | --- | --- | --- |
 | Define what to build | `/spec` | Spec before code |
-| Take the spec to reviewed PRs in one run | `/deliver` | Each PR built, simplified, and reviewed before it is published |
+| Run everything after `/spec` in one pass | `/deliver` | Build, simplify, and review once per PR, then gate the whole change |
 | Plan how to build it | `/plan` | One PR per concern, atomic tasks |
 | Build incrementally | `/build` | One slice at a time |
 | Split a change into dependent PRs | `/gh-stack` | One concern per PR, reviewed in order |
