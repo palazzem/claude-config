@@ -70,6 +70,7 @@ Development lifecycle commands come from agent-skills
 | Audit web performance | `/webperf` | Measure before you optimize |
 | Simplify the code | `/code-simplify` | Clarity over cleverness |
 | Ship to production | `/ship` | Faster is safer |
+| Find where a session's time went | `/inference-tracing` | Measure from the transcripts, never by asking the session |
 | Consolidate memories into rules | `/reflect` | A lesson lives once, globally |
 
 Skills also activate on their own: a build task that touches a library is checked against current docs through `docs-researcher`, a chain of dependent branches triggers `gh-stack`, a freshly opened PR triggers `shepherd`.
@@ -83,6 +84,7 @@ Skills also activate on their own: a build task that touches a library is checke
 | Delivery | `skills/deliver`, `agents/layer-builder.md` | The order of a run from spec to published PRs — one layer at a time, then a gate over the whole change |
 | PR lifecycle | `skills/shepherd`, `skills/gh-stack`, `rules/gh-stack.md` | What happens after the PR exists |
 | Knowledge | `source-driven-development` from the plugin, `agents/docs-researcher.md` | Where facts about libraries, frameworks, and tools come from |
+| Telemetry | `skills/inference-tracing` | Where a session's wall clock went — inference, tools, waiting on the human — and what would shorten it |
 | Memory | `.claude/skills/reflect` | Which project lessons become global rules |
 | Config | `settings.json`, `statusline/` | Model, effort, permissions, plugin registration, what the status line shows |
 
@@ -107,8 +109,11 @@ Skills also activate on their own: a build task that touches a library is checke
 │   │       ├── watch-pr.sh            # The one PR reader: baseline, then watch
 │   │       ├── query.graphql          # One request reads every PR surface
 │   │       └── jq/                    # baseline, pass, and events filters
-│   └── gh-stack/
-│       └── SKILL.md                   # Stacked PRs, vendored from github/gh-stack
+│   ├── gh-stack/
+│   │   └── SKILL.md                   # Stacked PRs, vendored from github/gh-stack
+│   └── inference-tracing/
+│       ├── SKILL.md                   # Trace another session's transcripts into a timing report, published as an Artifact
+│       └── report-template.md         # The report's sections and what each must find, show, and write
 ├── statusline/
 │   └── ccstatusline-config.json       # Three-line ccstatusline layout
 ├── docs/
