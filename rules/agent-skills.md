@@ -40,11 +40,9 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 ## Models and effort
 
-The session default is in `settings.json`; an agent this configuration owns sets `model` and `effort` in its own frontmatter. The plugin's agents and commands set neither, so the session supplies them where it spawns one.
-
-- A plan is written in the `planner` agent, never inline: `/plan` briefs it with the spec, plan, and task list paths, then presents its plan for review and resumes it with the changes asked for.
-- Every plugin persona — `code-reviewer`, `security-auditor`, `test-engineer`, `web-performance-auditor` — is spawned with model `opus` and effort `xhigh`, by `/ship` and by anything else that spawns one.
-- `/review` runs in an `agent-skills:code-reviewer` agent spawned that way, never inline; the session relays its findings.
+- `/plan` writes the plan in the `planner` agent, never inline.
+- `/review` runs in an `agent-skills:code-reviewer` agent, never inline.
+- `agent-skills:code-reviewer`, `agent-skills:security-auditor`, `agent-skills:test-engineer`, and `agent-skills:web-performance-auditor` are spawned with model `opus` and effort `xhigh`.
 
 ## `source-driven-development`
 
