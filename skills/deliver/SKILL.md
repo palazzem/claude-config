@@ -25,7 +25,7 @@ spec → plan → APPROVAL → layer 1 → layer 2 → … → gate → publish 
 `<slug>` is the worktree's name and artifacts live in `.claude/specs/<slug>/`. `<trunk>` is the repository's default branch. `<base>` is the branch a layer builds on: `<trunk>` for the bottom layer, the layer below for every other.
 
 1. **Spec.** `.claude/specs/<slug>/spec.md` exists and `git status --porcelain` shows nothing outside `.claude/specs/<slug>/`. Otherwise stop.
-2. **Plan.** The session reads the spec and invokes `agent-skills:planning-and-task-breakdown`, to know what a plan must hold. With no plan yet, a subagent writes it: briefed with the spec path, it invokes the same skill, writes the plan and the task list, and returns a summary of the layers. The session then verifies the plan against the spec — every requirement is met by a task, and no task does work the spec does not ask for — and sends what fails back to the same subagent. The plan is cut into layers, each naming its branch, its conventional-commit title, its concern, its tasks, and a checkpoint.
+2. **Plan.** The session reads the spec and invokes `agent-skills:planning-and-task-breakdown`, to know what a plan must hold. With no plan yet, a `planner` agent writes it: briefed with the spec, plan, and task list paths, it writes both files and reports the layers. The session then verifies the plan against the spec — every requirement is met by a task, and no task does work the spec does not ask for — and sends what fails back to the same agent, resumed. The plan is cut into layers, each naming its branch, its conventional-commit title, its concern, its tasks, and a checkpoint.
 3. **Approval.** Present the plan as a summary — every layer with its title, concern, and tasks — and wait for an unambiguous yes; a hedge is not a yes. This is the only approval the run asks for.
 4. **Layers.** Bottom first, one at a time. A layer goes through the whole Layer Loop — built, simplified, reviewed, settled — before the next one opens.
 5. **Gate.** On the top layer, invoke `agent-skills:ship` over the whole change, `<trunk>...HEAD`. `GO` with no recommended fix: publish. Otherwise every blocker and every recommended fix is fixed on the layer it belongs to (see Fixing a Lower Layer), and the gate runs once more. That second run decides: `GO` publishes, with any recommended fix it still lists reported to the user alongside the PRs; `NO-GO` goes to the user.
@@ -41,10 +41,10 @@ The session decides and orchestrates; a subagent does every piece of work that w
 | Work | Runs in |
 |---|---|
 | Reading the spec, verifying the plan, asking for approval | The session |
-| Writing the plan | A `general-purpose` subagent that invokes `agent-skills:planning-and-task-breakdown` |
+| Writing the plan | A `planner` subagent |
 | Opening, splitting, and rebasing layers; ticking checkpoints | The session |
 | Building, simplifying, and fixing a layer | A `layer-builder` subagent — always, one per layer, also when the plan has a single layer |
-| Reviewing a layer | An `agent-skills:code-reviewer` subagent, in a fresh context |
+| Reviewing a layer | An `agent-skills:code-reviewer` subagent, in a fresh context, at effort `xhigh` |
 | Documentation lookups | A `docs-researcher` subagent |
 | The gate | The session invokes `agent-skills:ship`: its personas review as subagents, and the session merges their reports |
 | Publishing and watching | The session |
@@ -55,7 +55,7 @@ A layer runs these four steps in order, and the next layer opens only when the l
 
 1. **Open.** In a stack, `gh stack init <branch>` opens the bottom layer and `gh stack add <branch>` each one above it. A single layer stays on the worktree's branch.
 2. **Build and simplify.** One `layer-builder` agent builds the layer, never two running at once. Brief it with the spec, plan, and task list paths, the layer's branch, title, concern, and tasks, `<base>`, the PR body path, and any `docs-researcher` report already in hand. Every later change to the layer goes back to the same builder, resumed; one that cannot be resumed is replaced by a fresh builder with the same brief, which skips the tasks already ticked.
-3. **Review.** One `agent-skills:code-reviewer` agent reviews the layer in a fresh context. Give it the spec path, the layer's concern and tasks, and the range `<base>...<branch>` — the code, never the builder's account of it. Ask it also to measure the range and to report a layer that is too large, or that holds a second concern.
+3. **Review.** One `agent-skills:code-reviewer` agent, spawned with model `opus` and effort `xhigh`, reviews the layer in a fresh context. Give it the spec path, the layer's concern and tasks, and the range `<base>...<branch>` — the code, never the builder's account of it. Ask it also to measure the range and to report a layer that is too large, or that holds a second concern.
 4. **Settle.** Act on the review until nothing in it blocks a merge, then tick the layer's checkpoint in the plan. Only then does the next layer open.
 
 | The review holds | Then |
@@ -106,7 +106,7 @@ No fix goes unreviewed: the layer's reviewer is resumed on the fix commits befor
 
 | Rationalization | Reality |
 |---|---|
-| "The spec is short; the session can write the plan." | Planning reads the codebase, and that fills the context the run needs for every layer after it. A subagent writes the plan; the session verifies it. |
+| "The spec is short; the session can write the plan." | Planning reads the codebase, and that fills the context the run needs for every layer after it. A `planner` writes the plan; the session verifies it. |
 | "It is a single small layer; the session can build it." | Layer building always runs in a `layer-builder`. The session's context is for the plan and the reports. |
 | "The layers are small; build them all, then review once." | A fix in a lower layer rebases every layer above it, and those were built on the unreviewed code. Each layer settles before the next opens. |
 | "The builder wrote this layer and its report is clean." | The author's context is what a review must not share. The reviewer gets the range, not the story. |
@@ -131,7 +131,7 @@ No fix goes unreviewed: the layer's reviewer is resumed on the fix commits befor
 
 Before reporting the run:
 
-- [ ] The plan was written by a subagent and verified against the spec by the session, and every layer was built by a `layer-builder`.
+- [ ] The plan was written by a `planner` and verified against the spec by the session, and every layer was built by a `layer-builder`.
 - [ ] Every layer in the plan has a branch, a ticked checkpoint, and a PR body file, and `git log --oneline <base>..<branch>` shows only its tasks, its simplification, and its fixes.
 - [ ] Every layer's review ended with no Critical or Required finding, covered its fix commits, and settled before the next layer opened.
 - [ ] The gate's last run returned `GO` on the final state of the top layer, or the user accepted its blockers; recommended fixes it still listed are in the report to the user.

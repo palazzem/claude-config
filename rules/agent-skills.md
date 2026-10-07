@@ -38,6 +38,14 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 - The clean-baseline check treats uncommitted files under `.claude/specs/<slug>/` as the expected planning artifacts; anything else uncommitted stops the run.
 - The plan is not committed before the first task: artifacts never enter a PR.
 
+## Models and effort
+
+The session default is in `settings.json`; an agent this configuration owns sets `model` and `effort` in its own frontmatter. The plugin's agents and commands set neither, so the session supplies them where it spawns one.
+
+- A plan is written in the `planner` agent, never inline: `/plan` briefs it with the spec, plan, and task list paths, then presents its plan for review and resumes it with the changes asked for.
+- Every plugin persona — `code-reviewer`, `security-auditor`, `test-engineer`, `web-performance-auditor` — is spawned with model `opus` and effort `xhigh`, by `/ship` and by anything else that spawns one.
+- `/review` runs in an `agent-skills:code-reviewer` agent spawned that way, never inline; the session relays its findings.
+
 ## `source-driven-development`
 
 - `/build` and `/build auto` invoke it alongside `incremental-implementation` and `test-driven-development`; its own "When NOT to use" decides whether a task needs a lookup.
