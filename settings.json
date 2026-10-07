@@ -1,4 +1,5 @@
 {
+  "syncClaudeAiSkills": false,
   "attribution": {
     "commit": "",
     "pr": ""
@@ -34,13 +35,20 @@
       "effortLevel": "xhigh"
     },
     "claude-opus-5-5": {
-      "effortLevel": "xhigh"
+      "effortLevel": "high"
     }
   },
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
   "askUserQuestionTimeout": "never",
   "dialogExpiry": "never",
+  "pluginConfigs": {
+    "cc-plugin-agents-md@builtin": {
+      "options": {
+        "instructionFiles": "claude-md-or-agents-md"
+      }
+    }
+  },
   "timeFormat": "12-hour",
   "skipWorkflowUsageWarning": true,
   "verbose": false,
@@ -50,13 +58,5 @@
   "crossSessionInbound": "refuse",
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "useAutoModeDuringPlan": true,
-  "syncClaudeAiSkills": false,
-  "pluginConfigs": {
-    "cc-plugin-agents-md@builtin": {
-      "options": {
-        "instructionFiles": "claude-md-or-agents-md"
-      }
-    }
-  }
+  "useAutoModeDuringPlan": true
 }

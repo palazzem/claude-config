@@ -38,6 +38,12 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 - The clean-baseline check treats uncommitted files under `.claude/specs/<slug>/` as the expected planning artifacts; anything else uncommitted stops the run.
 - The plan is not committed before the first task: artifacts never enter a PR.
 
+## Models and effort
+
+- `/plan` writes the plan in the `planner` agent, never inline.
+- `/review` runs in an `agent-skills:code-reviewer` agent, never inline.
+- `agent-skills:code-reviewer`, `agent-skills:security-auditor`, `agent-skills:test-engineer`, and `agent-skills:web-performance-auditor` are spawned with model `opus` and effort `xhigh`.
+
 ## `source-driven-development`
 
 - `/build` and `/build auto` invoke it alongside `incremental-implementation` and `test-driven-development`; its own "When NOT to use" decides whether a task needs a lookup.
