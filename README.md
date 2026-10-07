@@ -68,9 +68,9 @@ Development lifecycle commands come from agent-skills
 | Set the quality bar | `/constraints` | Decide it once, enforce it everywhere |
 | Review before merge | `/review` | Improve code health |
 | Audit web performance | `/webperf` | Measure before you optimize |
-| Find where a session's time went | `/inference-tracing` | Measure from the transcripts, never by asking the session |
 | Simplify the code | `/code-simplify` | Clarity over cleverness |
 | Ship to production | `/ship` | Faster is safer |
+| Find where a session's time went | `/inference-tracing` | Measure from the transcripts, never by asking the session |
 | Consolidate memories into rules | `/reflect` | A lesson lives once, globally |
 
 Skills also activate on their own: a build task that touches a library is checked against current docs through `docs-researcher`, a chain of dependent branches triggers `gh-stack`, a freshly opened PR triggers `shepherd`.
