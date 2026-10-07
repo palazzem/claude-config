@@ -24,7 +24,7 @@ Sections 10 and 11 are written fresh for each run. Every other section is fixed 
 
 ## 2. Wall Clock Since the Session Opened
 
-- **Find:** when the session opened and with which command; whether it was resumed in a new process, and when; every phase from the opening to the snapshot, across the whole chain of transcripts; for each phase, how much was agents working (overlapping agents counted once), how much was waiting on the human, and how much was waiting on something else, and on what; each question that sat open and for how long.
+- **Find:** when the session opened and with which command, if it opened with one; whether it was resumed in a new process, and when; every phase from the opening to the snapshot, across the whole chain of transcripts; for each phase, how much was agents working (overlapping agents counted once), how much was waiting on the human, and how much was waiting on something else, and on what; each question that sat open and for how long.
 - **Show:** a horizontal bar per phase, in the order they happened, in minutes of wall clock. Three colours: agents working, waiting for the human, waiting on something else. The value at the end of each bar.
 - **Write:** `<when the session opened and with what>` · `<what each phase before the run was>` · `<what came after the run finished, if it has>` · `<totals: agents working, waiting on the human, waiting on something else>`
 
@@ -66,7 +66,7 @@ The entry this run's time outside inference ranks first: a tool activity, or a w
 
 ## 8. What Is Not the Problem
 
-- **Find:** a figure for each usual suspect: permission prompts (how long file edits take), stuck or looping agents (retries, and what is pending at the snapshot), handoffs between agents, version-control and code-host tooling, lint, CI (whether anything was pushed, and how long recent runs take), machine contention (the same command's duration across the run).
+- **Find:** a figure for each usual suspect: permission prompts (how long file edits take), stuck or looping agents (retries, and what is pending at the snapshot), handoffs between agents, version-control and code-host tooling, lint, CI (whether anything was pushed, and how long its runs took, where the transcripts show it), machine contention (the same command's duration across the run).
 - **Show:** a list, one line per suspect the data clears: the suspect in bold, then the figure that clears it.
 
 ## 9. Is the Loop Right?
