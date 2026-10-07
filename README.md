@@ -112,7 +112,7 @@ Skills also activate on their own: a build task that touches a library is checke
 │   ├── gh-stack/
 │   │   └── SKILL.md                   # Stacked PRs, vendored from github/gh-stack
 │   └── inference-tracing/
-│       ├── SKILL.md                   # Trace another session's transcripts into a published timing report
+│       ├── SKILL.md                   # Trace another session's transcripts into a timing report, published as an Artifact
 │       └── report-template.md         # The report's sections and what each must find, show, and write
 ├── statusline/
 │   └── ccstatusline-config.json       # Three-line ccstatusline layout

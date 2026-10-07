@@ -1,6 +1,6 @@
 # Report Template
 
-The report has these sections, in this order, for every run. Each says what to **find** in the transcripts, what to **show**, and what to **write**. Replace every `<…>` with what this run shows. Name things by what they are in this run: a unit may be a layer, a task, a PR. A section the run has no data for stays, with one line saying so.
+The report is a Claude Code Artifact, published with the Artifact tool as the skill's step 8 says. It has these sections, in this order, for every run. Each says what to **find** in the transcripts, what to **show**, and what to **write**. Replace every `<…>` with what this run shows. Name things by what they are in this run: a unit may be a layer, a task, a PR. A section the run has no data for stays, with one line saying so.
 
 Sections 10 and 11 are written fresh for each run. Every other section is fixed in what it must answer.
 
