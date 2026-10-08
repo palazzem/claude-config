@@ -95,7 +95,7 @@ Skills also activate on their own: a build task that touches a library is checke
 ├── CLAUDE.md                          # The bar — user-level instructions, loaded into every session
 ├── settings.json                      # Model, effort, permissions, plugin registration, status line
 ├── rules/
-│   ├── agent-skills.md                # agent-skills overrides — artifacts under .claude/specs/<name>/ in the main checkout, plans cut into PR layers, model and effort per role, docs lookups via docs-researcher
+│   ├── agent-skills.md                # agent-skills overrides — artifacts under .claude/specs/<name>/, moved into the worktree when the first layer opens, plans cut into PR layers, model and effort per role, docs lookups via docs-researcher
 │   └── gh-stack.md                    # Stack PR titles and bodies are decided before shipping, never gh pr edit
 ├── agents/
 │   ├── docs-researcher.md             # One documentation question per call, Context7-backed, quoted and cited
