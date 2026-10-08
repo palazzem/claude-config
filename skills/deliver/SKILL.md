@@ -103,3 +103,39 @@ Stop for the user on a layer the review reports as too large or as holding two c
 | That layer has unticked tasks | A fresh `layer-builder` with the layer's brief builds them and simplifies; the run goes on from Review. |
 | That layer has every task ticked | Run its review: the one case where a review may repeat. |
 | Every checkpoint ticked | With no PR, Publish. With a PR on the branch, Watch. |
+
+## Common Rationalizations
+
+| Rationalization | Reality |
+|---|---|
+| "The spec is short and the layer is small; the session can write both." | Planning and building fill the context the run needs for every layer after. A `planner` writes the plan, a `layer-builder` the layer. |
+| "The layers are small; build them all, then review." | A fix in a lower layer rebases every layer built on it. A layer's checkpoint is ticked before the next opens. |
+| "Review first, simplify after — that is the order the plugin lists." | The layer has one review: it reads the code that ships. Simplify, then review. |
+| "Only one task is left after the `SPLIT`; have the builder finish it here." | The builder ended the layer at its boundary. The task left is a layer: open it. |
+| "The review calls it too large, but it is one concern." | An oversized PR is an exception, and exceptions are the user's to grant. |
+| "These two layers don't touch; run both builders at once." | They share one worktree. One builder at a time. |
+| "Resume the reviewer to confirm the fix, to be safe." | Each review runs once, deliberately: the test suite checks the fix, and a human reviews the PR. |
+| "A code review on the last layer first — or `/review` then `/ship` on a single PR." | `agent-skills:ship` is the last layer's review. Anything before it reads the same code twice. |
+| "Tell the reviewer what to check; it saves time." | The command decides the method. A check list narrows the review to what the session already thought of. |
+| "`NO-GO`: stop and ask the user." | A `NO-GO` is findings. Fix them and publish; the decision is in the hand-back. |
+| "Publish drafts now and finish the fixes on the PR." | A PR handed to a human is ready for review. Fix, then publish. |
+
+## Red Flags
+
+- The session writing the plan, building a layer, or fixing a finding itself.
+- A worktree before the first layer opens, or a second one; two `layer-builder` agents running at once.
+- A review brief holding anything beyond the range, the two paths with the layer's heading, and the read-only line.
+- A reviewer resumed, a review command invoked twice on one layer, or `agent-skills:review` on the last layer.
+- A range ending in `HEAD` or starting at the local trunk.
+- `--draft`; `gh stack submit` for a layer of more than one commit; `gh pr edit` to repair a title or a body.
+- The PRs reported before `shepherd`'s monitor is armed, or a hand-back without the commits made after `agent-skills:ship`.
+
+## Verification
+
+- [ ] The plan was written by a `planner` and verified against the spec by the session, and every layer was built by a `layer-builder`.
+- [ ] Every layer has a ticked checkpoint and a PR body file, and `git log --oneline <base>..<branch>` shows only its tasks, its simplification, and its fixes.
+- [ ] The run shows one `agent-skills:review` per layer but the last and one `agent-skills:ship`, each briefed with its three inputs.
+- [ ] After the last fix, the full test suite passed on every layer from the fixed one to the top.
+- [ ] Every PR is open and not a draft, with the plan's title and the body file's text.
+- [ ] No worktree existed before the first layer opened, and `git log --name-only origin/<trunk>..<top>` shows nothing under `<spec-dir>`.
+- [ ] `shepherd`'s monitor is armed, and the hand-back holds every item of step 7.
