@@ -19,7 +19,8 @@ One workflow takes a spec to pull requests under watch, whatever the number of l
 
 | Term | Meaning |
 |---|---|
-| `<spec-dir>` | The directory of the spec path given as the skill's argument, in the main checkout. It holds every artifact. |
+| `<name>` | The spec's name: the spec path given as the skill's argument is `.claude/specs/<name>/spec.md`. |
+| `<spec-dir>` | `.claude/specs/<name>/`: in the main checkout until the first layer opens, in the run's worktree from then on. It holds every artifact, is never staged or committed, and goes with the worktree when `shepherd` removes it. |
 | `<trunk>` | The repository's default branch. Ranges use `origin/<trunk>`; `gh` commands take `<trunk>`. |
 | `<base>` | The branch a layer builds on: the layer below, or `origin/<trunk>` for the bottom layer. |
 | `<top>` | The branch of the last layer. |
@@ -29,12 +30,12 @@ One workflow takes a spec to pull requests under watch, whatever the number of l
 
 The session orchestrates: it holds the spec, the plan, and the reports, and never writes the plan or code.
 
-1. **Spec.** Stop without a spec path, or with no file there. The spec, the plan, and the approval need no worktree.
-2. **Plan.** Invoke `agent-skills:planning-and-task-breakdown`. A `planner` agent, briefed with the absolute spec, plan, and task list paths, writes the plan. Verify it against the spec — every requirement is met by a task, and no task does work the spec does not ask for — and send what fails back to the same agent, resumed.
+1. **Spec.** Stop without a spec path. A spec in the main checkout is not started; one that is absent is in flight (see Resuming). The spec, the plan, and the approval happen in the main checkout, with no worktree.
+2. **Plan.** Invoke `agent-skills:planning-and-task-breakdown`. A `planner` agent, briefed with the spec, plan, and task list paths, writes the plan. Verify it against the spec — every requirement is met by a task, and no task does work the spec does not ask for — and send what fails back to the same agent, resumed.
 3. **Approval.** Present every layer with its title, concern, and tasks, and wait for an unambiguous yes. This is the run's only approval.
 4. **Layers.** Bottom first, one at a time: a layer opens only when the checkpoint of the one below is ticked.
-   1. **Open.** Before the first layer, and never earlier, `EnterWorktree`: the run's only worktree. Open the layer's branch as One Layer or Several says.
-   2. **Build and simplify.** One `layer-builder` agent per layer, never two at once. Brief it with the layer's branch, title, concern, tasks, and `<base>`; the spec, plan, task list, and PR body paths, absolute; and any `docs-researcher` report in hand. It builds, simplifies, and reports `DONE`, `SPLIT`, or `BLOCKED` (see Off the Straight Run).
+   1. **Open.** Before the first layer, and never earlier, from the main checkout and in this order: `git fetch origin`, then `git worktree add -b <branch> .claude/worktrees/<name> origin/<trunk>`, `<branch>` being the bottom layer's; move `<spec-dir>` to the same relative path inside that worktree, creating the parent directory first; `EnterWorktree` with the worktree's path. It is the run's only worktree, and every artifact is read and written there from then on. Open the layer's branch as One Layer or Several says.
+   2. **Build and simplify.** One `layer-builder` agent per layer, never two at once. Brief it with the layer's branch, title, concern, tasks, and `<base>`; the spec, plan, task list, and PR body paths, all in `<spec-dir>`; and any `docs-researcher` report in hand. It builds, simplifies, and reports `DONE`, `SPLIT`, or `BLOCKED` (see Off the Straight Run).
    3. **Review.** One review, chosen by the layer's position (see Reviews).
    4. **Fix and tick.** See After a Review.
 5. **Publish.** Never a draft, and never `gh pr edit` afterwards: `<title>` comes from the plan, `<body>` is `<spec-dir>/pr/<branch>.md`. The commands are in One Layer or Several.
@@ -63,7 +64,7 @@ The last layer gets no `agent-skills:review` of its own: a stack of one runs `ag
 A review receives three things and nothing else — never a list of things to check or verify, the builder's report, the session's reasoning, or another review's findings:
 
 1. The range.
-2. The spec path and the plan path, absolute; for `agent-skills:review`, also the layer's heading in the plan.
+2. The spec path and the plan path, in `<spec-dir>`; for `agent-skills:review`, also the layer's heading in the plan.
 3. This line: "The review is read-only: no edits, commits, branch switches, or pushes."
 
 ## After a Review
@@ -96,10 +97,10 @@ Stop for the user on a layer the review reports as too large or as holding two c
 
 ## Resuming
 
-| The plan shows | Then |
+| State | Then |
 |---|---|
-| Nothing ticked | It was never approved: verify it and present it. |
-| A ticked task | The worktree exists: `EnterWorktree` with the path of the one holding the plan's branches, never a second one. Continue, without asking again, at the first layer whose checkpoint is unticked. |
+| The spec is in the main checkout | The run has not started. A plan there was never approved: verify it and present it. |
+| The spec is not in the main checkout | It is in flight: find `.claude/worktrees/<name>` with `git worktree list` and `EnterWorktree` with its path, never a second one. Stop when the spec is in neither place. Continue, without asking again, at the first layer whose checkpoint is unticked. |
 | That layer has unticked tasks | A fresh `layer-builder` with the layer's brief builds them and simplifies; the run goes on from Review. |
 | That layer has every task ticked | Run its review — the one case where a review may repeat — and go on from After a Review. |
 | Every checkpoint ticked | With no PR, Publish. With a PR on the branch, Watch. |
@@ -123,7 +124,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 ## Red Flags
 
 - The session writing the plan, building a layer, or fixing a finding itself.
-- A worktree before the first layer opens, or a second one; two `layer-builder` agents running at once.
+- A worktree before the first layer opens, or a second one; an artifact written in the main checkout after it opens; two `layer-builder` agents running at once.
 - A review brief holding anything beyond the range, the two paths with the layer's heading, and the read-only line.
 - A reviewer resumed, a review command invoked twice on one layer, or `agent-skills:review` on the last layer.
 - A range ending in `HEAD` or starting at the local trunk.
@@ -137,5 +138,5 @@ Stop for the user on a layer the review reports as too large or as holding two c
 - [ ] The run shows one `agent-skills:review` per layer but the last and one `agent-skills:ship`, each briefed with its three inputs.
 - [ ] After the last fix, the full test suite passed on every layer from the fixed one to the top.
 - [ ] Every PR is open and not a draft, with the plan's title and the body file's text.
-- [ ] No worktree existed before the first layer opened, and `git log --name-only origin/<trunk>..<top>` shows nothing under `<spec-dir>`.
+- [ ] No worktree existed before the first layer opened, `<spec-dir>` is in the worktree and no longer in the main checkout, and `git log --name-only origin/<trunk>..<top>` and `git status --porcelain` show nothing under it.
 - [ ] `shepherd`'s monitor is armed, and the hand-back holds every item of step 7.
