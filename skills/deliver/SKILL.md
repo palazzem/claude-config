@@ -82,3 +82,14 @@ A review receives three things and nothing else — never a list of things to ch
 5. Tick the checkpoint of the layer reviewed. The run moves on.
 
 Stop for the user on a layer the review reports as too large or as holding two concerns, and on a finding the builder disputes or cannot fix. A `NO-GO` alone is not a stop: its findings are fixed and the PRs are published.
+
+## Off the Straight Run
+
+| Event | Then |
+|---|---|
+| The builder reports `SPLIT` | What it built is a complete layer. Add the new layer to the plan directly above it, with its branch, title, concern, tasks, and checkpoint. The layer that split is no longer the last: it gets `agent-skills:review`, and the new layer is built next. |
+| `BLOCKED` on a documentation lookup | Run a `docs-researcher` agent with the library, version, and question; resume the builder with its report. |
+| `BLOCKED` on a change that belongs to a lower layer | Make it there with steps 1 to 4 of After a Review, return to the builder's branch, and resume the builder. |
+| `BLOCKED` on anything else | Put its question to the user; resume the builder with the answer. |
+| The builder reports deviations from the plan | Not a stop. |
+| A layer is added after `agent-skills:ship` | Publish it with no review and name it in the hand-back. |
