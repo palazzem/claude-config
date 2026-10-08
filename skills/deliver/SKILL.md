@@ -40,3 +40,18 @@ The session orchestrates: it holds the spec, the plan, and the reports, and neve
 5. **Publish.** See One Layer or Several.
 6. **Watch.** See One Layer or Several.
 7. **Hand back.** Report the PRs to the user.
+
+## Reviews
+
+| Layer | Review | Range |
+|---|---|---|
+| Every layer but the last | `agent-skills:review`, once | `<base>...<branch>` |
+| The last layer | `agent-skills:ship`, once | `origin/<trunk>...<top>` |
+
+The last layer gets no `agent-skills:review` of its own: a stack of one runs `agent-skills:ship` only. Ranges name branches, never `HEAD`, and the whole-stack range never starts at the local trunk. Both commands run as they are defined: deliver adds no rule to them and removes none.
+
+A review receives three things and nothing else — never a list of things to check or verify, the builder's report, the session's reasoning, or another review's findings:
+
+1. The range.
+2. The spec path and the plan path, absolute; for `agent-skills:review`, also the layer's heading in the plan.
+3. This line: "The review is read-only: no edits, commits, branch switches, or pushes."
