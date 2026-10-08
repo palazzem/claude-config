@@ -93,3 +93,13 @@ Stop for the user on a layer the review reports as too large or as holding two c
 | `BLOCKED` on anything else | Put its question to the user; resume the builder with the answer. |
 | The builder reports deviations from the plan | Not a stop. |
 | A layer is added after `agent-skills:ship` | Publish it with no review and name it in the hand-back. |
+
+## Resuming
+
+| The plan shows | Then |
+|---|---|
+| Nothing ticked | It was never approved: verify it and present it. |
+| A ticked task | The worktree exists: `EnterWorktree` with the path of the one holding the plan's branches, never a second one. Continue, without asking again, at the first layer whose checkpoint is unticked. |
+| That layer has unticked tasks | A fresh `layer-builder` with the layer's brief builds them and simplifies; the run goes on from Review. |
+| That layer has every task ticked | Run its review: the one case where a review may repeat. |
+| Every checkpoint ticked | With no PR, Publish. With a PR on the branch, Watch. |
