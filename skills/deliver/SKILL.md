@@ -37,9 +37,19 @@ The session orchestrates: it holds the spec, the plan, and the reports, and neve
    2. **Build and simplify.** One `layer-builder` agent per layer, never two at once. Brief it with the layer's branch, title, concern, tasks, and `<base>`; the spec, plan, task list, and PR body paths, absolute; and any `docs-researcher` report in hand. It builds, simplifies, and reports `DONE`, `SPLIT`, or `BLOCKED` (see Off the Straight Run).
    3. **Review.** One review, chosen by the layer's position (see Reviews).
    4. **Fix and tick.** See After a Review.
-5. **Publish.** See One Layer or Several.
-6. **Watch.** See One Layer or Several.
-7. **Hand back.** Report the PRs to the user.
+5. **Publish.** Never a draft, and never `gh pr edit` afterwards: titles come from the plan, bodies from `<spec-dir>/pr/<branch>.md`. The commands are in One Layer or Several.
+6. **Watch.** In the same turn, invoke `shepherd` as One Layer or Several says.
+7. **Hand back.** Once the monitor is armed, report to the user: the PRs; the `agent-skills:ship` decision as returned; what was fixed after it; the commits made after it, which no reviewer saw; any recommended fix not made, and why; any layer added after it.
+
+## One Layer or Several
+
+A stack of one is a stack in concept, but `gh-stack` needs two layers. This table is the only place the run tells one layer from several.
+
+| Step | One layer | Two or more |
+|---|---|---|
+| Open | The worktree's branch is the layer. | `gh stack init <branch>` for the bottom layer, `gh stack add <branch>` for each one above. When one layer becomes two — its builder reports `SPLIT` — `gh stack init <branch>` first adopts the worktree's branch as the bottom layer. |
+| Publish | `git push -u origin <branch>`, then `gh pr create --base <trunk> --title "<title>" --body-file <file>`. | `gh stack push`; per layer, bottom-up, `gh pr create --head <branch> --base <below> --title "<title>" --body-file <file>`, `<below>` being the layer below, or `<trunk>` for the bottom layer; `gh stack link <bottom> … <top>`; verify with `gh stack view --json`. |
+| Watch | `shepherd` | `shepherd --stack` |
 
 ## Reviews
 
