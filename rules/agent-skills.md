@@ -4,7 +4,7 @@ The `agent-skills` plugin supplies the process; `CLAUDE.md` supplies the bar. Th
 
 ## Artifact paths
 
-`<spec-dir>` is `.claude/specs/<name>/` in the main checkout, `<name>` a kebab-case name for the change. Every process artifact lives there, is written without a worktree, and is never staged, committed, or included in a PR unless the user asks.
+`<spec-dir>` is `.claude/specs/<name>/`, `<name>` a kebab-case name for the change: in the main checkout until the first layer opens, in the worktree `.claude/worktrees/<name>` from then on. Every process artifact lives there and is never staged, committed, or included in a PR unless the user asks. A spec present in the main checkout is not started; one that is absent is in flight in the worktree named after it.
 
 - Spec → `<spec-dir>/spec.md`. Replaces `SPEC.md` at the repository root wherever `/spec`, `/plan`, `/build`, or `/build auto` names it. Module specs from a capability map sit alongside it as `<spec-dir>/spec-<module>.md`.
 - Plan → `<spec-dir>/plan.md`. Replaces `tasks/plan.md`.
@@ -30,7 +30,7 @@ A layer holds one concern:
 Each layer in the plan names its branch, its conventional-commit title, its concern in one sentence, and the layer it builds on. It carries no size estimate: the size of a change is not knowable before the code exists, so the planner cuts by concern and the builder cuts again.
 
 - A plan with more than one layer always ships as a `gh-stack` stack, bottom first in dependency order — never one branch carrying several concerns. A single layer ships from the worktree's own branch.
-- `/build` and `/build auto` enter a fresh worktree before the first layer's first task, never earlier, and commit each task on its layer's branch. In a stack, `gh stack init <branch>` opens the bottom layer and `gh stack add <branch>` each layer above it, before that layer's first task.
+- `/build` and `/build auto` open the worktree before the first layer's first task, never earlier, from the main checkout: `git fetch origin` and `git worktree add -b <branch> .claude/worktrees/<name> origin/<trunk>`, `<branch>` being the bottom layer's; move `<spec-dir>` to the same relative path inside it; `EnterWorktree` with its path. They commit each task on its layer's branch. In a stack, `gh stack init <branch>` opens the bottom layer and `gh stack add <branch>` each layer above it, before that layer's first task.
 - Whoever builds a layer measures it at every task boundary with `git diff --stat <base>...HEAD`, `<base>` being the branch the layer builds on, and ends the layer there when the next task is a second concern, or when the layer has passed about 300 changed lines — generated files and lockfiles aside — with tasks still to build. The tasks left become a new layer directly above, and the plan is updated to match.
 - A review that still finds a layer too large, or holding two concerns, goes to the user: an oversized PR is an exception.
 
@@ -56,7 +56,7 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 ## Other specs
 
-A directory under `.claude/specs/` other than `<spec-dir>` is other work in flight. Never read, overwrite, or delete it, and never count it when checking for an existing plan.
+A directory under `.claude/specs/` other than `<spec-dir>` is other work queued; a worktree under `.claude/worktrees/` other than this run's is other work in flight. Never read, overwrite, or delete either, and never count them when checking for an existing plan.
 
 ## Published PRs
 
