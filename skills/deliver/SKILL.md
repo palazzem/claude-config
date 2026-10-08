@@ -114,7 +114,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 | "Only one task is left after the `SPLIT`; have the builder finish it here." | The builder ended the layer at its boundary. The task left is a layer: open it. |
 | "The review calls it too large, but it is one concern." | An oversized PR is an exception, and exceptions are the user's to grant. |
 | "These two layers don't touch; run both builders at once." | They share one worktree. One builder at a time. |
-| "Resume the reviewer to confirm the fix, to be safe." | Each review runs once, deliberately: the test suite checks the fix, and a human reviews the PR. |
+| "Resume the reviewer to confirm the fix, to be safe." | Each review runs once, deliberately: the test suite guards against regressions, and the human who reviews the PR checks the fix. |
 | "A code review on the last layer first — or `/review` then `/ship` on a single PR." | `agent-skills:ship` is the last layer's review. Anything before it reads the same code twice. |
 | "Tell the reviewer what to check; it saves time." | The command decides the method. A check list narrows the review to what the session already thought of. |
 | "`NO-GO`: stop and ask the user." | A `NO-GO` is findings. Fix them and publish; the decision is in the hand-back. |
