@@ -22,14 +22,14 @@ spec → plan → APPROVAL → layer 1 → layer 2 → … → gate → publish 
                          └ open → build → simplify → review → settle
 ```
 
-`<slug>` is the worktree's name and artifacts live in `.claude/specs/<slug>/`. `<trunk>` is the repository's default branch. `<base>` is the branch a layer builds on: `<trunk>` for the bottom layer, the layer below for every other.
+The spec path is the skill's argument; `<spec-dir>` is its directory, in the main checkout, and holds every artifact. `<trunk>` is the repository's default branch. `<base>` is the branch a layer builds on: `<trunk>` for the bottom layer, the layer below for every other.
 
-1. **Spec.** `.claude/specs/<slug>/spec.md` exists and `git status --porcelain` shows nothing outside `.claude/specs/<slug>/`. Otherwise stop.
+1. **Spec.** The spec path was given and the file exists. Otherwise stop. No worktree yet: the spec, the plan, and the approval need none.
 2. **Plan.** The session reads the spec and invokes `agent-skills:planning-and-task-breakdown`, to know what a plan must hold. With no plan yet, a `planner` agent writes it: briefed with the spec, plan, and task list paths, it writes both files and reports the layers. The session then verifies the plan against the spec — every requirement is met by a task, and no task does work the spec does not ask for — and sends what fails back to the same agent, resumed. The plan is cut into layers, each naming its branch, its conventional-commit title, its concern, its tasks, and a checkpoint.
 3. **Approval.** Present the plan as a summary — every layer with its title, concern, and tasks — and wait for an unambiguous yes; a hedge is not a yes. This is the only approval the run asks for.
-4. **Layers.** Bottom first, one at a time. A layer goes through the whole Layer Loop — built, simplified, reviewed, settled — before the next one opens.
+4. **Layers.** `EnterWorktree` first — the run's only worktree, created here and never earlier. Bottom first, one at a time. A layer goes through the whole Layer Loop — built, simplified, reviewed, settled — before the next one opens.
 5. **Gate.** On the top layer, invoke `agent-skills:ship` over the whole change, `<trunk>...HEAD`. `GO` with no recommended fix: publish. Otherwise every blocker and every recommended fix is fixed on the layer it belongs to (see Fixing a Lower Layer), and the gate runs once more. That second run decides: `GO` publishes, with any recommended fix it still lists reported to the user alongside the PRs; `NO-GO` goes to the user.
-6. **Publish.** Never a draft, and never `gh pr edit` afterwards: titles come from the plan, bodies from `.claude/specs/<slug>/pr/<branch>.md`.
+6. **Publish.** Never a draft, and never `gh pr edit` afterwards: titles come from the plan, bodies from `<spec-dir>/pr/<branch>.md`.
    - One layer: `git push -u origin HEAD`, then `gh pr create --title "<title>" --body-file <file>`.
    - A stack: `gh stack push`; per layer, bottom-up, `gh pr create --head <branch> --base <base> --title "<title>" --body-file <file>`; `gh stack link <bottom> … <top>`; verify with `gh stack view --json`.
 7. **Watch.** In the same turn, invoke `shepherd`, or `shepherd --stack` for a stack. Report the PRs to the user once its monitor is armed.
@@ -54,7 +54,7 @@ The session decides and orchestrates; a subagent does every piece of work that w
 A layer runs these four steps in order, and the next layer opens only when the last of them is done. Nothing is built on a layer whose review has not settled: every later fix to a lower layer rebases all the layers above it.
 
 1. **Open.** In a stack, `gh stack init <branch>` opens the bottom layer and `gh stack add <branch>` each one above it. A single layer stays on the worktree's branch.
-2. **Build and simplify.** One `layer-builder` agent builds the layer, never two running at once. Brief it with the spec, plan, and task list paths, the layer's branch, title, concern, and tasks, `<base>`, the PR body path, and any `docs-researcher` report already in hand. Every later change to the layer goes back to the same builder, resumed; one that cannot be resumed is replaced by a fresh builder with the same brief, which skips the tasks already ticked.
+2. **Build and simplify.** One `layer-builder` agent builds the layer, never two running at once. Brief it with the spec, plan, and task list paths — absolute, since they sit outside the worktree — the layer's branch, title, concern, and tasks, `<base>`, the PR body path, and any `docs-researcher` report already in hand. Every later change to the layer goes back to the same builder, resumed; one that cannot be resumed is replaced by a fresh builder with the same brief, which skips the tasks already ticked.
 3. **Review.** One `agent-skills:code-reviewer` agent, spawned with model `opus` and effort `xhigh`, reviews the layer in a fresh context. Give it the spec path, the layer's concern and tasks, and the range `<base>...<branch>` — the code, never the builder's account of it. Ask it also to measure the range and to report a layer that is too large, or that holds a second concern.
 4. **Settle.** Act on the review until nothing in it blocks a merge, then tick the layer's checkpoint in the plan. Only then does the next layer open.
 
@@ -98,6 +98,7 @@ No fix goes unreviewed: the layer's reviewer is resumed on the fix commits befor
 ## Resuming
 
 - A plan with nothing ticked was never approved: verify it and present it.
+- A ticked task means the worktree exists: enter the one holding the plan's branches with `EnterWorktree` and its path, never a second one.
 - Otherwise continue, without asking again, at the first layer whose checkpoint is unticked: a fresh `layer-builder` with the layer's brief builds its unticked tasks and simplifies, then the layer is reviewed and settled.
 - Every checkpoint ticked and no PR: Gate.
 - A PR on the branch: `shepherd`, or `shepherd --stack` for a stack.
@@ -137,5 +138,5 @@ Before reporting the run:
 - [ ] The gate's last run returned `GO` on the final state of the top layer, or the user accepted its blockers; recommended fixes it still listed are in the report to the user.
 - [ ] After the last lower-layer fix, the full test suite passed on every layer from that one to the top.
 - [ ] Every PR is open and not a draft, with the plan's title and the body file's text; for a stack, `gh stack view --json` lists every layer with its PR.
-- [ ] Nothing under `.claude/specs/<slug>/` was staged or committed.
+- [ ] No worktree existed before the first layer opened, and nothing under `<spec-dir>` was staged or committed.
 - [ ] `shepherd`'s monitor is armed.
