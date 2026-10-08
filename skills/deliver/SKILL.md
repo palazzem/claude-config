@@ -101,7 +101,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 | Nothing ticked | It was never approved: verify it and present it. |
 | A ticked task | The worktree exists: `EnterWorktree` with the path of the one holding the plan's branches, never a second one. Continue, without asking again, at the first layer whose checkpoint is unticked. |
 | That layer has unticked tasks | A fresh `layer-builder` with the layer's brief builds them and simplifies; the run goes on from Review. |
-| That layer has every task ticked | Run its review: the one case where a review may repeat. |
+| That layer has every task ticked | Run its review — the one case where a review may repeat — and go on from After a Review. |
 | Every checkpoint ticked | With no PR, Publish. With a PR on the branch, Watch. |
 
 ## Common Rationalizations
