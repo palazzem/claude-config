@@ -76,7 +76,7 @@ A review receives three things and nothing else — never a list of things to ch
 | `agent-skills:ship` | Blockers and recommended fixes, each on the layer that owns the code | Acknowledged risks |
 
 1. Check out the layer that owns the code: `gh stack checkout <branch>` when it is below the top.
-2. That layer's builder, resumed with the findings, fixes, tests, and commits.
+2. That layer's builder, resumed with the findings — a fresh one with the layer's brief when it cannot be resumed — fixes, tests, and commits.
 3. Below the top: `gh stack rebase --upstack --no-trunk`, resolving a conflict with the `gh-stack` skill's conflict workflow.
 4. Run the full test suite on the fixed layer and on every layer above it, `gh stack up` from one to the next.
 5. Tick the checkpoint of the layer reviewed. The run moves on.
