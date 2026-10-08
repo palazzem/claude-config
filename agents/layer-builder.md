@@ -48,4 +48,4 @@ Before returning, confirm:
 - [ ] Each task built has its own commit and a test that failed before it
 - [ ] The full test suite and the build passed after the last commit, and Verification quotes their result lines
 - [ ] Size and Commits are command output, not recollection
-- [ ] `git status --porcelain` shows nothing but artifacts
+- [ ] `git status --porcelain` shows nothing

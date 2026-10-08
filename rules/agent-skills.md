@@ -4,15 +4,17 @@ The `agent-skills` plugin supplies the process; `CLAUDE.md` supplies the bar. Th
 
 ## Artifact paths
 
-`<slug>` is the name of the worktree the session runs in: the last component of its path. Every process artifact lives under `.claude/specs/<slug>/` inside that worktree and is never staged, committed, or included in a PR.
+`<spec-dir>` is `.claude/specs/<name>/` in the main checkout, `<name>` a kebab-case name for the change. Every process artifact lives there, is written without a worktree, and is never staged, committed, or included in a PR unless the user asks.
 
-- Spec → `.claude/specs/<slug>/spec.md`. Replaces `SPEC.md` at the repository root wherever `/spec`, `/plan`, `/build`, or `/build auto` names it. Module specs from a capability map sit alongside it as `.claude/specs/<slug>/spec-<module>.md`.
-- Plan → `.claude/specs/<slug>/plan.md`. Replaces `tasks/plan.md`.
-- Task list → `.claude/specs/<slug>/todo.md`. Replaces `tasks/todo.md` as the task list target.
-- PR body → `.claude/specs/<slug>/pr/<branch>.md`, one per layer, written when the layer is built.
+- Spec → `<spec-dir>/spec.md`. Replaces `SPEC.md` at the repository root wherever `/spec`, `/plan`, `/build`, or `/build auto` names it. Module specs from a capability map sit alongside it as `<spec-dir>/spec-<module>.md`.
+- Plan → `<spec-dir>/plan.md`. Replaces `tasks/plan.md`.
+- Task list → `<spec-dir>/todo.md`. Replaces `tasks/todo.md` as the task list target.
+- PR body → `<spec-dir>/pr/<branch>.md`, one per layer, written when the layer is built.
 - `tasks/` is never created or written by these commands; in `~/.claude` it is Claude Code's own state directory.
 
-The check for an existing incomplete plan looks only at `.claude/specs/<slug>/`.
+`/plan`, `/build`, `/build auto`, and `deliver` take the spec path as their argument; `<spec-dir>` is its directory. Without one, stop and ask for it.
+
+The check for an existing incomplete plan looks only at `<spec-dir>`.
 
 ## Layers
 
@@ -28,14 +30,14 @@ A layer holds one concern:
 Each layer in the plan names its branch, its conventional-commit title, its concern in one sentence, and the layer it builds on. It carries no size estimate: the size of a change is not knowable before the code exists, so the planner cuts by concern and the builder cuts again.
 
 - A plan with more than one layer always ships as a `gh-stack` stack, bottom first in dependency order — never one branch carrying several concerns. A single layer ships from the worktree's own branch.
-- `/build` and `/build auto` commit each task on its layer's branch. In a stack, `gh stack init <branch>` opens the bottom layer and `gh stack add <branch>` each layer above it, before that layer's first task.
+- `/build` and `/build auto` enter a fresh worktree before the first layer's first task, never earlier, and commit each task on its layer's branch. In a stack, `gh stack init <branch>` opens the bottom layer and `gh stack add <branch>` each layer above it, before that layer's first task.
 - Whoever builds a layer measures it at every task boundary with `git diff --stat <base>...HEAD`, `<base>` being the branch the layer builds on, and ends the layer there when the next task is a second concern, or when the layer has passed about 300 changed lines — generated files and lockfiles aside — with tasks still to build. The tasks left become a new layer directly above, and the plan is updated to match.
 - A review that still finds a layer too large, or holding two concerns, goes to the user: an oversized PR is an exception.
 
 ## `/build auto`
 
-- The spec requirement is satisfied by `.claude/specs/<slug>/spec.md`. `SPEC.md`, `docs/SPEC.md`, and `spec/` are not consulted; when the file is missing, stop and tell the user to run `/spec`.
-- The clean-baseline check treats uncommitted files under `.claude/specs/<slug>/` as the expected planning artifacts; anything else uncommitted stops the run.
+- The spec requirement is satisfied by the spec path given. `SPEC.md`, `docs/SPEC.md`, and `spec/` are not consulted; when the file is missing, stop and tell the user to run `/spec`.
+- The clean-baseline check runs in the worktree; anything uncommitted there stops the run.
 - The plan is not committed before the first task: artifacts never enter a PR.
 
 ## Models and effort
@@ -52,9 +54,9 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 - Citations go in the conversation and the PR body, never in code comments.
 - A research request from the user uses the same agent and brief, without the skill.
 
-## Other slugs
+## Other specs
 
-`.claude/specs/<other-slug>/` is another agent's work in flight. Never read, overwrite, or delete it, and never count it when checking for an existing plan.
+A directory under `.claude/specs/` other than `<spec-dir>` is other work in flight. Never read, overwrite, or delete it, and never count it when checking for an existing plan.
 
 ## Published PRs
 
