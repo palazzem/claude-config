@@ -38,7 +38,7 @@ The session orchestrates: it holds the spec, the plan, and the reports, and neve
    2. **Build and simplify.** One `layer-builder` agent per layer, never two at once. Brief it with the layer's branch, title, concern, tasks, and `<base>`; the spec, plan, task list, and PR body paths, all in `<spec-dir>`; and any `docs-researcher` report in hand. It builds, simplifies, and reports `DONE`, `SPLIT`, or `BLOCKED` (see Off the Straight Run).
    3. **Review.** One review, chosen by the layer's position (see Reviews).
    4. **Fix and tick.** See After a Review.
-5. **Publish.** Never a draft, and never `gh pr edit` afterwards: `<title>` comes from the plan, `<body>` is `<spec-dir>/pr/<branch>.md`. The commands are in One Layer or Several.
+5. **Publish.** Never a draft: `<title>` comes from the plan, `<body>` is `<spec-dir>/pr/<branch>.md`. The commands are in One Layer or Several.
 6. **Watch.** In the same turn, invoke `shepherd` as One Layer or Several says.
 7. **Hand back.** Once the monitor is armed, report to the user: the PRs; the `agent-skills:ship` decision as returned; what was fixed after it; the commits made after it, which no reviewer saw; any recommended fix not made, and why; any layer added after it.
 
@@ -128,7 +128,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 - A review brief holding anything beyond the range, the two paths with the layer's heading, and the read-only line.
 - A reviewer resumed, a review command invoked twice on one layer, or `agent-skills:review` on the last layer.
 - A range ending in `HEAD` or starting at the local trunk.
-- `--draft`; `gh stack submit` for a layer of more than one commit; `gh pr edit` to repair a title or a body.
+- `--draft`; `gh stack submit` for a layer of more than one commit.
 - The PRs reported before `shepherd`'s monitor is armed, or a hand-back without the commits made after `agent-skills:ship`.
 
 ## Verification
