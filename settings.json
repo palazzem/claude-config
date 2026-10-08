@@ -54,7 +54,7 @@
   "skipWorkflowUsageWarning": true,
   "verbose": false,
   "switchModelsOnFlag": false,
-  "autoContinueAtUsageLimit": false,
+  "autoContinueAtUsageLimit": true,
   "remoteControlAtStartup": false,
   "crossSessionInbound": "refuse",
   "inputNeededNotifEnabled": true,
