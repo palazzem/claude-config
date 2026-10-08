@@ -55,3 +55,20 @@ A review receives three things and nothing else — never a list of things to ch
 1. The range.
 2. The spec path and the plan path, absolute; for `agent-skills:review`, also the layer's heading in the plan.
 3. This line: "The review is read-only: no edits, commits, branch switches, or pushes."
+
+## After a Review
+
+**Each review runs once.** This is deliberate: a human reviews every PR. No reviewer is resumed and no review command is invoked a second time, also after fixes; Resuming holds the one exception. To restore a re-check after fixes, change this rule and nothing else.
+
+| After | Fix | Leave |
+|---|---|---|
+| `agent-skills:review` | Critical and Required findings (`/review` names the second tier Important) | Optional, Nit, Suggestion |
+| `agent-skills:ship` | Blockers and recommended fixes, each on the layer that owns the code | Acknowledged risks |
+
+1. Check out the layer that owns the code: `gh stack checkout <branch>` when it is below the top.
+2. That layer's builder, resumed with the findings, fixes, tests, and commits.
+3. Below the top: `gh stack rebase --upstack --no-trunk`, resolving a conflict with the `gh-stack` skill's conflict workflow.
+4. Run the full test suite on the fixed layer and on every layer above it, `gh stack up` from one to the next.
+5. Tick the checkpoint of the layer reviewed. The run moves on.
+
+Stop for the user on a layer the review reports as too large or as holding two concerns, and on a finding the builder disputes or cannot fix. A `NO-GO` alone is not a stop: its findings are fixed and the PRs are published.
