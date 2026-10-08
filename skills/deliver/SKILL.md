@@ -25,7 +25,7 @@ One workflow takes a spec to pull requests under watch, whatever the number of l
 | `<top>` | The branch of the last layer. |
 | Last layer | The top layer of the plan when its build ends with `DONE`. |
 
-## The Run
+## Workflow
 
 The session orchestrates: it holds the spec, the plan, and the reports, and never writes the plan or code.
 
