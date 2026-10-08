@@ -24,3 +24,19 @@ One workflow takes a spec to pull requests under watch, whatever the number of l
 | `<base>` | The branch a layer builds on: the layer below, or `origin/<trunk>` for the bottom layer. |
 | `<top>` | The branch of the last layer. |
 | Last layer | The top layer of the plan when its build ends with `DONE`. |
+
+## The Run
+
+The session orchestrates: it holds the spec, the plan, and the reports, and never writes the plan or code.
+
+1. **Spec.** Stop without a spec path, or with no file there. The spec, the plan, and the approval need no worktree.
+2. **Plan.** Invoke `agent-skills:planning-and-task-breakdown`. A `planner` agent, briefed with the absolute spec, plan, and task list paths, writes the plan. Verify it against the spec — every requirement is met by a task, and no task does work the spec does not ask for — and send what fails back to the same agent, resumed.
+3. **Approval.** Present every layer with its title, concern, and tasks, and wait for an unambiguous yes. This is the run's only approval.
+4. **Layers.** Bottom first, one at a time: a layer opens only when the checkpoint of the one below is ticked.
+   1. **Open.** Before the first layer, and never earlier, `EnterWorktree`: the run's only worktree. Open the layer's branch as One Layer or Several says.
+   2. **Build and simplify.** One `layer-builder` agent per layer, never two at once. Brief it with the layer's branch, title, concern, tasks, and `<base>`; the spec, plan, task list, and PR body paths, absolute; and any `docs-researcher` report in hand. It builds, simplifies, and reports `DONE`, `SPLIT`, or `BLOCKED` (see Off the Straight Run).
+   3. **Review.** One review, chosen by the layer's position (see Reviews).
+   4. **Fix and tick.** See After a Review.
+5. **Publish.** See One Layer or Several.
+6. **Watch.** See One Layer or Several.
+7. **Hand back.** Report the PRs to the user.
