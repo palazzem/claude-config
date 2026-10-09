@@ -60,4 +60,4 @@ A directory under `.claude/specs/` other than `<spec-dir>` is other work queued;
 
 ## Published PRs
 
-A PR the session publishes is not the end of a command; the merge is. In the same turn as `gh pr create` or `gh pr ready`, invoke the `shepherd` skill; in the same turn as `gh stack submit` or `gh stack link`, invoke `shepherd --stack`. Report the PR to the user only once shepherd's monitor is armed. A draft is still in flight: it is shepherded when `gh pr ready` hands it over.
+A PR the session publishes is not the end of a command; the merge is. In the same turn as `gh pr create`, `gh pr ready`, `gh stack submit`, or `gh stack link`, invoke the `shepherd` skill. Report the PR to the user only once shepherd's monitor is armed. A draft is still in flight: it is shepherded when `gh pr ready` hands it over.
