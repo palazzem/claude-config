@@ -41,6 +41,8 @@ Every event line carries `pr`, the number of the layer it happened on, and one w
 
 `gh stack view --json` tells a stack from a plain PR: it exits 2 in a checkout that tracks no stack. A watermark with more than one entry while it exits 2 names a stack this checkout cannot rebase or push: stop and report.
 
+The watch covers the stack as GitHub reports it, which can be less than the checkout tracks — PRs never linked, or unstacked on GitHub. When it exits 0, `gh stack view --json | jq -r '.branches[] | select(.pr.state == "OPEN") | .pr.number'` lists the open layers of the local stack. One that is neither in the watermark nor on a terminal line of this wake is a layer the watch does not cover: stop and report. Check it before the first arm and again before the cleanup at `{}`.
+
 **A change** — for a comment, a review, or a failed check — lands on the layer the event names:
 
 1. `git switch` to that PR's branch: `gh pr view <pr> --json headRefName -q .headRefName`.
@@ -91,7 +93,7 @@ Report first, cleanup second — always both. Cleanup ignores every failure, so 
 3. The printed watermark still holds a layer — the watch goes on, and steps 4–5 wait:
    - `CLOSED`: stop for the user. Clean nothing, arm nothing.
    - `MERGED`: `gh stack sync --prune` — rebases the remaining layers onto the merged trunk, pushes them, deletes the merged local branch, moves the checkout to the new bottom. It also settles a `BEHIND` or `DIRTY` printed for an upper layer in the same wake; on a conflict, as under Drift. Then `git push origin --delete <branch>` (GitHub may already have), the wake's other lines, and a re-arm with the printed watermark — never a new `baseline`.
-4. The printed watermark is `{}` — once, after the last layer: clean up without confirmation — the PR is the record, the worktree is not. If the checkout is a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`): `ExitWorktree(action: "remove", discard_changes: true)`, then from the main checkout `git worktree remove --force <worktree>`. Then `git branch -D <branch>` for each layer of this wake. MERGED: `git push origin --delete <branch>` (GitHub may already have). CLOSED unmerged: the remote branch stays — pushed work is recoverable and the PR can be reopened.
+4. The printed watermark is `{}` — once, after the last layer. First the open-layer check under Handling a wake: a layer the watch never covered stops the run here, with nothing cleaned. Then clean up without confirmation — the PR is the record, the worktree is not. If the checkout is a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`): `ExitWorktree(action: "remove", discard_changes: true)`, then from the main checkout `git worktree remove --force <worktree>`. Then `git branch -D <branch>` for each layer of this wake. MERGED: `git push origin --delete <branch>` (GitHub may already have). CLOSED unmerged: the remote branch stays — pushed work is recoverable and the PR can be reopened.
 5. Once the worktree is deleted, sync the main checkout. Any layer of the watch `MERGED`, whatever the last terminal was: `git pull -p` on the default branch, `git fetch --prune` on any other branch (say so — never pull into a branch the user has checked out). No layer merged: `git fetch --prune`. A pull the working tree refuses: report it, don't stash.
 
 ## Common Rationalizations
@@ -124,6 +126,7 @@ Report first, cleanup second — always both. Cleanup ignores every failure, so 
 - A push without a CI check after it.
 - Worktree removal or branch deletion output before the summary.
 - Worktree removal, a main-checkout sync, or a hand rebase after a merge, while the printed watermark still holds a layer.
+- Cleanup at `{}` while `gh stack view --json` lists an open layer the watch never covered.
 
 ## Verification
 
