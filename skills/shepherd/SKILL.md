@@ -29,11 +29,11 @@ The loop, from Watch entry until a terminal event:
 ### Commands
 
 ```bash
-watch-pr.sh baseline <number>              # once per PR: everything standing, then the watermark
-watch-pr.sh watch <number> '<watermark>'   # the monitor: the first events past the watermark, then the watermark of that pass
+watch-pr.sh baseline <number>     # once per PR: everything standing, then the watermark
+watch-pr.sh watch '<watermark>'   # the monitor: the first events past the watermark, then the watermark of that pass
 ```
 
-The watermark is one JSON line, `{"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…}`: the newest `updatedAt` per activity surface, the merge state, the CI state, the PR state. Activity newer than it fires; drift and CI fire when they differ from it, so a state already handled stays quiet until it changes.
+The watermark is one JSON line and the whole state of the watch, so `watch` takes it alone: `{"<number>":{"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…}}`, one entry per open PR keyed by its number — the newest `updatedAt` per activity surface, the merge state, the CI state, the PR state. Activity newer than a PR's entry fires; drift and CI fire when they differ from it, so a state already handled stays quiet until it changes. A PR that reached its terminal has no entry: `{}` is the watermark when none is open, and it is never armed.
 
 Every event line carries `pr`, the number of the PR it happened on.
 
