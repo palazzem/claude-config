@@ -37,9 +37,10 @@
 # reached a terminal prints that event once and is left out of the watermark,
 # while the other layers' events print in the same pass; nothing else takes a
 # layer out.
-# Event lines print grouped by layer, bottom first by position in the stack, in
-# the order above within a layer. {} is the watermark of a watch that is over,
-# and watch refuses it.
+# Event lines print grouped by layer, bottom first by position in the stack.
+# Within a layer: the terminal alone, or else drift, then CI_FAILED, then
+# COMMENT, REVIEW, and THREAD_REPLY lines. {} is the watermark of a watch that
+# is over, and watch refuses it.
 #
 # Never fires: marked bodies (first line <!-- claude -->, leading whitespace
 # ignored); body-less COMMENTED reviews — GitHub wraps every API thread reply in
