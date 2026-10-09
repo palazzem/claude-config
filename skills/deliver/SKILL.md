@@ -39,7 +39,7 @@ The session orchestrates: it holds the spec, the plan, and the reports, and neve
    3. **Review.** One review, chosen by the layer's position (see Reviews).
    4. **Fix and tick.** See After a Review.
 5. **Publish.** Never a draft: `<title>` comes from the plan, `<body>` is `<spec-dir>/pr/<branch>.md`. The commands are in One Layer or Several.
-6. **Watch.** In the same turn, invoke `shepherd` as One Layer or Several says.
+6. **Watch.** In the same turn, invoke `shepherd`: one watch covers every layer published.
 7. **Hand back.** Once the monitor is armed, report to the user: the PRs; the `agent-skills:ship` decision as returned; what was fixed after it; the commits made after it, which no reviewer saw; any recommended fix not made, and why; any layer added after it.
 
 ## One Layer or Several
@@ -50,7 +50,6 @@ A stack of one is a stack in concept, but `gh-stack` needs two layers. This tabl
 |---|---|---|
 | Open | The worktree's branch is the layer. | `gh stack init <branch>` for the bottom layer, `gh stack add <branch>` for each one above. When one layer becomes two — its builder reports `SPLIT` — `gh stack init <branch>` first adopts the worktree's branch as the bottom layer. |
 | Publish | `git push -u origin <branch>`, then `gh pr create --base <trunk> --title "<title>" --body-file <body>`. | `gh stack push`; per layer, bottom-up, `gh pr create --head <branch> --base <below> --title "<title>" --body-file <body>`, `<below>` being the layer below, or `<trunk>` for the bottom layer; `gh stack link <bottom> … <top>`; verify with `gh stack view --json`. |
-| Watch | `shepherd` | `shepherd --stack` |
 
 ## Reviews
 
