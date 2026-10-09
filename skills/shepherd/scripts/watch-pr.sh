@@ -38,8 +38,9 @@
 # One GraphQL request per pass (query.graphql) reads every surface; watermark
 # and events come from the same response, and nothing prints unless the whole
 # response parsed, so a pass is never partial. The read covers the last 50
-# comments, reviews, and threads (20 comments each) and 100 checks. The filters
-# live in jq/.
+# comments, reviews, and threads (20 comments each) and 100 checks. jq/pass.jq
+# is the pass — one run of it yields every line — over the definitions in
+# jq/lib.jq.
 #
 # Exit codes: 0 printed (baseline: read complete; watch: events); 1 read
 # failed (baseline) or MAX_FAILURES consecutive failed reads (watch);
@@ -71,48 +72,25 @@ fetch() {
   gh api graphql -F owner='{owner}' -F name='{repo}' -F pr="$pr" -F head="refs/pull/$pr/head" -f query="$(cat "$DIR/query.graphql")" \
     | jq -e '.data.repository.pullRequest | select(. != null)'
 }
-filter() {
-  jq -L "$DIR/jq" --arg epoch "$EPOCH" --arg marker "$MARKER" "$@"
-}
-event() { printf '{"event":"%s"}\n' "$1"; }
 
-# One pass over a response: the terminal event alone, or drift and CI that
-# differ from last_merge/last_ci plus activity newer than b_comment, b_review
-# and b_reply. Leaves the event lines in out, the pass watermark in wm, and the
-# observed states in last_merge/last_ci. Fails when the response did not parse.
+# One pass over a response, left in out: the event lines, then the watermark.
+# Activity fires when newer than armed, drift and CI when they differ from last.
+# Fails when the response did not parse.
 pass() {
-  local parsed events state merge ci
-  parsed=$(filter -r -f "$DIR/jq/pass.jq" <<<"$1") || return 1
-  events=$(filter -c --arg comment "$b_comment" --arg review "$b_review" --arg reply "$b_reply" -f "$DIR/jq/events.jq" <<<"$1") || return 1
-  wm=$(filter -c -f "$DIR/jq/baseline.jq" <<<"$1") || return 1
-  read -r state merge ci <<<"$parsed"
-  out=""
-  if [[ "$state" == "MERGED" || "$state" == "CLOSED" ]]; then
-    out="$(event "$state")"$'\n'
-  else
-    if [[ "$merge" == "BEHIND" || "$merge" == "DIRTY" ]] && [[ "$merge" != "$last_merge" ]]; then
-      out+="$(event "$merge")"$'\n'
-    fi
-    if [[ "$ci" == "FAILED" && "$ci" != "$last_ci" ]]; then
-      out+="$(event CI_FAILED)"$'\n'
-    fi
-    if [[ -n "$events" ]]; then
-      out+="$events"$'\n'
-    fi
-  fi
-  last_merge=$merge
-  last_ci=$ci
+  out=$(jq -c -L "$DIR/jq" --arg epoch "$EPOCH" --arg marker "$MARKER" \
+    --argjson armed "$armed" --argjson last "$last" -f "$DIR/jq/pass.jq" <<<"$1")
 }
 
 case "$cmd" in
   baseline)
     [[ $# -eq 2 ]] || usage
-    b_comment=$EPOCH; b_review=$EPOCH; b_reply=$EPOCH; last_merge=""; last_ci=""
+    armed='{}'
+    last='{}'
     if ! { p=$(fetch) && pass "$p"; }; then
       echo "watch-pr: read failed; run it again" >&2
       exit 1
     fi
-    printf '%s%s\n' "$out" "$wm"
+    printf '%s\n' "$out"
     exit 0
     ;;
   watch)
@@ -124,11 +102,12 @@ case "$cmd" in
     ;;
 esac
 
-parsed=$(jq -er '"\(.comment|strings) \(.review|strings) \(.reply|strings) \(.merge|strings) \(.ci|strings)"' <<<"$3" 2>/dev/null) || {
+jq -e '[.comment, .review, .reply, .merge, .ci] | all(type == "string")' <<<"$3" >/dev/null 2>&1 || {
   echo "watch-pr: malformed watermark: $3" >&2
   exit 2
 }
-read -r b_comment b_review b_reply last_merge last_ci <<<"$parsed"
+armed=$3
+last=$3
 echo "watch-pr: pr=$pr watermark=$3" >&2
 
 failures=0
@@ -145,9 +124,10 @@ while :; do
     sleep "$INTERVAL"
     continue
   fi
-  if [[ -n "$out" ]]; then
-    printf '%s%s\n' "$out" "$wm"
+  if [[ "$out" == *$'\n'* ]]; then
+    printf '%s\n' "$out"
     exit 0
   fi
+  last=$out
   sleep "$INTERVAL"
 done

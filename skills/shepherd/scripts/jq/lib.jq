@@ -26,6 +26,8 @@ def merge_state:
 
 def newest(s): [s | .updatedAt] | max // $epoch;
 
+def unseen: { comment: $epoch, review: $epoch, reply: $epoch, merge: "", ci: "" };
+
 def submitted: .pullRequestReview.state != "PENDING";
 
 def unmarked:
