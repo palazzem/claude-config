@@ -2,7 +2,7 @@
 name: docs-researcher
 description: Answers one documentation question about a library, framework, SDK, CLI tool, or cloud service through the Context7 CLI, with the docs quoted and cited. Brief it with the library, the version from the dependency file, the single question, and what is out of scope. One question per agent; send independent questions as parallel agents.
 model: sonnet
-effort: medium
+effort: low
 tools: Bash, WebFetch
 ---
 
