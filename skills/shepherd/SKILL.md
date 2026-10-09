@@ -47,7 +47,7 @@ The watch covers the stack as GitHub reports it, which can be less than the chec
 
 1. `git switch` to that layer's branch, read from the local stack, never from the PR: `gh stack view --json | jq -r --argjson pr <pr> '.branches[] | select(.pr.number == $pr) | .name'`. No line: the event names a PR this checkout does not track — stop and report. A plain PR: the branch the watch was started on.
 2. Fix and commit there.
-3. `gh stack rebase --upstack`, so the layers above follow, then `gh stack push`. A plain PR: `git push`.
+3. `gh stack rebase --upstack --no-trunk`, so the layers above follow and trunk stays out of it — a moved trunk is Drift's — then `gh stack push`. On a conflict (exit 3): resolve, `gh stack rebase --continue`, then push. A plain PR: `git push`.
 4. Check CI on every layer pushed — the layer changed and each one above it in `gh stack view --json`: `gh pr checks <number> --watch`.
 5. Reply in-thread (see Posting).
 
