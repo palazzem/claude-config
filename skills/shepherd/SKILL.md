@@ -73,10 +73,12 @@ You and the session share one GitHub account, so the watcher cannot tell the rev
 
 ## Terminal
 
+A `MERGED` or `CLOSED` line is the terminal of the layer it names, and the watermark printed with it says whether the watch goes on: an entry left is a layer still open, `{}` is the end. Merge order is bottom first and the human's — a layer cannot merge before the ones under it, and the session never merges one to unblock another.
+
 Report first, cleanup second — always both. Cleanup ignores every failure, so a run whose summary waits on it can end unreported.
 
-1. One `gh pr view` — the only PR read after the fire — for the summary's facts and to confirm the state the watcher printed. A state that contradicts the watcher: print both, stop for the user, clean nothing.
-2. Print the summary in the session — never posted, committed, or saved — all sections present, `none` where empty:
+1. One `gh pr view <pr>` per terminal line — the only PR read after the fire — for the summary's facts and to confirm the state the watcher printed. A state that contradicts the watcher: print both, stop for the user, clean nothing.
+2. Print the summary for that layer in the session — never posted, committed, or saved — all sections present, `none` where empty:
 
 ```markdown
 **PR #<n> <title> — <MERGED | CLOSED>**
@@ -86,31 +88,11 @@ Report first, cleanup second — always both. Cleanup ignores every failure, so 
 - **Open:** _threads or questions left unresolved at the terminal_
 ```
 
-3. Clean up without confirmation — the PR is the record, the worktree is not. If the checkout is a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`): `ExitWorktree(action: "remove", discard_changes: true)`, then from the main checkout `git worktree remove --force <worktree>`. Then `git branch -D <branch>`. MERGED: `git push origin --delete <branch>` (GitHub may already have). CLOSED unmerged: the remote branch stays — pushed work is recoverable and the PR can be reopened.
-4. Once the PR is `MERGED` and the worktree is deleted, sync the main checkout: `git pull -p` on the default branch, `git fetch --prune` on any other branch (say so — never pull into a branch the user has checked out). `CLOSED`: `git fetch --prune`. A pull the working tree refuses: report it, don't stash.
-
-## Stacked PRs
-
-`--stack`: the PR is a layer of a `gh-stack` stack. Everything above applies to one layer at a time — the bottom open one, since the top cannot merge before the layers under it. Added steps:
-
-**Subject** — on entry, and again after every layer's terminal:
-
-1. `gh stack view --json | jq -r 'first(.branches[] | select(.pr.state == "OPEN")) | "\(.name) \(.pr.number)"'`. Exit 2 (not a stack) or no line (no open layer): stop and report.
-2. `git switch <name>` — fixes land on the layer under review.
-3. Watch that PR: it is a new PR, so `baseline` again.
-
-**Drift** — `BEHIND` or `DIRTY` on the subject:
-
-1. `gh stack sync` in place of a hand rebase, so the layers above follow.
-2. On a conflict: `gh stack rebase`, resolve, `gh stack rebase --continue`, `gh stack push`.
-
-**Terminal of a layer** — `MERGED` while `gh stack view --json` still lists an `OPEN` layer; Terminal steps 1–2 as usual, then in place of steps 3–4:
-
-1. `gh stack sync --prune` — rebases the remaining layers onto the merged trunk, pushes them, deletes the merged local branch, moves the checkout to the new bottom. On a conflict: as under Drift.
-2. `git push origin --delete <branch>` (GitHub may already have).
-3. Subject again.
-
-Terminal steps 3–4 — worktree removal, main-checkout sync — run once, after the last layer. `CLOSED` while a layer is still open: summary, then stop for the user; clean nothing.
+3. The printed watermark still holds a layer — the watch goes on, and steps 4–5 wait:
+   - `CLOSED`: stop for the user. Clean nothing, arm nothing.
+   - `MERGED`: `gh stack sync --prune` — rebases the remaining layers onto the merged trunk, pushes them, deletes the merged local branch, moves the checkout to the new bottom. It also settles a `BEHIND` or `DIRTY` printed for an upper layer in the same wake; on a conflict, as under Drift. Then `git push origin --delete <branch>` (GitHub may already have), the wake's other lines, and a re-arm with the printed watermark — never a new `baseline`.
+4. The printed watermark is `{}` — once, after the last layer: clean up without confirmation — the PR is the record, the worktree is not. If the checkout is a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`): `ExitWorktree(action: "remove", discard_changes: true)`, then from the main checkout `git worktree remove --force <worktree>`. Then `git branch -D <branch>` for each layer of this wake. MERGED: `git push origin --delete <branch>` (GitHub may already have). CLOSED unmerged: the remote branch stays — pushed work is recoverable and the PR can be reopened.
+5. Once the worktree is deleted, sync the main checkout. Any layer of the watch `MERGED`, whatever the last terminal was: `git pull -p` on the default branch, `git fetch --prune` on any other branch (say so — never pull into a branch the user has checked out). No layer merged: `git fetch --prune`. A pull the working tree refuses: report it, don't stash.
 
 ## Common Rationalizations
 
