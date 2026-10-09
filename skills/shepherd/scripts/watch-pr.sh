@@ -130,7 +130,7 @@ pass() {
 
 case "$1" in
   baseline)
-    [[ "$2" =~ ^[0-9]+$ ]] || { echo "watch-pr: <number> must be the PR number" >&2; exit 2; }
+    [[ "$2" =~ ^[1-9][0-9]*$ ]] || { echo "watch-pr: <number> must be the PR number" >&2; exit 2; }
     armed='{}'
     last="{\"$2\":{}}"
     if ! pass; then
