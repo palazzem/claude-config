@@ -1,4 +1,5 @@
 fragment pr on PullRequest {
+  number
   state
   mergeStateStatus
   comments(last: 50) { nodes { url updatedAt body authorAssociation author { login } } }

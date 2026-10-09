@@ -20,12 +20,14 @@ def watermark:
     state:   .state };
 
 def events($armed; $last):
-  watermark as $now
+  .number as $pr
+  | watermark as $now
   | if $now.state | IN("MERGED", "CLOSED") then { event: $now.state }
     else
       ($now.merge | select(IN("BEHIND", "DIRTY") and . != $last.merge) | { event: . }),
       ($now.ci | select(. == "FAILED" and . != $last.ci) | { event: "CI_FAILED" }),
       activity($armed.comment; $armed.review; $armed.reply)
-    end;
+    end
+  | { event, pr: $pr } + .;
 
 .[] | (events(unseen + $armed; unseen + $last), watermark)

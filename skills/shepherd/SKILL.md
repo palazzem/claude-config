@@ -35,9 +35,11 @@ watch-pr.sh watch <number> '<watermark>'   # the monitor: the first events past 
 
 The watermark is one JSON line, `{"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…}`: the newest `updatedAt` per activity surface, the merge state, the CI state, the PR state. Activity newer than it fires; drift and CI fire when they differ from it, so a state already handled stays quiet until it changes.
 
+Every event line carries `pr`, the number of the PR it happened on.
+
 | Event | Meaning | The session |
 |---|---|---|
-| `COMMENT`, `REVIEW`, `THREAD_REPLY` | Unmarked human activity; carries `url`, `login`, `assoc`, and for reviews `state` (a body-less approval is a `REVIEW` too) | Reads it at its `url`, fixes or answers, pushes, checks CI (`gh pr checks <number> --watch`), replies in-thread (see Posting), re-arms. A design question it cannot settle from the PR goes to the user — guessing burns a review round on the wrong fix. |
+| `COMMENT`, `REVIEW`, `THREAD_REPLY` | Unmarked human activity; carries `pr`, `url`, `login`, `assoc`, and for reviews `state` (a body-less approval is a `REVIEW` too) | Reads it at its `url`, fixes or answers, pushes, checks CI (`gh pr checks <number> --watch`), replies in-thread (see Posting), re-arms. A design question it cannot settle from the PR goes to the user — guessing burns a review round on the wrong fix. |
 | `BEHIND`, `DIRTY` | Base moved / conflicts | Rebases onto the base branch, resolves conflicts, pushes, checks CI, re-arms. |
 | `CI_FAILED` | A check on the PR head failed or was cancelled | Reads the failing check (`gh pr checks <number>`), fixes and pushes — or re-runs it when the failure is plainly infrastructure — checks CI, re-arms. A failure it cannot attribute goes to the user. |
 | `MERGED`, `CLOSED` | Terminal | Terminal — nothing else follows. |

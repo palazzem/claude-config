@@ -13,15 +13,16 @@
 # <number> is the PR number; the repository is the current checkout (or GH_REPO).
 #
 # Every line is one JSON object on stdout; the last line is always the
-# watermark, every other line an event that wakes the session:
-#   {"event":"COMMENT","url":…,"login":…,"assoc":…,"at":…}          unmarked PR conversation comment
-#   {"event":"REVIEW","url":…,"login":…,"assoc":…,"at":…,"state":…}  unmarked submitted review, body-less approvals included
-#   {"event":"THREAD_REPLY","url":…,"login":…,"assoc":…,"at":…}     unmarked review-thread comment
-#   {"event":"MERGED"} | {"event":"CLOSED"}                           the PR reached a terminal; no other event prints for that pass
-#   {"event":"BEHIND"} | {"event":"DIRTY"}                            merge readiness drifted (base moved / conflicts)
-#   {"event":"CI_FAILED"}                                             a check on the PR head failed or was cancelled
-#   {"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…}    the watermark: newest updatedAt per activity
-#                                                                     surface, merge state, CI state, PR state
+# watermark, every other line an event that wakes the session. Every event
+# carries pr, the number of the PR it happened on:
+#   {"event":"COMMENT","pr":…,"url":…,"login":…,"assoc":…,"at":…}          unmarked PR conversation comment
+#   {"event":"REVIEW","pr":…,"url":…,"login":…,"assoc":…,"at":…,"state":…}  unmarked submitted review, body-less approvals included
+#   {"event":"THREAD_REPLY","pr":…,"url":…,"login":…,"assoc":…,"at":…}     unmarked review-thread comment
+#   {"event":"MERGED","pr":…} | {"event":"CLOSED","pr":…}                    the PR reached a terminal; no other event prints for that pass
+#   {"event":"BEHIND","pr":…} | {"event":"DIRTY","pr":…}                     merge readiness drifted (base moved / conflicts)
+#   {"event":"CI_FAILED","pr":…}                                             a check on the PR head failed or was cancelled
+#   {"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…}           the watermark: newest updatedAt per activity
+#                                                                            surface, merge state, CI state, PR state
 #
 # Never fires: marked bodies (first line <!-- claude -->, leading whitespace
 # ignored); body-less COMMENTED reviews — GitHub wraps every API thread reply in
