@@ -23,18 +23,21 @@ def terminal: .state | IN("MERGED", "CLOSED");
 
 def events($armed; $last):
   .number as $pr
-  | watermark as $now
   | if terminal then { event: .state }
     else
-      ($now.merge | select(IN("BEHIND", "DIRTY") and . != $last.merge) | { event: . }),
-      ($now.ci | select(. == "FAILED" and . != $last.ci) | { event: "CI_FAILED" }),
+      (merge_state | select(IN("BEHIND", "DIRTY") and . != $last.merge) | { event: . }),
+      (ci_state | select(. == "FAILED" and . != $last.ci) | { event: "CI_FAILED" }),
       activity($armed.comment; $armed.review; $armed.reply)
     end
   | { event, pr: $pr } + .;
 
+def unseen: { comment: $epoch, review: $epoch, reply: $epoch, merge: "", ci: "" };
+
 def entry($w): unseen + ($w[.number | tostring] // {});
 
-def position: .number as $pr | first(.stack.entries.nodes[]? | select(.pullRequest.number == $pr) | .position) // 0;
+def position:
+  .number as $pr
+  | first(.stack.entries.nodes[]? | select(.pullRequest.number == $pr) | .position) // 0;
 
 [.[]] | sort_by(position, .number)
 | (.[] | events(entry($armed); entry($last))),
