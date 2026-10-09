@@ -44,7 +44,7 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 - `/plan` writes the plan in the `planner` agent, never inline.
 - `/review` runs in an `agent-skills:code-reviewer` agent, never inline.
-- `agent-skills:code-reviewer`, `agent-skills:security-auditor`, `agent-skills:test-engineer`, and `agent-skills:web-performance-auditor` are spawned with model `opus` and effort `xhigh`.
+- `agent-skills:code-reviewer`, `agent-skills:security-auditor`, `agent-skills:test-engineer`, and `agent-skills:web-performance-auditor` are spawned with model `opus` and effort `high`.
 
 ## `source-driven-development`
 
