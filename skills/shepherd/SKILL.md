@@ -55,7 +55,8 @@ The watch covers the stack as GitHub reports it, which can be less than the chec
 
 1. `gh stack sync` in place of a hand rebase: it rebases every layer and pushes them. A plain PR: rebase onto the base branch, resolve conflicts, `git push --force-with-lease`.
 2. On a conflict: `gh stack rebase`, resolve, `gh stack rebase --continue`, `gh stack push`.
-3. Check CI on every layer pushed.
+3. Confirm no layer was left behind — sync cascades only when trunk moved, and the watcher stays quiet on a `BEHIND` it already printed: `gh stack view --json | jq '[.branches[] | select(.needsRebase and (.isMerged | not))] | length'`. Not 0: `gh stack rebase`, then `gh stack push`. `Sync aborted` in the sync's output is a local stack that diverged from GitHub's: stop and report.
+4. Check CI on every layer pushed.
 
 | Event | Meaning | The session |
 |---|---|---|
@@ -92,7 +93,7 @@ Report first, cleanup second — always both. Cleanup ignores every failure, so 
 
 3. The printed watermark still holds a layer — the watch goes on, and steps 4–5 wait:
    - `CLOSED`: stop for the user. Clean nothing, arm nothing.
-   - `MERGED`: resolve the merged layer's `<branch>` as in A change step 1, before the sync prunes it. Then `gh stack sync --prune` — rebases the remaining layers onto the merged trunk, pushes them, deletes the merged local branch, moves the checkout to the new bottom. It also settles a `BEHIND` or `DIRTY` printed for an upper layer in the same wake; on a conflict, as under Drift. Then `git push origin --delete <branch>` (GitHub may already have), the wake's other lines, and a re-arm with the printed watermark — never a new `baseline`.
+   - `MERGED`: resolve the merged layer's `<branch>` as in A change step 1, before the sync prunes it. Then `gh stack sync --prune` — rebases the remaining layers onto the merged trunk, pushes them, deletes the merged local branch, moves the checkout to the new bottom. It also settles a `BEHIND` or `DIRTY` printed for an upper layer in the same wake; on a conflict, and for a layer left behind, as under Drift steps 2–3. Then `git push origin --delete <branch>` (GitHub may already have), the wake's other lines, and a re-arm with the printed watermark — never a new `baseline`.
 4. The printed watermark is `{}` — once, after the last layer. First the open-layer check under Handling a wake: a layer the watch never covered stops the run here, with nothing cleaned. Then resolve the `<branch>` of each layer of this wake as in A change step 1, while the worktree is there, and clean up without confirmation — the PR is the record, the worktree is not. If the checkout is a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`): `ExitWorktree(action: "remove", discard_changes: true)`, then from the main checkout `git worktree remove --force <worktree>`. Then `git branch -D <branch>` for each layer of this wake. MERGED: `git push origin --delete <branch>` (GitHub may already have). CLOSED unmerged: the remote branch stays — pushed work is recoverable and the PR can be reopened.
 5. Once the worktree is deleted, sync the main checkout. Any layer of the watch `MERGED`, whatever the last terminal was: `git pull -p` on the default branch, `git fetch --prune` on any other branch (say so — never pull into a branch the user has checked out). No layer merged: `git fetch --prune`. A pull the working tree refuses: report it, don't stash.
 
