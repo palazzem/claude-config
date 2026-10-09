@@ -51,7 +51,7 @@ Every event line carries `pr`, the number of the layer it happened on, and one w
 
 **Drift** — `BEHIND` or `DIRTY` — is resolved once for the stack, whichever layers print it:
 
-1. `gh stack sync` in place of a hand rebase: it rebases every layer and pushes them. A plain PR: rebase onto the base branch, resolve conflicts, `git push`.
+1. `gh stack sync` in place of a hand rebase: it rebases every layer and pushes them. A plain PR: rebase onto the base branch, resolve conflicts, `git push --force-with-lease`.
 2. On a conflict: `gh stack rebase`, resolve, `gh stack rebase --continue`, `gh stack push`.
 3. Check CI on every layer pushed.
 
