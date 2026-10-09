@@ -3,14 +3,15 @@
 # armed monitor run the same filter, so they can never disagree.
 #
 # Usage:
-#   watch-pr.sh baseline <number>             once per PR per session: print everything
-#                                             standing — every unmarked comment, review and
-#                                             thread reply, drift, CI, or the terminal — then
-#                                             the watermark
-#   watch-pr.sh watch <number> '<watermark>'  the monitor: poll until the first events past
-#                                             the watermark, print them, then the watermark
-#                                             of that pass — arm again with it — and exit
+#   watch-pr.sh baseline <number>    once per watch: print everything standing — every
+#                                    unmarked comment, review and thread reply, drift,
+#                                    CI, or the terminal — then the watermark
+#   watch-pr.sh watch '<watermark>'  the monitor: poll every PR the watermark names
+#                                    until the first events past it, print them, then
+#                                    the watermark of that pass — arm again with it —
+#                                    and exit
 # <number> is the PR number; the repository is the current checkout (or GH_REPO).
+# The watermark is the whole state of a watch, so watch takes it alone.
 #
 # Every line is one JSON object on stdout; the last line is always the
 # watermark, every other line an event that wakes the session. Every event
@@ -18,11 +19,18 @@
 #   {"event":"COMMENT","pr":…,"url":…,"login":…,"assoc":…,"at":…}          unmarked PR conversation comment
 #   {"event":"REVIEW","pr":…,"url":…,"login":…,"assoc":…,"at":…,"state":…}  unmarked submitted review, body-less approvals included
 #   {"event":"THREAD_REPLY","pr":…,"url":…,"login":…,"assoc":…,"at":…}     unmarked review-thread comment
-#   {"event":"MERGED","pr":…} | {"event":"CLOSED","pr":…}                    the PR reached a terminal; no other event prints for that pass
+#   {"event":"MERGED","pr":…} | {"event":"CLOSED","pr":…}                    the PR reached a terminal; no other event prints for it
 #   {"event":"BEHIND","pr":…} | {"event":"DIRTY","pr":…}                     merge readiness drifted (base moved / conflicts)
 #   {"event":"CI_FAILED","pr":…}                                             a check on the PR head failed or was cancelled
-#   {"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…}           the watermark: newest updatedAt per activity
-#                                                                            surface, merge state, CI state, PR state
+#   {"<number>":{"comment":…,"review":…,"reply":…,"merge":…,"ci":…,"state":…},…}
+#                                    the watermark: one entry per open PR, keyed by its
+#                                    number — newest updatedAt per activity surface,
+#                                    merge state, CI state, PR state
+#
+# Each PR's events are computed against its own entry, and a PR with no entry is
+# read from the epoch. A PR that reached a terminal prints that event once and
+# is left out of the watermark, while the other PRs' events print in the same
+# pass; {} is the watermark of a watch that is over, and watch refuses it.
 #
 # Never fires: marked bodies (first line <!-- claude -->, leading whitespace
 # ignored); body-less COMMENTED reviews — GitHub wraps every API thread reply in
@@ -36,15 +44,15 @@
 # so a state the session already handled stays quiet until it changes.
 # Diagnostics go to stderr.
 #
-# One GraphQL request per pass reads every surface: query.graphql is the
-# selection read on one PR, a fragment, and the script generates the operation
-# around it — an aliased pullRequest carrying the fragment and its own
-# base-to-head comparison. Watermark and events come from the same response, and
-# nothing prints unless the alias is non-null and the whole response parsed, so
-# a pass is never partial. The read covers the last 50
-# comments, reviews, and threads (20 comments each) and 100 checks. jq/pass.jq
-# is the pass — one run of it yields every line — over the definitions in
-# jq/lib.jq.
+# One GraphQL request per pass reads every surface of every PR: query.graphql
+# is the selection read on one PR, a fragment, and the script generates the
+# operation around it — per PR, an aliased pullRequest carrying the fragment and
+# its own base-to-head comparison. Watermark and events come from the same
+# response, and nothing prints unless every alias is non-null and the whole
+# response parsed, so a pass is never partial, across surfaces or across PRs.
+# The read covers the last 50 comments, reviews, and threads (20 comments each)
+# and 100 checks of each PR. jq/pass.jq is the pass — one run of it yields every
+# line — over the definitions in jq/lib.jq.
 #
 # Exit codes: 0 printed (baseline: read complete; watch: events); 1 read
 # failed (baseline) or MAX_FAILURES consecutive failed reads (watch);
@@ -59,14 +67,11 @@ INTERVAL="${WATCH_PR_INTERVAL:-30}"
 MAX_FAILURES="${WATCH_PR_MAX_FAILURES:-20}"
 
 usage() {
-  echo "usage: watch-pr.sh baseline <number> | watch <number> '<watermark>'" >&2
+  echo "usage: watch-pr.sh baseline <number> | watch '<watermark>'" >&2
   exit 2
 }
 
-cmd="${1:-}"
-pr="${2:-}"
-[[ -z "$cmd" || -z "$pr" ]] && usage
-[[ "$pr" =~ ^[0-9]+$ ]] || { echo "watch-pr: <number> must be the PR number" >&2; exit 2; }
+[[ $# -eq 2 ]] || usage
 [[ "$INTERVAL" =~ ^[0-9]+$ && "$MAX_FAILURES" =~ ^[0-9]+$ ]] || {
   echo "watch-pr: WATCH_PR_INTERVAL and WATCH_PR_MAX_FAILURES must be integers" >&2
   exit 2
@@ -88,20 +93,23 @@ fetch() {
     | jq -e '.data.repository | select(. != null and all(.[]; . != null))'
 }
 
-# One pass over a response, left in out: the event lines, then the watermark.
-# Activity fires when newer than armed, drift and CI when they differ from last.
-# Fails when the response did not parse.
+# One pass over the PRs that last names, left in out: the event lines, then the
+# watermark. Activity fires when newer than a PR's entry in armed, drift and CI
+# when they differ from its entry in last. Fails when the read did.
 pass() {
+  local numbers response
+  read -r -a numbers <<<"$(jq -r 'keys_unsorted | join(" ")' <<<"$last")"
+  response=$(fetch "${numbers[@]}") || return 1
   out=$(jq -c -L "$DIR/jq" --arg epoch "$EPOCH" --arg marker "$MARKER" \
-    --argjson armed "$armed" --argjson last "$last" -f "$DIR/jq/pass.jq" <<<"$1")
+    --argjson armed "$armed" --argjson last "$last" -f "$DIR/jq/pass.jq" <<<"$response")
 }
 
-case "$cmd" in
+case "$1" in
   baseline)
-    [[ $# -eq 2 ]] || usage
+    [[ "$2" =~ ^[0-9]+$ ]] || { echo "watch-pr: <number> must be the PR number" >&2; exit 2; }
     armed='{}'
-    last='{}'
-    if ! { p=$(fetch "$pr") && pass "$p"; }; then
+    last="{\"$2\":{}}"
+    if ! pass; then
       echo "watch-pr: read failed; run it again" >&2
       exit 1
     fi
@@ -109,25 +117,26 @@ case "$cmd" in
     exit 0
     ;;
   watch)
-    [[ $# -eq 3 ]] || usage
+    jq -e 'type == "object" and length > 0 and all(to_entries[];
+      (.key | test("^[1-9][0-9]*$")) and (.value | type == "object"
+        and ([.comment, .review, .reply, .merge, .ci, .state] | all(type == "string"))))' \
+      <<<"$2" >/dev/null 2>&1 || {
+      echo "watch-pr: malformed watermark: $2" >&2
+      exit 2
+    }
+    armed=$2
+    last=$2
+    echo "watch-pr: watermark=$2" >&2
     ;;
   *)
-    echo "watch-pr: unknown command: $cmd" >&2
+    echo "watch-pr: unknown command: $1" >&2
     exit 2
     ;;
 esac
 
-jq -e '[.comment, .review, .reply, .merge, .ci] | all(type == "string")' <<<"$3" >/dev/null 2>&1 || {
-  echo "watch-pr: malformed watermark: $3" >&2
-  exit 2
-}
-armed=$3
-last=$3
-echo "watch-pr: pr=$pr watermark=$3" >&2
-
 failures=0
 while :; do
-  if p=$(fetch "$pr") && pass "$p"; then
+  if pass; then
     failures=0
   else
     failures=$((failures + 1))

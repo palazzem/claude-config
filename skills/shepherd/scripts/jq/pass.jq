@@ -19,10 +19,12 @@ def watermark:
     ci:      ci_state,
     state:   .state };
 
+def terminal: .state | IN("MERGED", "CLOSED");
+
 def events($armed; $last):
   .number as $pr
   | watermark as $now
-  | if $now.state | IN("MERGED", "CLOSED") then { event: $now.state }
+  | if terminal then { event: .state }
     else
       ($now.merge | select(IN("BEHIND", "DIRTY") and . != $last.merge) | { event: . }),
       ($now.ci | select(. == "FAILED" and . != $last.ci) | { event: "CI_FAILED" }),
@@ -30,4 +32,8 @@ def events($armed; $last):
     end
   | { event, pr: $pr } + .;
 
-.[] | (events(unseen + $armed; unseen + $last), watermark)
+def entry($w): unseen + ($w[.number | tostring] // {});
+
+[.[]] | sort_by(.number)
+| (.[] | events(entry($armed); entry($last))),
+  (map(select(terminal | not) | { key: (.number | tostring), value: watermark }) | from_entries)
