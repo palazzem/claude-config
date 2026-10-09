@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
-# watch-pr.sh — the shepherd skill's one PR watcher. The first read and the
-# armed monitor run the same filter, so they can never disagree.
+# watch-pr.sh — the shepherd skill's one PR watcher. It watches every open layer
+# of the stack a PR belongs to, a PR in no stack being a stack of one. The first
+# read and the armed monitor run the same filter, so they can never disagree.
 #
 # Usage:
-#   watch-pr.sh baseline <number>    once per watch: print everything standing — every
-#                                    unmarked comment, review and thread reply, drift,
-#                                    CI, or the terminal — then the watermark
-#   watch-pr.sh watch '<watermark>'  the monitor: poll every PR the watermark names
-#                                    until the first events past it, print them, then
-#                                    the watermark of that pass — arm again with it —
-#                                    and exit
-# <number> is the PR number; the repository is the current checkout (or GH_REPO).
-# The watermark is the whole state of a watch, so watch takes it alone.
+#   watch-pr.sh baseline <number>    once per watch: print everything standing on every
+#                                    open layer — every unmarked comment, review and
+#                                    thread reply, drift, CI, or the terminal — then
+#                                    the watermark
+#   watch-pr.sh watch '<watermark>'  the monitor: poll every layer until the first
+#                                    events past the watermark, print them, then the
+#                                    watermark of that pass — arm again with it — and
+#                                    exit
+# <number> is any PR of the stack; the repository is the current checkout (or
+# GH_REPO). The watermark is the whole state of a watch, so watch takes it alone.
 #
 # Every line is one JSON object on stdout; the last line is always the
 # watermark, every other line an event that wakes the session. Every event
@@ -27,10 +29,17 @@
 #                                    number — newest updatedAt per activity surface,
 #                                    merge state, CI state, PR state
 #
-# Each PR's events are computed against its own entry, and a PR with no entry is
-# read from the epoch. A PR that reached a terminal prints that event once and
-# is left out of the watermark, while the other PRs' events print in the same
-# pass; {} is the watermark of a watch that is over, and watch refuses it.
+# The layers of a watch are the PRs its watermark names plus every entry of
+# their stack whose PR is open, as GitHub's API reports the stack — the gh-stack
+# extension is never called — and an entry with no PR is skipped. Each layer's
+# events are computed against its own entry, and a layer with no entry — one
+# that joined the stack while armed — is read from the epoch. A layer that
+# reached a terminal prints that event once and is left out of the watermark,
+# while the other layers' events print in the same pass; nothing else takes a
+# layer out.
+# Event lines print grouped by layer, bottom first by position in the stack, in
+# the order above within a layer. {} is the watermark of a watch that is over,
+# and watch refuses it.
 #
 # Never fires: marked bodies (first line <!-- claude -->, leading whitespace
 # ignored); body-less COMMENTED reviews — GitHub wraps every API thread reply in
@@ -44,15 +53,20 @@
 # so a state the session already handled stays quiet until it changes.
 # Diagnostics go to stderr.
 #
-# One GraphQL request per pass reads every surface of every PR: query.graphql
-# is the selection read on one PR, a fragment, and the script generates the
-# operation around it — per PR, an aliased pullRequest carrying the fragment and
-# its own base-to-head comparison. Watermark and events come from the same
-# response, and nothing prints unless every alias is non-null and the whole
-# response parsed, so a pass is never partial, across surfaces or across PRs.
+# One GraphQL request per pass reads every surface of every layer:
+# query.graphql is the selection read on one PR, a fragment, its stack's entries
+# included, and the script generates the operation around it — per layer, an
+# aliased pullRequest carrying the fragment and its own base-to-head comparison.
+# When the entries name an open PR the request did not read, the pass reads once
+# more, with the PRs it read and the ones named, before printing: baseline on a
+# stack is two requests, a steady pass one. Watermark and events come from the
+# same response, and nothing prints unless every alias is non-null and the whole
+# response parsed, so a pass is never partial, across surfaces or across layers.
 # The read covers the last 50 comments, reviews, and threads (20 comments each)
-# and 100 checks of each PR. jq/pass.jq is the pass — one run of it yields every
-# line — over the definitions in jq/lib.jq.
+# and 100 checks of each layer, and 100 entries of a stack. jq/pass.jq is the
+# pass — one run of it yields every line — over the definitions in jq/lib.jq;
+# jq/layers.jq is the set of layers a response names, when it is wider than the
+# one read.
 #
 # Exit codes: 0 printed (baseline: read complete; watch: events); 1 read
 # failed (baseline) or MAX_FAILURES consecutive failed reads (watch);
@@ -78,10 +92,11 @@ usage() {
 }
 
 # The operation that reads the PRs given: one aliased pullRequest each, around
-# the fragment in query.graphql. The numbers are digits only, checked on entry.
+# the fragment in query.graphql. Fails on a number that is not digits only.
 request() {
   local n reads=""
   for n in "$@"; do
+    [[ "$n" =~ ^[0-9]+$ ]] || return 1
     reads+="pr$n: pullRequest(number: $n) { ...pr baseRef { compare(headRef: \"refs/pull/$n/head\") { behindBy } } } "
   done
   printf 'query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { %s} }\n%s\n' \
@@ -89,17 +104,25 @@ request() {
 }
 
 fetch() {
-  gh api graphql -F owner='{owner}' -F name='{repo}' -f query="$(request "$@")" \
+  local query
+  query=$(request "$@") || return 1
+  gh api graphql -F owner='{owner}' -F name='{repo}' -f query="$query" \
     | jq -e '.data.repository | select(. != null and all(.[]; . != null))'
 }
 
-# One pass over the PRs that last names, left in out: the event lines, then the
-# watermark. Activity fires when newer than a PR's entry in armed, drift and CI
-# when they differ from its entry in last. Fails when the read did.
+# One pass over the layers of the PRs that last names, left in out: the event
+# lines, then the watermark. Activity fires when newer than a layer's entry in
+# armed, drift and CI when they differ from its entry in last. Fails when a read
+# did.
 pass() {
-  local numbers response
+  local numbers wider response
   read -r -a numbers <<<"$(jq -r 'keys_unsorted | join(" ")' <<<"$last")"
   response=$(fetch "${numbers[@]}") || return 1
+  wider=$(jq -r -f "$DIR/jq/layers.jq" <<<"$response") || return 1
+  if [[ -n "$wider" ]]; then
+    read -r -a numbers <<<"$wider"
+    response=$(fetch "${numbers[@]}") || return 1
+  fi
   out=$(jq -c -L "$DIR/jq" --arg epoch "$EPOCH" --arg marker "$MARKER" \
     --argjson armed "$armed" --argjson last "$last" -f "$DIR/jq/pass.jq" <<<"$response")
 }

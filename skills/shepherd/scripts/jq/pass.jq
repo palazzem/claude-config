@@ -34,6 +34,8 @@ def events($armed; $last):
 
 def entry($w): unseen + ($w[.number | tostring] // {});
 
-[.[]] | sort_by(.number)
+def position: .number as $pr | first(.stack.entries.nodes[]? | select(.pullRequest.number == $pr) | .position) // 0;
+
+[.[]] | sort_by(position, .number)
 | (.[] | events(entry($armed); entry($last))),
   (map(select(terminal | not) | { key: (.number | tostring), value: watermark }) | from_entries)

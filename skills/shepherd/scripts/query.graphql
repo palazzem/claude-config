@@ -2,6 +2,7 @@ fragment pr on PullRequest {
   number
   state
   mergeStateStatus
+  stack { entries(first: 100) { nodes { position pullRequest { number state } } } }
   comments(last: 50) { nodes { url updatedAt body authorAssociation author { login } } }
   reviews(last: 50, states: [APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED]) {
     nodes { url updatedAt body state authorAssociation author { login } }
