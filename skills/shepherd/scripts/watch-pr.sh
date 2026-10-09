@@ -35,9 +35,12 @@
 # so a state the session already handled stays quiet until it changes.
 # Diagnostics go to stderr.
 #
-# One GraphQL request per pass (query.graphql) reads every surface; watermark
-# and events come from the same response, and nothing prints unless the whole
-# response parsed, so a pass is never partial. The read covers the last 50
+# One GraphQL request per pass reads every surface: query.graphql is the
+# selection read on one PR, a fragment, and the script generates the operation
+# around it — an aliased pullRequest carrying the fragment and its own
+# base-to-head comparison. Watermark and events come from the same response, and
+# nothing prints unless the alias is non-null and the whole response parsed, so
+# a pass is never partial. The read covers the last 50
 # comments, reviews, and threads (20 comments each) and 100 checks. jq/pass.jq
 # is the pass — one run of it yields every line — over the definitions in
 # jq/lib.jq.
@@ -68,9 +71,20 @@ pr="${2:-}"
   exit 2
 }
 
+# The operation that reads the PRs given: one aliased pullRequest each, around
+# the fragment in query.graphql. The numbers are digits only, checked on entry.
+request() {
+  local n reads=""
+  for n in "$@"; do
+    reads+="pr$n: pullRequest(number: $n) { ...pr baseRef { compare(headRef: \"refs/pull/$n/head\") { behindBy } } } "
+  done
+  printf 'query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { %s} }\n%s\n' \
+    "$reads" "$(cat "$DIR/query.graphql")"
+}
+
 fetch() {
-  gh api graphql -F owner='{owner}' -F name='{repo}' -F pr="$pr" -F head="refs/pull/$pr/head" -f query="$(cat "$DIR/query.graphql")" \
-    | jq -e '.data.repository.pullRequest | select(. != null)'
+  gh api graphql -F owner='{owner}' -F name='{repo}' -f query="$(request "$@")" \
+    | jq -e '.data.repository | select(. != null and all(.[]; . != null))'
 }
 
 # One pass over a response, left in out: the event lines, then the watermark.
@@ -86,7 +100,7 @@ case "$cmd" in
     [[ $# -eq 2 ]] || usage
     armed='{}'
     last='{}'
-    if ! { p=$(fetch) && pass "$p"; }; then
+    if ! { p=$(fetch "$pr") && pass "$p"; }; then
       echo "watch-pr: read failed; run it again" >&2
       exit 1
     fi
@@ -112,7 +126,7 @@ echo "watch-pr: pr=$pr watermark=$3" >&2
 
 failures=0
 while :; do
-  if p=$(fetch) && pass "$p"; then
+  if p=$(fetch "$pr") && pass "$p"; then
     failures=0
   else
     failures=$((failures + 1))

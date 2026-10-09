@@ -28,4 +28,4 @@ def events($armed; $last):
       activity($armed.comment; $armed.review; $armed.reply)
     end;
 
-events(unseen + $armed; unseen + $last), watermark
+.[] | (events(unseen + $armed; unseen + $last), watermark)
