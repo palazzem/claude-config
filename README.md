@@ -63,7 +63,7 @@ Development lifecycle commands come from agent-skills
 | Plan how to build it | `/plan` | One PR per concern, atomic tasks |
 | Build incrementally | `/build` | One slice at a time |
 | Split a change into dependent PRs | `/gh-stack` | One concern per PR, reviewed in order |
-| Carry the open PR to merge | `/shepherd` | The PR is done when a human merges it |
+| Carry the open PR and its stack to merge | `/shepherd` | One watch covers every open layer; a PR is done when a human merges it |
 | Prove it works | `/test` | Tests are proof |
 | Set the quality bar | `/constraints` | Decide it once, enforce it everywhere |
 | Review before merge | `/review` | Improve code health |
@@ -105,11 +105,11 @@ Skills also activate on their own: a build task that touches a library is checke
 │   ├── deliver/
 │   │   └── SKILL.md                   # Spec to published PRs: per-layer build, simplify, review, then a gate
 │   ├── shepherd/
-│   │   ├── SKILL.md                   # Watch an open PR until a human merges or closes it
+│   │   ├── SKILL.md                   # Watch an open PR and every open layer of its stack until a human merges or closes them
 │   │   └── scripts/
-│   │       ├── watch-pr.sh            # The one PR reader: baseline, then watch
-│   │       ├── query.graphql          # One request reads every PR surface
-│   │       └── jq/                    # baseline, pass, and events filters
+│   │       ├── watch-pr.sh            # The one PR reader, over every open layer: baseline, then watch
+│   │       ├── query.graphql          # The fragment read on each layer: every PR surface and its stack's entries
+│   │       └── jq/                    # pass, layers, and shared lib filters
 │   ├── gh-stack/
 │   │   └── SKILL.md                   # Stacked PRs, vendored from github/gh-stack
 │   └── inference-tracing/
