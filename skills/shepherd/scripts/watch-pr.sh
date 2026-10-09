@@ -140,9 +140,9 @@ case "$1" in
     exit 0
     ;;
   watch)
-    jq -e 'type == "object" and length > 0 and all(to_entries[];
+    jq -es 'length == 1 and (.[0] | type == "object" and length > 0 and all(to_entries[];
       (.key | test("^[1-9][0-9]*$")) and (.value | type == "object"
-        and ([.comment, .review, .reply, .merge, .ci, .state] | all(type == "string"))))' \
+        and ([.comment, .review, .reply, .merge, .ci, .state] | all(type == "string")))))' \
       <<<"$2" >/dev/null 2>&1 || {
       echo "watch-pr: malformed watermark: $2" >&2
       exit 2
