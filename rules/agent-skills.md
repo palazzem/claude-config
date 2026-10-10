@@ -42,17 +42,30 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 ## Models and effort
 
-`/plan` runs in `planner` and `/review` in `agent-skills:code-reviewer`, never inline. An override is passed on the spawn; None means the agent's frontmatter decides.
+A command activates a set of skills, so commands and skills are listed apart. An override is passed on the spawn; None means the agent's frontmatter decides.
 
-| Agent | Spawned by | Model override | Effort override |
+### Commands
+
+A command listed here hands its work to the subagent it names, never inline; `/ship` runs its three in parallel and the session merges their reports. Every other command runs in the session.
+
+| Command | Subagent | Model override | Effort override |
 |---|---|---|---|
-| `planner` | `/plan`, `deliver` | None | None |
-| `layer-builder` | `deliver` | None | None |
-| `docs-researcher` | `source-driven-development`, `layer-builder`, a research request | None | None |
-| `agent-skills:code-reviewer` | `/review`, `/ship` | `opus` | `high` |
-| `agent-skills:security-auditor` | `/ship` | `opus` | `high` |
-| `agent-skills:test-engineer` | `/ship` | `opus` | `high` |
-| `agent-skills:web-performance-auditor` | `/webperf` | `opus` | `high` |
+| `/plan` | `planner` | None | None |
+| `/review` | `agent-skills:code-reviewer` | `opus` | `high` |
+| `/ship` | `agent-skills:code-reviewer` | `opus` | `high` |
+| `/ship` | `agent-skills:security-auditor` | `opus` | `high` |
+| `/ship` | `agent-skills:test-engineer` | `opus` | `high` |
+| `/webperf` | `agent-skills:web-performance-auditor` | `opus` | `high` |
+
+### Skills
+
+A skill listed here has the step it names run in a subagent, never inline. Every other skill runs in the session or in the agent that invokes it.
+
+| Skill | Step | Subagent | Model override | Effort override |
+|---|---|---|---|---|
+| `agent-skills:planning-and-task-breakdown` | writing the plan | `planner` | None | None |
+| `agent-skills:source-driven-development` | the documentation lookup | `docs-researcher` | None | None |
+| `deliver` | building a layer | `layer-builder` | None | None |
 
 ## `source-driven-development`
 
