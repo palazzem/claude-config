@@ -42,7 +42,7 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 ## Models and effort
 
-The plugin's commands run some work inline and hand the rest to a subagent type, an agent definition under `agents/`. The plugin's code is not edited here, so this table is the rule that replaces its choice: the command, the subagent type its work runs in, and the model and effort passed when it is spawned. A command not listed keeps the plugin's behaviour. None means nothing is passed and the subagent type's frontmatter decides.
+None means the subagent type's frontmatter decides.
 
 | Command | Plugin runs it | Subagent type | Model | Effort |
 |---|---|---|---|---|
