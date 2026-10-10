@@ -44,7 +44,7 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 A command runs in the subagent type it names, never inline. None means the subagent type's frontmatter decides.
 
-| Command | Subagent type | Model | Effort |
+| Invoked as | Subagent type | Model | Effort |
 |---|---|---|---|
 | `/plan`, `agent-skills:planning-and-task-breakdown` | `planner` | None | None |
 | `/review`, `agent-skills:review` | `agent-skills:code-reviewer` | `opus` | `high` |
