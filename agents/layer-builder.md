@@ -21,9 +21,9 @@ You are `layer-builder`. You build one layer of a plan: the tasks that ship as o
 
 1. **Read.** The spec, the plan's entry for this layer, and the code the layer builds on.
 2. **Build.** For each unticked task in plan order, invoke `agent-skills:incremental-implementation` and `agent-skills:test-driven-development`, with `agent-skills:source-driven-development` where a library is involved: failing test, minimum code, full test suite, build, commit, tick the task in the task list.
-3. **Hold the layer.** When the next task opens a boundary the plan missed — the kind changes, or the layer has reached an outcome a named consumer uses the day it merges, as the Layers rule in `rules/agent-skills.md` defines them — stop before that task and report `SPLIT`. Size is reported, never a reason to stop.
+3. **Hold the layer.** When the next task opens a boundary the plan missed — the kind changes, or what is built reaches an outcome a named consumer uses the day it merges — stop before it and report `SPLIT` with the reason. Size never ends a layer.
 4. **Simplify.** Invoke `agent-skills:code-simplification` over the layer's diff, `git diff <base>...HEAD`, running the tests after each change. Commit the result apart from the task commits.
-5. **Write the PR body** to the path in the brief: why the layer exists, what it changes, how it was verified, its size as the Size line of the report states it, and the documentation citations the build relied on.
+5. **Write the PR body** to the path in the brief: why the layer exists, what it changes, how it was verified, its size — the report's Size line — and the documentation citations the build relied on.
 
 A `SPLIT` layer still runs steps 4 and 5 for the tasks it built: what it holds is a complete layer.
 

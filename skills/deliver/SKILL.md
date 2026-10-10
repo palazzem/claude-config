@@ -31,7 +31,7 @@ One workflow takes a spec to pull requests under watch, whatever the number of l
 The session orchestrates: it holds the spec, the plan, and the reports, and never writes the plan or code.
 
 1. **Spec.** Stop without a spec path. A spec in the main checkout is not started; one that is absent is in flight (see Resuming). The spec, the plan, and the approval happen in the main checkout, with no worktree.
-2. **Plan.** Invoke `agent-skills:planning-and-task-breakdown`. A `planner` agent, briefed with the spec, plan, and task list paths, writes the plan. Verify it against the spec and the Layers rule — every requirement is met by a task, no task does work the spec does not ask for, every boundary between adjacent layers has a row in the Boundaries table naming `kind` or `outcome` with a fact that holds, and an `outcome` row names a consumer that exists in the spec or the code — and send what fails back to the same agent, resumed.
+2. **Plan.** Invoke `agent-skills:planning-and-task-breakdown`. A `planner` agent, briefed with the spec, plan, and task list paths, writes the plan. Verify four things, and send what fails back to the same agent, resumed: every requirement is met by a task; no task does work the spec does not ask for; every boundary between adjacent layers has a row in the Boundaries table; every row's fact holds — the kinds are as stated, and an `outcome`'s consumer exists in the spec or the code.
 3. **Approval.** Present every layer with its title, kind, concern, and tasks, then the Boundaries table, and wait for an unambiguous yes. This is the run's only approval.
 4. **Layers.** Bottom first, one at a time: a layer opens only when the checkpoint of the one below is ticked.
    1. **Open.** Before the first layer, and never earlier, from the main checkout and in this order: `git fetch origin`, then `git worktree add -b <branch> .claude/worktrees/<name> origin/<trunk>`, `<branch>` being the bottom layer's; move `<spec-dir>` to the same relative path inside that worktree, creating the parent directory first; `EnterWorktree` with the worktree's path. It is the run's only worktree, and every artifact is read and written there from then on. Open the layer's branch as One Layer or Several says.
@@ -87,7 +87,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 
 | Event | Then |
 |---|---|
-| The builder reports `SPLIT` | What it built is a complete layer. Add the new layer to the plan directly above it, with its branch, title, kind, concern, tasks, and checkpoint, and the boundary's row — the reason and fact the builder reported — to the Boundaries table. The layer that split is no longer the last: it gets `agent-skills:review`, and the new layer is built next. |
+| The builder reports `SPLIT` | What it built is a complete layer. Add the new layer to the plan directly above it — branch, title, kind, concern, tasks, checkpoint — and the row the builder reported to the Boundaries table. The layer that split is no longer the last: it gets `agent-skills:review`, and the new layer is built next. |
 | `BLOCKED` on a documentation lookup | Run a `docs-researcher` agent with the library, version, and question; resume the builder with its report. |
 | `BLOCKED` on a change that belongs to a lower layer | Make it there with steps 1 to 4 of After a Review, return to the builder's branch, and resume the builder. |
 | `BLOCKED` on anything else | Put its question to the user; resume the builder with the answer. |

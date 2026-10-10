@@ -31,13 +31,16 @@ A boundary between two adjacent layers exists for one of two reasons, and the pl
 - **kind**: the kind changes — refactor or mechanical on one side, behaviour on the other.
 - **outcome**: the layer below reaches an outcome that a consumer uses the day it merges — a command, a test, a document, or a person that the spec or the code names — and the layer above starts another. The boundary names that consumer and what it uses.
 
-A boundary for any other reason, size included, is one layer too many: two adjacent layers that would pass the three rules as one are one layer. Size is a fact, reported, never a reason to cut.
+A boundary for any other reason, size included, is one layer too many: two adjacent layers that would pass the three rules as one are one layer.
 
-Each layer in the plan names its branch, its conventional-commit title, its kind — `refactor`, `mechanical`, or `behaviour` — its concern in one sentence (for a layer of several tasks, the outcome none of its tasks reaches alone), and the layer it builds on. It carries no size estimate: the size of a change is not knowable before the code exists. The plan ends with a **Boundaries** table, one row per boundary between adjacent layers, columns `Between | Reason | Fact`: the reason is `kind` or `outcome`; the fact is the two kinds, or the consumer named and what it uses the day the layer below merges.
+Each layer in the plan names its branch, its conventional-commit title, its kind — `refactor`, `mechanical`, or `behaviour` — its concern in one sentence, and the layer it builds on. The concern of a layer of several tasks is the outcome none of them reaches alone. No layer carries a size estimate: the size of a change is not knowable before the code exists.
+
+The plan ends with a **Boundaries** table, one row per boundary between adjacent layers, columns `Between | Reason | Fact`. The reason is `kind` or `outcome`; the fact is the two kinds, or the consumer and what it uses the day the layer below merges.
 
 - A plan with more than one layer always ships as a `gh-stack` stack, bottom first in dependency order — never one branch carrying several concerns. A single layer ships from the worktree's own branch.
 - `/build` and `/build auto` open the worktree before the first layer's first task, never earlier, from the main checkout: `git fetch origin` and `git worktree add -b <branch> .claude/worktrees/<name> origin/<trunk>`, `<branch>` being the bottom layer's; move `<spec-dir>` to the same relative path inside it; `EnterWorktree` with its path. They commit each task on its layer's branch. In a stack, `gh stack init <branch>` opens the bottom layer and `gh stack add <branch>` each layer above it, before that layer's first task.
-- Whoever builds a layer ends it at a task boundary when the next task opens a boundary the plan missed — the kind changes, or the layer has reached an outcome a named consumer uses the day it merges — and reports `SPLIT` with the reason and its fact. The tasks left become a new layer directly above; the plan and its Boundaries table are updated to match. The builder reports the layer's size, `git diff --shortstat <base>...HEAD`, `<base>` being the branch the layer builds on; it reaches the PR body and the hand-back.
+- The builder cuts again only where it finds a boundary the plan missed: it ends the layer before the task that opens one and reports `SPLIT` with the row for the Boundaries table. The tasks left become the layer directly above, and the plan is updated to match.
+- Size is measured, `git diff --shortstat <base>...HEAD` against the branch the layer builds on, and reported in the PR body and the hand-back. It never cuts.
 - A review that still finds a layer too large, or holding two concerns, goes to the user: an oversized PR is an exception.
 
 ## `/build auto`
