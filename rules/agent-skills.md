@@ -42,30 +42,16 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 ## Models and effort
 
-A command activates a set of skills, so commands and skills are listed apart. An override is passed on the spawn; None means the agent's frontmatter decides.
+The plugin's commands run some work inline and hand the rest to a subagent type, an agent definition under `agents/`. The plugin's code is not edited here, so this table is the rule that replaces its choice: the command, the subagent type its work runs in, and the model and effort passed when it is spawned. A command not listed keeps the plugin's behaviour. None means nothing is passed and the subagent type's frontmatter decides.
 
-### Commands
-
-A command listed here hands its work to the subagent it names, never inline; `/ship` runs its three in parallel and the session merges their reports. Every other command runs in the session.
-
-| Command | Subagent | Model override | Effort override |
-|---|---|---|---|
-| `/plan` | `planner` | None | None |
-| `/review` | `agent-skills:code-reviewer` | `opus` | `high` |
-| `/ship` | `agent-skills:code-reviewer` | `opus` | `high` |
-| `/ship` | `agent-skills:security-auditor` | `opus` | `high` |
-| `/ship` | `agent-skills:test-engineer` | `opus` | `high` |
-| `/webperf` | `agent-skills:web-performance-auditor` | `opus` | `high` |
-
-### Skills
-
-A skill listed here has the step it names run in a subagent, never inline. Every other skill runs in the session or in the agent that invokes it.
-
-| Skill | Step | Subagent | Model override | Effort override |
+| Command | Plugin runs it | Subagent type | Model | Effort |
 |---|---|---|---|---|
-| `agent-skills:planning-and-task-breakdown` | writing the plan | `planner` | None | None |
-| `agent-skills:source-driven-development` | the documentation lookup | `docs-researcher` | None | None |
-| `deliver` | building a layer | `layer-builder` | None | None |
+| `/plan` | inline | `planner` | None | None |
+| `/review` | inline | `agent-skills:code-reviewer` | `opus` | `high` |
+| `/ship` | subagent | `agent-skills:code-reviewer` | `opus` | `high` |
+| `/ship` | subagent | `agent-skills:security-auditor` | `opus` | `high` |
+| `/ship` | subagent | `agent-skills:test-engineer` | `opus` | `high` |
+| `/webperf` | subagent | `agent-skills:web-performance-auditor` | `opus` | `high` |
 
 ## `source-driven-development`
 
