@@ -42,13 +42,11 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 ## Models and effort
 
-Work runs in the subagent type it names, never inline. None means the subagent type's frontmatter decides.
+Each row's work runs in its subagent type, never inline. None means the subagent type's frontmatter decides.
 
 | Work | Subagent type | Model | Effort |
 |---|---|---|---|
 | Plan | `planner` | None | None |
-| Layer build | `layer-builder` | None | None |
-| Documentation lookup | `docs-researcher` | None | None |
 | Layer review (`agent-skills:review`) | `agent-skills:code-reviewer` | `opus` | `high` |
 | Final review (`agent-skills:ship`) | `agent-skills:code-reviewer` | `opus` | `high` |
 | Final review (`agent-skills:ship`) | `agent-skills:security-auditor` | `opus` | `high` |
