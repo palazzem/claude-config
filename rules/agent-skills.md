@@ -22,16 +22,22 @@ A plan is cut into layers, and a layer is one PR. Layers replace the phases in t
 
 A layer holds one concern:
 
-- One conventional-commit subject names it without an "and".
+- One conventional-commit subject names what the layer lets a user, a caller, or the layer above do once it lands, without an "and". A subject that names only the component — improve, update, rework, prepare X — names no concern.
 - The build and the tests pass with only the layers below it merged.
 - A preparatory refactor, a mechanical change — rename, move, formatting, dependency bump — and a behaviour change never share a layer.
-- Slices that pass the three rules above together are one layer. When two cuts are plausible, take the coarser one; the size rule below is the only other cut.
 
-Each layer in the plan names its branch, its conventional-commit title, its concern in one sentence, and the layer it builds on. It carries no size estimate: the size of a change is not knowable before the code exists, so the planner cuts by concern and the builder cuts again.
+A boundary between two adjacent layers exists for one of two reasons, and the plan states which:
+
+- **kind**: the kind changes — refactor or mechanical on one side, behaviour on the other.
+- **outcome**: the layer below reaches an outcome that a consumer uses the day it merges — a command, a test, a document, or a person that the spec or the code names — and the layer above starts another. The boundary names that consumer and what it uses.
+
+A boundary for any other reason, size included, is one layer too many: two adjacent layers that would pass the three rules as one are one layer. Size is a fact, reported, never a reason to cut.
+
+Each layer in the plan names its branch, its conventional-commit title, its kind — `refactor`, `mechanical`, or `behaviour` — its concern in one sentence (for a layer of several tasks, the outcome none of its tasks reaches alone), and the layer it builds on. It carries no size estimate: the size of a change is not knowable before the code exists. The plan ends with a **Boundaries** table, one row per boundary between adjacent layers, columns `Between | Reason | Fact`: the reason is `kind` or `outcome`; the fact is the two kinds, or the consumer named and what it uses the day the layer below merges.
 
 - A plan with more than one layer always ships as a `gh-stack` stack, bottom first in dependency order — never one branch carrying several concerns. A single layer ships from the worktree's own branch.
 - `/build` and `/build auto` open the worktree before the first layer's first task, never earlier, from the main checkout: `git fetch origin` and `git worktree add -b <branch> .claude/worktrees/<name> origin/<trunk>`, `<branch>` being the bottom layer's; move `<spec-dir>` to the same relative path inside it; `EnterWorktree` with its path. They commit each task on its layer's branch. In a stack, `gh stack init <branch>` opens the bottom layer and `gh stack add <branch>` each layer above it, before that layer's first task.
-- Whoever builds a layer measures it at every task boundary with `git diff --stat <base>...HEAD`, `<base>` being the branch the layer builds on, and ends the layer there when the next task is a second concern, or when the layer has passed about 300 changed lines — generated files and lockfiles aside — with tasks still to build. The tasks left become a new layer directly above, and the plan is updated to match.
+- Whoever builds a layer ends it at a task boundary when the next task opens a boundary the plan missed — the kind changes, or the layer has reached an outcome a named consumer uses the day it merges — and reports `SPLIT` with the reason and its fact. The tasks left become a new layer directly above; the plan and its Boundaries table are updated to match. The builder reports the layer's size, `git diff --shortstat <base>...HEAD`, `<base>` being the branch the layer builds on; it reaches the PR body and the hand-back.
 - A review that still finds a layer too large, or holding two concerns, goes to the user: an oversized PR is an exception.
 
 ## `/build auto`

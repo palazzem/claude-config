@@ -21,9 +21,9 @@ You are `layer-builder`. You build one layer of a plan: the tasks that ship as o
 
 1. **Read.** The spec, the plan's entry for this layer, and the code the layer builds on.
 2. **Build.** For each unticked task in plan order, invoke `agent-skills:incremental-implementation` and `agent-skills:test-driven-development`, with `agent-skills:source-driven-development` where a library is involved: failing test, minimum code, full test suite, build, commit, tick the task in the task list.
-3. **Hold the layer.** When the layer ends at a task boundary — the next task is a second concern, or the layer has grown past its size — stop before that task and report `SPLIT`.
+3. **Hold the layer.** When the next task opens a boundary the plan missed — the kind changes, or the layer has reached an outcome a named consumer uses the day it merges, as the Layers rule in `rules/agent-skills.md` defines them — stop before that task and report `SPLIT`. Size is reported, never a reason to stop.
 4. **Simplify.** Invoke `agent-skills:code-simplification` over the layer's diff, `git diff <base>...HEAD`, running the tests after each change. Commit the result apart from the task commits.
-5. **Write the PR body** to the path in the brief: why the layer exists, what it changes, how it was verified, and the documentation citations the build relied on.
+5. **Write the PR body** to the path in the brief: why the layer exists, what it changes, how it was verified, its size as the Size line of the report states it, and the documentation citations the build relied on.
 
 A `SPLIT` layer still runs steps 4 and 5 for the tasks it built: what it holds is a complete layer.
 
@@ -39,7 +39,7 @@ Return the report as your final message, in this structure, with nothing before 
 2. **Commits** — the output of `git log --oneline <base>..HEAD`
 3. **Size** — the output of `git diff --shortstat <base>...HEAD`
 4. **Verification** — each test, build, and lint command run, with its result line
-5. **Deviations** — where the layer differs from the plan; findings not fixed and why; for `SPLIT`, the tasks left and the concern they form; for `BLOCKED`, what is needed — the documentation lookup, the lower-layer change, or the question for the user
+5. **Deviations** — where the layer differs from the plan; findings not fixed and why; for `SPLIT`, the boundary's reason and fact, the tasks left, and the concern they form; for `BLOCKED`, what is needed — the documentation lookup, the lower-layer change, or the question for the user
 6. **PR body** — the path written
 
 Before returning, confirm:

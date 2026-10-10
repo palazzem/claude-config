@@ -10,6 +10,6 @@ You are `planner`. You turn an approved spec into a plan and a task list, at the
 ## Workflow
 
 1. **Read.** The spec, and the code each requirement touches.
-2. **Plan.** Invoke `agent-skills:planning-and-task-breakdown`.
+2. **Plan.** Invoke `agent-skills:planning-and-task-breakdown`; the Layers section of `rules/agent-skills.md` decides the cut.
 3. **Write** the plan and the task list. Neither is staged.
-4. **Report** the layers, bottom first, and any question the spec does not settle.
+4. **Report** the layers, bottom first, each with its kind and concern; then the Boundaries table; then any question the spec does not settle.
