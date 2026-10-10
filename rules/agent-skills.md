@@ -25,7 +25,7 @@ A layer holds one concern:
 - One conventional-commit subject names it without an "and".
 - The build and the tests pass with only the layers below it merged.
 - A preparatory refactor, a mechanical change — rename, move, formatting, dependency bump — and a behaviour change never share a layer.
-- Each independently testable slice is its own layer. When two cuts are plausible, take the finer one.
+- Slices that pass the three rules above together are one layer. When two cuts are plausible, take the coarser one; the size rule below is the only other cut.
 
 Each layer in the plan names its branch, its conventional-commit title, its concern in one sentence, and the layer it builds on. It carries no size estimate: the size of a change is not knowable before the code exists, so the planner cuts by concern and the builder cuts again.
 
