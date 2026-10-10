@@ -42,16 +42,18 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 ## Models and effort
 
-A command runs in the subagent type it names, never inline. None means the subagent type's frontmatter decides.
+Work runs in the subagent type it names, never inline. None means the subagent type's frontmatter decides.
 
-| Invoked as | Subagent type | Model | Effort |
+| Work | Subagent type | Model | Effort |
 |---|---|---|---|
-| `/plan`, `agent-skills:planning-and-task-breakdown` | `planner` | None | None |
-| `/review`, `agent-skills:review` | `agent-skills:code-reviewer` | `opus` | `high` |
-| `/ship`, `agent-skills:ship` | `agent-skills:code-reviewer` | `opus` | `high` |
-| `/ship`, `agent-skills:ship` | `agent-skills:security-auditor` | `opus` | `high` |
-| `/ship`, `agent-skills:ship` | `agent-skills:test-engineer` | `opus` | `high` |
-| `/webperf` | `agent-skills:web-performance-auditor` | `opus` | `high` |
+| Plan | `planner` | None | None |
+| Layer build | `layer-builder` | None | None |
+| Documentation lookup | `docs-researcher` | None | None |
+| Layer review (`agent-skills:review`) | `agent-skills:code-reviewer` | `opus` | `high` |
+| Final review (`agent-skills:ship`) | `agent-skills:code-reviewer` | `opus` | `high` |
+| Final review (`agent-skills:ship`) | `agent-skills:security-auditor` | `opus` | `high` |
+| Final review (`agent-skills:ship`) | `agent-skills:test-engineer` | `opus` | `high` |
+| Web performance audit (`/webperf`) | `agent-skills:web-performance-auditor` | `opus` | `high` |
 
 ## `source-driven-development`
 
