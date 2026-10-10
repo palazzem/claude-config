@@ -56,10 +56,10 @@ Each row's work runs in its subagent type, never inline. None means the subagent
 | Work | Subagent type | Model | Effort |
 |---|---|---|---|
 | Plan | `planner` | None | None |
-| Layer review (`agent-skills:review`) | `agent-skills:code-reviewer` | `opus` | `high` |
-| Final review (`agent-skills:ship`) | `agent-skills:code-reviewer` | `opus` | `high` |
-| Final review (`agent-skills:ship`) | `agent-skills:security-auditor` | `opus` | `high` |
-| Final review (`agent-skills:ship`) | `agent-skills:test-engineer` | `opus` | `high` |
+| Layer review (`agent-skills:review`) | `agent-skills:code-reviewer` | `fable` | `high` |
+| Final review (`agent-skills:ship`) | `agent-skills:code-reviewer` | `fable` | `high` |
+| Final review (`agent-skills:ship`) | `agent-skills:security-auditor` | `fable` | `high` |
+| Final review (`agent-skills:ship`) | `agent-skills:test-engineer` | `fable` | `high` |
 | Web performance audit (`/webperf`) | `agent-skills:web-performance-auditor` | `opus` | `high` |
 
 ## `source-driven-development`
