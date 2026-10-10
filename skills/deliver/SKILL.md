@@ -31,8 +31,8 @@ One workflow takes a spec to pull requests under watch, whatever the number of l
 The session orchestrates: it holds the spec, the plan, and the reports, and never writes the plan or code.
 
 1. **Spec.** Stop without a spec path. A spec in the main checkout is not started; one that is absent is in flight (see Resuming). The spec, the plan, and the approval happen in the main checkout, with no worktree.
-2. **Plan.** Invoke `agent-skills:planning-and-task-breakdown`. A `planner` agent, briefed with the spec, plan, and task list paths, writes the plan. Verify it against the spec — every requirement is met by a task, and no task does work the spec does not ask for — and send what fails back to the same agent, resumed.
-3. **Approval.** Present every layer with its title, concern, and tasks, and wait for an unambiguous yes. This is the run's only approval.
+2. **Plan.** Invoke `agent-skills:planning-and-task-breakdown`. A `planner` agent, briefed with the spec, plan, and task list paths, writes the plan. Verify four things, and send what fails back to the same agent, resumed: every requirement is met by a task; no task does work the spec does not ask for; every boundary between adjacent layers has a row in the Boundaries table; every row's fact holds — the kinds are as stated, and an `outcome`'s consumer exists in the spec or the code.
+3. **Approval.** Present every layer with its title, kind, concern, and tasks, then the Boundaries table, and wait for an unambiguous yes. This is the run's only approval.
 4. **Layers.** Bottom first, one at a time: a layer opens only when the checkpoint of the one below is ticked.
    1. **Open.** Before the first layer, and never earlier, from the main checkout and in this order: `git fetch origin`, then `git worktree add -b <branch> .claude/worktrees/<name> origin/<trunk>`, `<branch>` being the bottom layer's; move `<spec-dir>` to the same relative path inside that worktree, creating the parent directory first; `EnterWorktree` with the worktree's path. It is the run's only worktree, and every artifact is read and written there from then on. Open the layer's branch as One Layer or Several says.
    2. **Build and simplify.** One `layer-builder` agent per layer, never two at once. Brief it with the layer's branch, title, concern, tasks, and `<base>`; the spec, plan, task list, and PR body paths, all in `<spec-dir>`; and any `docs-researcher` report in hand. It builds, simplifies, and reports `DONE`, `SPLIT`, or `BLOCKED` (see Off the Straight Run).
@@ -40,7 +40,7 @@ The session orchestrates: it holds the spec, the plan, and the reports, and neve
    4. **Fix and tick.** See After a Review.
 5. **Publish.** Never a draft: `<title>` comes from the plan, `<body>` is `<spec-dir>/pr/<branch>.md`. The commands are in One Layer or Several.
 6. **Watch.** In the same turn, invoke `shepherd`: one watch covers every layer published.
-7. **Hand back.** Once the monitor is armed, report to the user: the PRs; the `agent-skills:ship` decision as returned; what was fixed after it; the commits made after it, which no reviewer saw; any recommended fix not made, and why; any layer added after it.
+7. **Hand back.** Once the monitor is armed, report to the user: the PRs, each with the size its builder reported; the `agent-skills:ship` decision as returned; what was fixed after it; the commits made after it, which no reviewer saw; any recommended fix not made, and why; any layer added after it.
 
 ## One Layer or Several
 
@@ -87,7 +87,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 
 | Event | Then |
 |---|---|
-| The builder reports `SPLIT` | What it built is a complete layer. Add the new layer to the plan directly above it, with its branch, title, concern, tasks, and checkpoint. The layer that split is no longer the last: it gets `agent-skills:review`, and the new layer is built next. |
+| The builder reports `SPLIT` | What it built is a complete layer. Add the new layer to the plan directly above it — branch, title, kind, concern, tasks, checkpoint — and the row the builder reported to the Boundaries table. The layer that split is no longer the last: it gets `agent-skills:review`, and the new layer is built next. |
 | `BLOCKED` on a documentation lookup | Run a `docs-researcher` agent with the library, version, and question; resume the builder with its report. |
 | `BLOCKED` on a change that belongs to a lower layer | Make it there with steps 1 to 4 of After a Review, return to the builder's branch, and resume the builder. |
 | `BLOCKED` on anything else | Put its question to the user; resume the builder with the answer. |
@@ -113,6 +113,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 | "Review first, simplify after — that is the order the plugin lists." | The layer has one review: it reads the code that ships. Simplify, then review. |
 | "Only one task is left after the `SPLIT`; have the builder finish it here." | The builder ended the layer at its boundary. The task left is a layer: open it. |
 | "The review calls it too large, but it is one concern." | An oversized PR is an exception, and exceptions are the user's to grant. |
+| "This layer will run long; cut it now so the PRs stay small." | Size is a fact, not a reason: a boundary needs a kind change or an outcome. The size goes in the hand-back, and an oversized PR is the user's exception to grant. |
 | "These two layers don't touch; run both builders at once." | They share one worktree. One builder at a time. |
 | "Resume the reviewer to confirm the fix, to be safe." | Each review runs once, deliberately: the test suite guards against regressions, and the human who reviews the PR checks the fix. |
 | "A code review on the last layer first — or `/review` then `/ship` on a single PR." | `agent-skills:ship` is the last layer's review. Anything before it reads the same code twice. |
@@ -123,6 +124,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 ## Red Flags
 
 - The session writing the plan, building a layer, or fixing a finding itself.
+- A layer cut on size, by the planner or the builder; a boundary with no row in the Boundaries table.
 - A worktree before the first layer opens, or a second one; an artifact written in the main checkout after it opens; two `layer-builder` agents running at once.
 - A review brief holding anything beyond the range, the two paths with the layer's heading, and the read-only line.
 - A reviewer resumed, a review command invoked twice on one layer, or `agent-skills:review` on the last layer.
@@ -133,6 +135,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 ## Verification
 
 - [ ] The plan was written by a `planner` and verified against the spec by the session, and every layer was built by a `layer-builder`.
+- [ ] Every boundary between adjacent layers has a row in the plan's Boundaries table, the rows added after a `SPLIT` included, and no layer was cut on size.
 - [ ] Every layer has a ticked checkpoint and a PR body file, and `git log --oneline <base>..<branch>` shows only its tasks, its simplification, and its fixes.
 - [ ] The run shows one `agent-skills:review` per layer but the last and one `agent-skills:ship`, each briefed with its three inputs.
 - [ ] After the last fix, the full test suite passed on every layer from the fixed one to the top.
