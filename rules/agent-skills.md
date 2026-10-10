@@ -42,9 +42,16 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 ## Models and effort
 
-- `/plan` writes the plan in the `planner` agent, never inline.
-- `/review` runs in an `agent-skills:code-reviewer` agent, never inline.
-- `agent-skills:code-reviewer`, `agent-skills:security-auditor`, `agent-skills:test-engineer`, and `agent-skills:web-performance-auditor` are spawned with model `opus` and effort `high`.
+Each row's work runs in its subagent type, never inline. None means the subagent type's frontmatter decides.
+
+| Work | Subagent type | Model | Effort |
+|---|---|---|---|
+| Plan | `planner` | None | None |
+| Layer review (`agent-skills:review`) | `agent-skills:code-reviewer` | `opus` | `high` |
+| Final review (`agent-skills:ship`) | `agent-skills:code-reviewer` | `opus` | `high` |
+| Final review (`agent-skills:ship`) | `agent-skills:security-auditor` | `opus` | `high` |
+| Final review (`agent-skills:ship`) | `agent-skills:test-engineer` | `opus` | `high` |
+| Web performance audit (`/webperf`) | `agent-skills:web-performance-auditor` | `opus` | `high` |
 
 ## `source-driven-development`
 
