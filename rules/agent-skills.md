@@ -42,16 +42,16 @@ Each layer in the plan names its branch, its conventional-commit title, its conc
 
 ## Models and effort
 
-None means the subagent type's frontmatter decides.
+A command runs in the subagent type it names, never inline. None means the subagent type's frontmatter decides.
 
-| Command | Plugin runs it | Subagent type | Model | Effort |
-|---|---|---|---|---|
-| `/plan` | inline | `planner` | None | None |
-| `/review` | inline | `agent-skills:code-reviewer` | `opus` | `high` |
-| `/ship` | subagent | `agent-skills:code-reviewer` | `opus` | `high` |
-| `/ship` | subagent | `agent-skills:security-auditor` | `opus` | `high` |
-| `/ship` | subagent | `agent-skills:test-engineer` | `opus` | `high` |
-| `/webperf` | subagent | `agent-skills:web-performance-auditor` | `opus` | `high` |
+| Command | Subagent type | Model | Effort |
+|---|---|---|---|
+| `/plan`, `agent-skills:planning-and-task-breakdown` | `planner` | None | None |
+| `/review`, `agent-skills:review` | `agent-skills:code-reviewer` | `opus` | `high` |
+| `/ship`, `agent-skills:ship` | `agent-skills:code-reviewer` | `opus` | `high` |
+| `/ship`, `agent-skills:ship` | `agent-skills:security-auditor` | `opus` | `high` |
+| `/ship`, `agent-skills:ship` | `agent-skills:test-engineer` | `opus` | `high` |
+| `/webperf` | `agent-skills:web-performance-auditor` | `opus` | `high` |
 
 ## `source-driven-development`
 
