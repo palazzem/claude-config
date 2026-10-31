@@ -23,6 +23,7 @@ Skills and plugins supply process; this file supplies the quality bar and conven
 - Warnings are findings. Fix the cause of compiler, linter, test-runner, build, and deprecation warnings; promote warnings to errors project-wide where feasible.
 - Existing code is not the quality bar. When it violates best practice, improve the pattern and migrate its neighbors — or file that migration — never introduce a third way.
 - Name and place a module for the role it holds in the green-field design, never for what it holds today.
+- Name a dependency by the interface the component consumes, never by what the other side does with it.
 
 ## Documentation
 
