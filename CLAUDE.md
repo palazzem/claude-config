@@ -27,6 +27,10 @@ Skills and plugins supply process; this file supplies the quality bar and conven
 - For a feature not yet deployed, design no transition: no compatibility fields, no defaults for an older peer, no deploy-order text.
 - Pin everything CI or an artifact build installs exactly: actions by commit SHA labelled with its release tag, toolchains by exact version, images by tag plus digest.
 
+## Testing
+
+- Write a test only when deleting it would let a behaviour of the code break unnoticed; never test prose, CI config, constants, test helpers, or third-party libraries.
+
 ## Documentation
 
 - Architecture documents, ADRs, and design docs stay conceptual: responsibilities, boundaries, data flow, invariants, and the reasoning behind decisions. Name what is stable — concepts, contracts, protocols, external systems — never files, symbols, layouts, or code.
