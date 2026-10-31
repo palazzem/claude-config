@@ -26,6 +26,7 @@ Skills and plugins supply process; this file supplies the quality bar and conven
 - Operational docs — agent instructions, constraints files, runbooks, quick-starts — name what they must, and are verified in the same change that alters what they name.
 - Docs, docstrings, and comments state how the system works now — never its history, dropped alternatives, how it was found, or another document's step numbers; that reasoning goes in the commit, PR, or issue.
 - An ADR states the decision and how the system behaves, never the diff from an earlier ADR or the current state of the code; code that disagrees with an ADR gets a reconciliation issue.
+- Write an ADR only for a choice between alternatives with lasting consequences, never for a refactoring that converges on best practice.
 
 ## Docstrings and Comments
 
