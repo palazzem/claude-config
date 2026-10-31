@@ -14,6 +14,8 @@ The session opened a PR; shepherd keeps it moving until a human merges or closes
 - Right after the PR, or the stack, is opened and pushed, in the same session — or in a new session on the branch of any of its layers to resume watching.
 - Re-invocation is resume: run `baseline` and handle what it prints as a wake — `MERGED` and `CLOSED` lines go to Terminal, the rest to Watch.
 - No PR on the current branch → stop and report; never guess a seed. A draft PR → say so and stop; publishing comes before shepherd.
+- Several PRs or stacks open for review → one watch, on the first in review order; arm the next only when that one ends.
+- The session answers reviews on the watched PRs and records follow-up conclusions in their issue; it builds new work only when told to.
 
 ## Watch
 
