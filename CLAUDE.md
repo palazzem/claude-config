@@ -22,6 +22,7 @@ Skills and plugins supply process; this file supplies the quality bar and conven
 - Never disable a lint rule or add a suppression or exception. Exceptions are mine to grant, with an owner and an expiry.
 - Warnings are findings. Fix the cause of compiler, linter, test-runner, build, and deprecation warnings; promote warnings to errors project-wide where feasible.
 - Existing code is not the quality bar. When it violates best practice, improve the pattern and migrate its neighbors — or file that migration — never introduce a third way.
+- Name and place a module for the role it holds in the green-field design, never for what it holds today.
 
 ## Documentation
 
