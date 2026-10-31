@@ -25,6 +25,7 @@ Skills and plugins supply process; this file supplies the quality bar and conven
 - Name and place a module for the role it holds in the green-field design, never for what it holds today.
 - Name a dependency by the interface the component consumes, never by what the other side does with it.
 - For a feature not yet deployed, design no transition: no compatibility fields, no defaults for an older peer, no deploy-order text.
+- Pin everything CI or an artifact build installs exactly: actions by commit SHA labelled with its release tag, toolchains by exact version, images by tag plus digest.
 
 ## Documentation
 
