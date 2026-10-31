@@ -32,6 +32,10 @@ Skills and plugins supply process; this file supplies the quality bar and conven
 - Write a test only when deleting it would let a behaviour of the code break unnoticed; never test prose, CI config, constants, test helpers, or third-party libraries.
 - A refactor leaves every test assertion unchanged; one that cannot goes to me first.
 
+## Privacy
+
+- Personal data from production never enters a repository in any form — fixtures, file names, test names, comments, docs, commit messages, PR text; pseudonymize it before it is written.
+
 ## Documentation
 
 - Architecture documents, ADRs, and design docs stay conceptual: responsibilities, boundaries, data flow, invariants, and the reasoning behind decisions. Name what is stable — concepts, contracts, protocols, external systems — never files, symbols, layouts, or code.
