@@ -8,22 +8,43 @@ Skills and plugins supply process; this file supplies the quality bar and conven
 - Process artifacts (spec, plan, task list) are written in `.claude/specs/<name>/` in the main checkout, with no worktree; when the first layer is built the worktree is created and they move into it. They enter a PR only when I ask.
 - A PR handed to a human is ready for review, never a draft. Draft is only for a PR still in flight that needs no human action; convert it before asking anyone to look.
 - Users review and merge. Never approve, merge, or close a PR, push a tag, or push to a protected branch.
+- A question I leave open is recorded in an issue, or wherever I name, never only in a process artifact.
 
 ## Decisions
 
 - Rank options by outcome quality only: correctness, security, maintainability, performance, operability. Report implementation time, team size, and migration or rollout cost as caveats, never as ranking inputs.
 - Always include the green-field option — what this would look like designed from scratch today, with the refactoring it implies — as a proposal. Extend scope beyond the ask only when I pick it.
+- Before asking me for a decision, state what each option changes in my workflow, recommend one, and ask only what that leaves open.
+- Assess a proposed generalization — is it idiomatic, does its premise hold for every consumer, what is the green-field shape — before building it, and build only after I pick.
 
 ## Code Quality
 
 - Never disable a lint rule or add a suppression or exception. Exceptions are mine to grant, with an owner and an expiry.
 - Warnings are findings. Fix the cause of compiler, linter, test-runner, build, and deprecation warnings; promote warnings to errors project-wide where feasible.
 - Existing code is not the quality bar. When it violates best practice, improve the pattern and migrate its neighbors — or file that migration — never introduce a third way.
+- Name and place a module for the role it holds in the green-field design, never for what it holds today.
+- Name a dependency by the interface the component consumes, never by what the other side does with it.
+- For a feature not yet deployed, design no transition: no compatibility fields, no defaults for an older peer, no deploy-order text.
+- Pin everything CI or an artifact build installs exactly: actions by commit SHA labelled with its release tag, toolchains by exact version, images by tag plus digest.
+
+## Testing
+
+- Write a test only when deleting it would let a behaviour of the code break unnoticed; never test prose, CI config, constants, test helpers, or third-party libraries.
+- A refactor leaves every test assertion unchanged; one that cannot goes to me first.
+
+## Privacy
+
+- Personal data from production never enters a repository in any form — fixtures, file names, test names, comments, docs, commit messages, PR text; pseudonymize it before it is written.
 
 ## Documentation
 
 - Architecture documents, ADRs, and design docs stay conceptual: responsibilities, boundaries, data flow, invariants, and the reasoning behind decisions. Name what is stable — concepts, contracts, protocols, external systems — never files, symbols, layouts, or code.
 - Operational docs — agent instructions, constraints files, runbooks, quick-starts — name what they must, and are verified in the same change that alters what they name.
+- Docs, docstrings, and comments state how the system works now — never its history, dropped alternatives, how it was found, or another document's step numbers; that reasoning goes in the commit, PR, or issue.
+- An ADR states the decision and how the system behaves, never the diff from an earlier ADR or the current state of the code; code that disagrees with an ADR gets a reconciliation issue.
+- Write an ADR only for a choice between alternatives with lasting consequences, never for a refactoring that converges on best practice.
+- State each fact once, in the document that owns it — never repeated in an agent instructions file, another doc, or a docstring.
+- An issue opens with the problem and concrete examples, never a description of the current state or a journal line, and closes with a Proposed solutions section.
 
 ## Docstrings and Comments
 

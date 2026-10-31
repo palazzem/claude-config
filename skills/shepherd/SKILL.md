@@ -14,6 +14,8 @@ The session opened a PR; shepherd keeps it moving until a human merges or closes
 - Right after the PR, or the stack, is opened and pushed, in the same session — or in a new session on the branch of any of its layers to resume watching.
 - Re-invocation is resume: run `baseline` and handle what it prints as a wake — `MERGED` and `CLOSED` lines go to Terminal, the rest to Watch.
 - No PR on the current branch → stop and report; never guess a seed. A draft PR → say so and stop; publishing comes before shepherd.
+- Several PRs or stacks open for review → one watch, on the first in review order; arm the next only when that one ends.
+- The session answers reviews on the watched PRs and records follow-up conclusions in their issue; it builds new work only when told to.
 
 ## Watch
 
@@ -92,8 +94,8 @@ Report first, cleanup second — always both. Cleanup ignores every failure, so 
 ```
 
 3. The printed watermark still holds a layer — the watch goes on, and steps 4–5 wait:
-   - Any `CLOSED` line in the wake: stop for the user, before the sync of a `MERGED` line of the same wake. Sync nothing, clean nothing, arm nothing.
-   - Otherwise, `MERGED`: resolve the merged layer's `<branch>` as in A change step 1, before the sync prunes it. Then `gh stack sync --prune` — rebases the remaining layers onto the merged trunk, pushes them, deletes the merged local branch, moves the checkout to the new bottom. It also settles a `BEHIND` or `DIRTY` printed for an upper layer in the same wake; on a conflict, and for a layer left behind, as under Drift steps 2–3. Then `git push origin --delete <branch>` (GitHub may already have), the wake's other lines, and a re-arm with the printed watermark — never a new `baseline`.
+   - Any `CLOSED` line in the wake: stop for the user, before handling a `MERGED` line of the same wake. Reset nothing, clean nothing, arm nothing.
+   - Otherwise, `MERGED`: resolve the merged layer's `<branch>` as in A change step 1. Push nothing — GitHub restacks the remaining layers itself. `git fetch --prune`, reset each open local layer to its remote (`git branch -f <b> origin/<b>`, `git reset --hard origin/<b>` on the one checked out), switch to the new bottom, and `git branch -D <branch>`. A `BEHIND` or `DIRTY` printed for an upper layer in the same wake is Drift's. Then `git push origin --delete <branch>` (GitHub may already have), the wake's other lines, and a re-arm with the printed watermark — never a new `baseline`.
 4. The printed watermark is `{}` — once, after the last layer. First the open-layer check under Handling a wake: a layer the watch never covered stops the run here, with nothing cleaned. Then resolve the `<branch>` of each layer of this wake as in A change step 1, while the worktree is there, and clean up without confirmation — the PR is the record, the worktree is not. If the checkout is a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`): `ExitWorktree(action: "remove", discard_changes: true)`, then from the main checkout `git worktree remove --force <worktree>`. Then `git branch -D <branch>` for each layer of this wake. MERGED: `git push origin --delete <branch>` (GitHub may already have). CLOSED unmerged: the remote branch stays — pushed work is recoverable and the PR can be reopened.
 5. Once the worktree is deleted, sync the main checkout. Any layer of the watch `MERGED`, whatever the last terminal was: `git pull -p` on the default branch, `git fetch --prune` on any other branch (say so — never pull into a branch the user has checked out). No layer merged: `git fetch --prune`. A pull the working tree refuses: report it, don't stash.
 
@@ -111,7 +113,7 @@ Report first, cleanup second — always both. Cleanup ignores every failure, so 
 | "Two layers are behind; rebase each of them." | Drift is the stack's, not a layer's. One `gh stack sync` rebases and pushes every layer. |
 | "One monitor per layer is easier to follow." | One watch, one monitor: the watermark holds every open layer, and the script finds a new one itself. |
 | "A layer merged; `baseline` again for the ones left." | The watermark printed with `MERGED` already holds them. A new `baseline` hides what landed while handling. |
-| "The bottom merged; run the cleanup." | The worktree still holds the open layers. `gh stack sync --prune` and re-arm; removal and the main-checkout sync happen once, when the watermark is `{}`. |
+| "The bottom merged; run the cleanup." | The worktree still holds the open layers. Reset them to their remotes and re-arm; removal and the main-checkout sync happen once, when the watermark is `{}`. |
 
 ## Red Flags
 
@@ -139,7 +141,7 @@ At every terminal, before ending:
 - [ ] Every wake this run was handled: each reply carries the marker, each push was followed by a CI check.
 - [ ] The watch was armed from one `baseline`, whatever the number of layers, and each re-arm from the watermark the monitor printed.
 - [ ] Each change was committed on the branch of the PR its event named, and the layers above followed.
-- [ ] Each layer merged while another was open ran `gh stack sync --prune`, and the watch was re-armed with the watermark printed beside its `MERGED`.
+- [ ] Each layer merged while another was open pushed nothing, the open local layers were reset to their remotes, and the watch was re-armed with the watermark printed beside its `MERGED`.
 - [ ] Cleanup ran once, after the summary of the last layer, with the printed watermark `{}`, in order — worktree (if any), local branch, and on MERGED the remote branch; on CLOSED the remote branch and the PR were not touched.
 - [ ] The main checkout synced after `ExitWorktree` — `git pull -p` on the default branch after a merge, `git fetch --prune` otherwise — and a skipped or refused pull was reported.
 - [ ] After the last layer no monitor is armed for the watch, and no summary was posted or saved.
