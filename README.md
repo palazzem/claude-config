@@ -110,7 +110,7 @@ With this repository installed as `~/.claude`, its `rules/` load in every projec
 | Simplify the code | `/code-simplify` | Clarity over cleverness |
 | Ship to production | `/ship` | Faster is safer |
 | Find where a session's time went | `/harness:inference-tracing` | Measure from the transcripts, never by asking the session |
-| Consolidate memories into rules | `/harness:reflect` | A lesson lives once, globally |
+| Consolidate memories into rules | `/harness:reflect` | A lesson lives once, where it applies |
 
 Skills also activate on their own: a build task that touches a library is checked against current docs through `harness:docs-researcher`, a chain of dependent branches triggers `gh-stack:gh-stack`, a freshly opened PR triggers `harness:shepherd`.
 

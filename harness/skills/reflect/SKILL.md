@@ -14,7 +14,7 @@ Memories accumulate per project and stay on the machine. Some state a way of wor
 ## When to Use
 
 - Whenever the user asks for a housekeeping pass, with `gh auth status` succeeding.
-- With a PR URL (`/reflect https://github.com/<owner>/<repo>/pull/42`) → Resume.
+- With a PR URL (`/harness:reflect https://github.com/<owner>/<repo>/pull/42`) → Resume.
 - Not for editing one memory (edit the file), never on the model's own initiative.
 
 ## Targets
@@ -24,12 +24,13 @@ Memories accumulate per project and stay on the machine. Some state a way of wor
 | `global` | the `~/.claude` checkout | `rules/<topic>.md` |
 | `project` | the repository the memory's project directory belongs to | its `.claude/rules/<topic>.md`, or its `CLAUDE.md` when the repository keeps its rules there |
 
-A memory's project directory is named after the repository path, with `/` replaced by `-`. Resolve it to the git repository at that path; when no path or more than one path fits, ask the user for it. A project memory whose repository cannot be resolved can only be promoted `global` or kept.
+Resolve a memory's repository from the working directory its project's transcripts record: `jq -r 'select(.cwd) | .cwd' <project_dir>/*.jsonl | head -1`, then `git -C <cwd> rev-parse --show-toplevel`. The project directory's name is not decodable, since both `/` and `.` become `-`. A project whose repository cannot be resolved has no `project` target: its lessons are kept unless they pass the `global` test as drafted.
 
 ## Inventory
 
-1. `${CLAUDE_SKILL_DIR}/scripts/inventory.sh` — the only memory reader. One JSON object per memory file: `project`, `project_dir`, `file`, `name`, `description`, `type`, `modified`, `body`. `MEMORY.md` files are indexes and never appear. A `type` of `unknown` means no frontmatter; triage it from the body.
-2. Read the bar: every `~/.claude/rules/*.md`, and for each resolved project its `CLAUDE.md` and `.claude/rules/*.md`. These decide `redundant` and `conflict`.
+1. Precondition: `gh auth status` succeeds. A failure → stop and report.
+2. `${CLAUDE_SKILL_DIR}/scripts/inventory.sh` — the only memory reader. One JSON object per memory file: `project`, `project_dir`, `file`, `name`, `description`, `type`, `modified`, `body`. `MEMORY.md` files are indexes and never appear. A `type` of `unknown` means no frontmatter; triage it from the body.
+3. Read the bar: every `~/.claude/rules/*.md`, and for each resolved project its `CLAUDE.md` and `.claude/rules/*.md`. These decide `redundant` and `conflict`.
 
 ## Triage
 
@@ -43,7 +44,7 @@ Every memory gets exactly one verdict:
 | `keep` | Everything else: domain facts, one-off decisions, references, anything another document already owns. | Listed, untouched. |
 
 - Doubt between `promote` and `keep` resolves to `keep`, with the doubt stated; the user overrides by number.
-- Memories stating the same lesson are **one** candidate listing every source file.
+- Memories stating the same lesson are **one** candidate listing every source file. A candidate whose sources span several projects is `global`, or is split into one `project` candidate per project; a single `project` candidate never carries another project's memory.
 - File: the existing `<topic>.md` the rule belongs to, or a new one in the `# Rule: <Title>` shape. Recommend; the user may override.
 - Drafted rule text: one imperative sentence. No prose paragraphs.
 
@@ -60,18 +61,18 @@ Print the triage in the session — never posted, committed, or saved:
 ## Conflicts (your call)
 ```
 
-Then wait for an explicit selection: candidate numbers, each with `global` or `project` where the user overrides the recommended target, or `all`, or `none`. "Sounds good", "whatever you think", and silence are not selections — ask again. `none` with nothing redundant → report-only run, stop. `none` with redundant memories → the PR of each repository holding them carries only the count line; the deletions still need the merge gate.
+Then wait for an explicit selection: candidate numbers, each with `global` or `project` where the user overrides the recommended target, or `all`, or `none`. "Sounds good", "whatever you think", and silence are not selections — ask again. `none` with nothing redundant → report-only run, stop. Redundant memories need no PR, since the rule that makes them redundant is already on the default branch: after the user confirms the redundant list, `prune.sh --dry-run`, then `prune.sh`, on a manifest of those files alone.
 
 ## Promote
 
-Run once per target repository that the selection touches:
+Run once per target repository that the selection touches, `<repo>` being its main checkout and `<default>` its default branch. The session works on it from outside, with `git -C`, so nothing depends on where the session started:
 
-1. Preconditions: the repository's main checkout is on its default branch and `git status --porcelain` is empty. A failure → skip this repository, report it, go on with the next.
-2. Build the manifest in memory: the source files of every picked candidate for this repository plus every `redundant` memory the user did not keep whose bar lives here, one `<slug>/memory/<file>.md` per line. `${CLAUDE_SKILL_DIR}/scripts/prune.sh --dry-run` on it; a refusal blocks this repository's PR.
-3. A fresh worktree on branch `reflect/<YYYY-MM-DD>` from the default branch.
-4. Per picked candidate: edit the target file, one commit `feat(rules): <slug of the rule text>`. Adding a line is the default; rewording an existing one is a question for the user first.
-5. Leak guard: for every manifest basename (without `.md`) and every project slug, `git log -p <default>..HEAD | grep -F <token>` and a grep of the PR title and body must print nothing. One hit blocks the PR.
-6. Push; `gh pr create` — ready, never draft. The body, in full:
+1. Preconditions: `git -C <repo> status --porcelain` is empty and `<repo>` is on `<default>`. A failure → skip this repository, report it, go on with the next.
+2. Build the manifest in memory: the source files of every picked candidate for this repository, one `<slug>/memory/<file>.md` per line. `${CLAUDE_SKILL_DIR}/scripts/prune.sh --dry-run` on it; a refusal blocks this repository's PR.
+3. `git -C <repo> fetch --quiet`, then `git -C <repo> worktree add -b reflect/<YYYY-MM-DD> <repo>/.claude/worktrees/reflect-<YYYY-MM-DD> origin/<default>`; `<wt>` is that path.
+4. Per picked candidate: edit the target file under `<wt>`, one commit `feat(rules): <slug of the rule text>`. Adding a line is the default; rewording an existing one is a question for the user first.
+5. Leak guard: for every manifest basename (without `.md`) and every project slug, `git -C <wt> log -p origin/<default>..HEAD | grep -F <token>` and a grep of the PR title and body must print nothing. One hit blocks the PR.
+6. `git -C <wt> push -u origin reflect/<YYYY-MM-DD>`; `gh pr create -R <owner>/<repo> --head reflect/<YYYY-MM-DD>` — ready, never draft. The body, in full:
 
 ```markdown
 ## Promoted
@@ -80,21 +81,23 @@ Run once per target repository that the selection touches:
 _N memory files are pruned locally after merge._
 ```
 
-Nothing derived from a memory — slug, filename, description, body, project name — goes in a commit message, the PR title or body, or any tracked file. Conflicts stay in the session.
+Nothing derived from a memory — slug, filename, description, body, project name — goes in a commit message, the PR title or body, or any tracked file; the drafted rule text is the one exception. Conflicts stay in the session.
 
-7. Write the manifest: `mkdir -p ~/.claude/reflect` and one line per entry into `~/.claude/reflect/<owner>-<repo>-<YYYY-MM-DD>.manifest` — the repository is the PR's, the date is the branch's. This file is the only record of what to prune.
-8. Invoke `harness:shepherd` on the PR.
+7. Write the manifest: `mkdir -p ~/.claude/reflect` and one line per entry into `~/.claude/reflect/<owner>-<repo>-<YYYY-MM-DD>.manifest` — the repository is the PR's, the date is the branch's — and the absolute path of `<repo>` into the `.checkout` file of the same name. These files are the only record of what to prune and where.
+
+Once every repository has its PR, invoke `harness:shepherd` on the first, with its commands run from that PR's `<wt>`; arm the next when that watch ends, one watch at a time.
 
 ## Prune
 
 Runs per PR after `harness:shepherd` reaches Terminal — after its summary, its cleanup, and its sync of the main checkout.
 
-- `MERGED`: confirm the rule is live — in the repository's main checkout, `git fetch --quiet && git merge-base --is-ancestor origin/<default> HEAD` — then `${CLAUDE_SKILL_DIR}/scripts/prune.sh < <manifest>`, print its JSON summary, and `rm` the manifest. A failed sync check → report, prune nothing, tell the user to run `/reflect <pr-url>` once the checkout is synced. A missing manifest → report and stop; never rebuild one from the triage, the session, or the PR.
-- `CLOSED`: nothing under `~/.claude/projects/` changes; `rm` the manifest. Report.
+- `MERGED`: confirm this PR's rule is live — `gh pr view <pr-url> --json state,mergeCommit` reports `MERGED`, and in the checkout the `.checkout` file names, `git fetch --quiet && git merge-base --is-ancestor <mergeCommit.oid> HEAD` — then `${CLAUDE_SKILL_DIR}/scripts/prune.sh < <manifest>`, print its JSON summary, and `rm` the manifest and its `.checkout`. A failed check → report, prune nothing, tell the user to run `/harness:reflect <pr-url>` once the checkout is synced. A missing manifest → report and stop; never rebuild one from the triage, the session, or the PR.
+- `CLOSED`: nothing under `~/.claude/projects/` changes; `rm` the manifest and its `.checkout`. Report.
+- Either way, `git -C <repo> worktree remove --force <wt>` and `git -C <repo> branch -D reflect/<YYYY-MM-DD>` when shepherd left them.
 
 ## Resume
 
-`/reflect <pr-url>` → `gh pr view <pr-url> --json state,headRefName`; the PR's repository and its head branch `reflect/<YYYY-MM-DD>` name the manifest. `MERGED` → Prune (idempotent: files already gone are `skipped`). `OPEN` → `harness:shepherd` on the PR's branch. `CLOSED` → Prune's `CLOSED` branch.
+`/harness:reflect <pr-url>` → `gh pr view <pr-url> --json state,headRefName`; the PR's repository and its head branch `reflect/<YYYY-MM-DD>` name the manifest and its `.checkout`. `MERGED` → Prune (idempotent: files already gone are `skipped`). `OPEN` → `harness:shepherd` on the PR's branch. `CLOSED` → Prune's `CLOSED` branch.
 
 ## Common Rationalizations
 
@@ -112,12 +115,12 @@ Runs per PR after `harness:shepherd` reaches Terminal — after its summary, its
 
 ## Red Flags
 
-- A deletion under `~/.claude/projects/` before the watcher printed `MERGED` and the sync check passed.
+- A deletion under `~/.claude/projects/` before this PR's merge commit is in its repository's checkout; a merge check on any other signal.
 - A memory slug, filename, description, or project name in a commit message, a PR title or body, or a tracked file.
 - A manifest rebuilt from the triage, the session, or the PR; a manifest kept anywhere but `~/.claude/reflect/`.
 - `rm`, `sed`, or an edit on a memory file or a `MEMORY.md` outside `prune.sh`.
 - A PR opened without a passing `prune.sh --dry-run`; a draft PR; one PR carrying rules for two repositories.
-- A target picked by the session; a selection inferred from "sounds good", "whatever you think", or silence.
+- A target picked by the session; a `project` lesson promoted `global` because its repository could not be resolved; a selection inferred from "sounds good", "whatever you think", or silence.
 - `gh pr merge`, `gh pr review --approve`, or `gh pr close` from the session.
 
 ## Verification
