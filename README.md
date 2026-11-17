@@ -33,10 +33,11 @@ On a machine where Claude Code has no `~/.claude` yet:
 
 ```bash
 git clone git@github.com:palazzem/claude-config.git ~/.claude
+claude                                  # the first start registers the palazzem marketplace; /exit
 claude plugin install harness@palazzem
 
 gh auth login
-gh extension install github/gh-stack
+gh extension install github/gh-stack --pin v0.3.0
 
 npm install -g ccstatusline
 mkdir -p ~/.config/ccstatusline
@@ -45,17 +46,17 @@ cp ~/.claude/statusline/ccstatusline-config.json ~/.config/ccstatusline/settings
 claude
 ```
 
-`claude plugin install harness@palazzem` also installs `agent-skills` and `gh-stack`, its dependencies. The `palazzem` marketplace is this checkout, read in place: a change merged and pulled into `~/.claude` loads at the next session or after `/reload-plugins`.
+`claude plugin install harness@palazzem` also installs `agent-skills` and `gh-stack`, its dependencies. The `palazzem` marketplace is this checkout, read in place: a change to `harness` merged and pulled into `~/.claude` loads at the next session or after `/reload-plugins`.
 
 ## Plugins
 
 | Plugin | Source | Pinned to |
 | --- | --- | --- |
 | `harness` | `harness/` in this repository | The checkout itself |
-| `agent-skills` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | 0.6.12, `1401c8b` |
+| `agent-skills` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | `1401c8b`, four documentation commits after 0.6.12 |
 | `gh-stack` | [github/gh-stack](https://github.com/github/gh-stack) | v0.3.0, `2a49e67` |
 
-A third-party pin moves only by editing its `sha` in `.claude-plugin/marketplace.json`.
+A third-party pin moves only by editing its `sha` in `.claude-plugin/marketplace.json`; once that change is pulled, `claude plugin update agent-skills@palazzem` or `claude plugin update gh-stack@palazzem` installs it.
 
 ## Use the harness in a team repository
 
@@ -76,13 +77,15 @@ Commit this to the repository's `.claude/settings.json`, with `ref` set to the `
 }
 ```
 
-Each collaborator clones the repository, starts `claude`, trusts the folder, and runs:
+The harness's process rules travel with the repository, not with the plugin: commit `rules/agent-skills.md` and `rules/gh-stack.md` from this repository into the team repository's `.claude/rules/`, adjusted to the team.
+
+Each collaborator clones the repository, starts `claude`, trusts the folder, waits for the session to finish loading, exits, and runs:
 
 ```bash
 claude plugin install harness@palazzem --scope project
 ```
 
-Moving the team to a newer harness is a PR that changes `ref`; each collaborator then runs `claude plugin update harness@palazzem --scope project`.
+Moving the team to a newer harness is a PR that changes `ref`. After pulling it, each collaborator starts `claude` once, so the marketplace moves to the new `ref`, then runs `claude plugin update harness@palazzem --scope project`, and the same for `agent-skills@palazzem` and `gh-stack@palazzem` when their pins moved.
 
 ## Commands
 
@@ -101,7 +104,7 @@ Moving the team to a newer harness is a PR that changes `ref`; each collaborator
 | Simplify the code | `/code-simplify` | Clarity over cleverness |
 | Ship to production | `/ship` | Faster is safer |
 | Find where a session's time went | `/harness:inference-tracing` | Measure from the transcripts, never by asking the session |
-| Consolidate memories into rules | `/harness:reflect` | A lesson lives once, where it applies |
+| Consolidate memories into rules | `/harness:reflect` | A lesson lives once, globally |
 
 Skills also activate on their own: a build task that touches a library is checked against current docs through `harness:docs-researcher`, a chain of dependent branches triggers `gh-stack:gh-stack`, a freshly opened PR triggers `harness:shepherd`.
 

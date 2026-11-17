@@ -1,23 +1,31 @@
 {
   "name": "palazzem",
-  "owner": { "name": "palazzem" },
+  "owner": {
+    "name": "palazzem"
+  },
   "description": "The harness plugin and the third-party plugins it depends on, pinned to exact commits.",
   "plugins": [
     {
       "name": "harness",
-      "description": "Spec-to-stacked-PR delivery: plan, build, review, publish, and watch PRs until a human merges them.",
       "source": "./harness"
     },
     {
       "name": "agent-skills",
-      "description": "addyosmani/agent-skills 0.6.12: the spec, plan, build, review, and ship process.",
-      "source": { "source": "github", "repo": "addyosmani/agent-skills", "sha": "1401c8b8030e023baeebb31781a6653fe8e93026" }
+      "description": "addyosmani/agent-skills at 1401c8b, four documentation commits after 0.6.12: the spec, plan, build, review, and ship process.",
+      "source": {
+        "source": "github",
+        "repo": "addyosmani/agent-skills",
+        "sha": "1401c8b8030e023baeebb31781a6653fe8e93026"
+      }
     },
     {
       "name": "gh-stack",
       "description": "github/gh-stack v0.3.0: the stacked pull request skill.",
-      "source": { "source": "github", "repo": "github/gh-stack", "sha": "2a49e6751238633db504655d8a8eba3e433e827d" },
-      "strict": false
+      "source": {
+        "source": "github",
+        "repo": "github/gh-stack",
+        "sha": "2a49e6751238633db504655d8a8eba3e433e827d"
+      }
     }
   ]
 }
