@@ -15,7 +15,7 @@ Memories accumulate per project and stay on the machine. Some state a way of wor
 
 - Whenever the user asks for a housekeeping pass, with `gh auth status` succeeding.
 - With a PR URL (`/harness:reflect https://github.com/<owner>/<repo>/pull/42`) → Resume.
-- Not for editing one memory (edit the file), never on the model's own initiative.
+- Not for editing one memory (edit the file).
 
 ## Targets
 
