@@ -16,13 +16,15 @@
     "refreshInterval": 10
   },
   "enabledPlugins": {
-    "agent-skills@addy-agent-skills": true
+    "harness@palazzem": true,
+    "agent-skills@palazzem": true,
+    "gh-stack@palazzem": true
   },
   "extraKnownMarketplaces": {
-    "addy-agent-skills": {
+    "palazzem": {
       "source": {
-        "source": "github",
-        "repo": "addyosmani/agent-skills"
+        "source": "directory",
+        "path": "~/.claude"
       }
     }
   },

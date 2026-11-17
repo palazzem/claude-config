@@ -1,50 +1,43 @@
 # claude-config
 
-A versioned `~/.claude` that turns Claude Code into a disciplined engineer.
+A versioned `~/.claude` that turns Claude Code into a disciplined engineer. Its skills and agents ship as the `harness` plugin, from the `palazzem` marketplace in this repository.
 
 ```text
-  DEFINE     /spec            ── agent-skills
+  DEFINE     /spec                    ── agent-skills
     │
-  DELIVER    /deliver         ── this repo
+  DELIVER    /harness:deliver         ── harness
     │
-  PLAN       /plan            ┐
-    │                         │
-  BUILD      /build           │
-    │                         │
-  SIMPLIFY   /code-simplify   ├─ agent-skills
-    │                         │
-  REVIEW     /review          │
-    │                         │
-  GATE       /ship            ┘
+  PLAN       /plan                    ┐
+    │                                 │
+  BUILD      /build                   │
+    │                                 │
+  SIMPLIFY   /code-simplify           ├─ agent-skills
+    │                                 │
+  REVIEW     /review                  │
+    │                                 │
+  GATE       /ship                    ┘
     │
-  STACK      /gh-stack        ┐
-    │                         ├─ this repo
-  WATCH      /shepherd        ┘
+  STACK      /gh-stack:gh-stack       ── gh-stack
+    │
+  WATCH      /harness:shepherd        ── harness
 ```
 
 ## Requirements
 
-- Claude Code
+- Claude Code 2.1.324 or later
 - System packages: `gh`, `jq`, `npm`
 
 ## Quick Start
 
-The following instructions are meant for a fresh installation where Claude Code doesn't
-have a global `~/.claude` config folder yet:
+On a machine where Claude Code has no `~/.claude` yet:
 
 ```bash
-# Custom Harness
 git clone git@github.com:palazzem/claude-config.git ~/.claude
+claude plugin install harness@palazzem
 
-# Agent-skills plugin
-claude plugin marketplace add addyosmani/agent-skills
-claude plugin install agent-skills@addy-agent-skills
-
-# GitHub configuration
 gh auth login
 gh extension install github/gh-stack
 
-# Claude Code Statusline
 npm install -g ccstatusline
 mkdir -p ~/.config/ccstatusline
 cp ~/.claude/statusline/ccstatusline-config.json ~/.config/ccstatusline/settings.json
@@ -52,87 +45,89 @@ cp ~/.claude/statusline/ccstatusline-config.json ~/.config/ccstatusline/settings
 claude
 ```
 
-## Commands
+`claude plugin install harness@palazzem` also installs `agent-skills` and `gh-stack`, its dependencies. The `palazzem` marketplace is this checkout, read in place: a change merged and pulled into `~/.claude` loads at the next session or after `/reload-plugins`.
 
-Development lifecycle commands come from agent-skills
+## Plugins
+
+| Plugin | Source | Pinned to |
+| --- | --- | --- |
+| `harness` | `harness/` in this repository | The checkout itself |
+| `agent-skills` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | 0.6.12, `1401c8b` |
+| `gh-stack` | [github/gh-stack](https://github.com/github/gh-stack) | v0.3.0, `2a49e67` |
+
+A third-party pin moves only by editing its `sha` in `.claude-plugin/marketplace.json`.
+
+## Use the harness in a team repository
+
+Commit this to the repository's `.claude/settings.json`, with `ref` set to the `claude-config` commit the team runs:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "palazzem": {
+      "source": { "source": "github", "repo": "palazzem/claude-config", "ref": "<40-character commit sha>" }
+    }
+  },
+  "enabledPlugins": {
+    "harness@palazzem": true,
+    "agent-skills@palazzem": true,
+    "gh-stack@palazzem": true
+  }
+}
+```
+
+Each collaborator clones the repository, starts `claude`, trusts the folder, and runs:
+
+```bash
+claude plugin install harness@palazzem --scope project
+```
+
+Moving the team to a newer harness is a PR that changes `ref`; each collaborator then runs `claude plugin update harness@palazzem --scope project`.
+
+## Commands
 
 | What you're doing | Command | Key principle |
 | --- | --- | --- |
 | Define what to build | `/spec` | Spec before code |
-| Run everything after `/spec` in one pass | `/deliver` | Build, simplify, and review once per PR, then gate the whole change |
+| Run everything after `/spec` in one pass | `/harness:deliver` | Build, simplify, and review once per PR, then gate the whole change |
 | Plan how to build it | `/plan` | One PR per concern, atomic tasks |
 | Build incrementally | `/build` | One slice at a time |
-| Split a change into dependent PRs | `/gh-stack` | One concern per PR, reviewed in order |
-| Carry the open PR and its stack to merge | `/shepherd` | One watch covers every open layer; a PR is done when a human merges it |
+| Split a change into dependent PRs | `/gh-stack:gh-stack` | One concern per PR, reviewed in order |
+| Carry the open PR and its stack to merge | `/harness:shepherd` | One watch covers every open layer; a PR is done when a human merges it |
 | Prove it works | `/test` | Tests are proof |
 | Set the quality bar | `/constraints` | Decide it once, enforce it everywhere |
 | Review before merge | `/review` | Improve code health |
 | Audit web performance | `/webperf` | Measure before you optimize |
 | Simplify the code | `/code-simplify` | Clarity over cleverness |
 | Ship to production | `/ship` | Faster is safer |
-| Find where a session's time went | `/inference-tracing` | Measure from the transcripts, never by asking the session |
-| Consolidate memories into rules | `/reflect` | A lesson lives once, globally |
+| Find where a session's time went | `/harness:inference-tracing` | Measure from the transcripts, never by asking the session |
+| Consolidate memories into rules | `/harness:reflect` | A lesson lives once, where it applies |
 
-Skills also activate on their own: a build task that touches a library is checked against current docs through `docs-researcher`, a chain of dependent branches triggers `gh-stack`, a freshly opened PR triggers `shepherd`.
-
-## How It Fits Together
-
-| Layer | Lives in | Decides |
-| --- | --- | --- |
-| Process | agent-skills plugin, overridden by `rules/agent-skills.md` | How work moves — spec, plan, build, test, review, ship — and which reviewer persona looks at it |
-| Bar | `rules/`, one topic per file | What "good" means |
-| Delivery | `skills/deliver`, `agents/planner.md`, `agents/layer-builder.md` | The order of a run from spec to published PRs — one layer at a time, then a gate over the whole change |
-| PR lifecycle | `skills/shepherd`, `skills/gh-stack`, `rules/gh-stack.md` | What happens after the PR exists |
-| Knowledge | `source-driven-development` from the plugin, `agents/docs-researcher.md` | Where facts about libraries, frameworks, and tools come from |
-| Telemetry | `skills/inference-tracing` | Where a session's wall clock went — inference, tools, waiting on the human — and what would shorten it |
-| Memory | `.claude/skills/reflect` | Which project lessons become global rules |
-| Config | `settings.json`, `statusline/`, agent frontmatter | The session's model and effort, each agent's own, permissions, plugin registration, what the status line shows |
+Skills also activate on their own: a build task that touches a library is checked against current docs through `harness:docs-researcher`, a chain of dependent branches triggers `gh-stack:gh-stack`, a freshly opened PR triggers `harness:shepherd`.
 
 ## Project Structure
 
 ```text
 ~/.claude/
+├── .claude-plugin/
+│   └── marketplace.json               # The palazzem marketplace: harness, plus agent-skills and gh-stack pinned by commit
+├── harness/
+│   ├── .claude-plugin/
+│   │   └── plugin.json                # The harness plugin; depends on agent-skills and gh-stack
+│   ├── agents/
+│   │   ├── docs-researcher.md         # One documentation question per call, Context7-backed, quoted and cited
+│   │   ├── layer-builder.md           # One PR layer per call: built test-first, simplified, reported
+│   │   └── planner.md                 # One spec per call: plan and task list, cut into PR layers
+│   └── skills/
+│       ├── deliver/                   # Spec to published PRs: per-layer build, simplify, review, then a gate
+│       ├── shepherd/                  # Watch an open PR and every open layer of its stack until a human merges or closes them
+│       ├── inference-tracing/         # Trace another session's transcripts into a timing report, published as an Artifact
+│       └── reflect/                   # Triage memories, promote lessons into rules, prune after merge
 ├── settings.json                      # Model, effort, permissions, plugin registration, status line
-├── rules/
-│   ├── agent-skills.md                # agent-skills overrides — artifacts under .claude/specs/<name>/, moved into the worktree when the first layer opens, plans cut into PR layers, model and effort per role, docs lookups via docs-researcher
-│   ├── gh-stack.md                    # Stack PR titles and bodies are decided before shipping
-│   ├── git.md                         # Ask for the SSH key on an authentication failure
-│   ├── sdlc.md                        # Worktrees, PRs, and who reviews and merges
-│   ├── decisions.md                   # How options are ranked and decisions asked
-│   ├── code-quality.md                # Lint, warnings, naming, pinning
-│   ├── testing.md                     # When a test is worth writing
-│   ├── privacy.md                     # No production personal data in a repository
-│   ├── documentation.md               # What each kind of document states
-│   └── docstrings-and-comments.md     # Docstring contracts; comments only for a non-obvious why
-├── agents/
-│   ├── docs-researcher.md             # One documentation question per call, Context7-backed, quoted and cited
-│   ├── layer-builder.md               # One PR layer per call: built test-first, simplified, reported
-│   └── planner.md                     # One spec per call: plan and task list, cut into PR layers
-├── skills/
-│   ├── deliver/
-│   │   └── SKILL.md                   # Spec to published PRs: per-layer build, simplify, review, then a gate
-│   ├── shepherd/
-│   │   ├── SKILL.md                   # Watch an open PR and every open layer of its stack until a human merges or closes them
-│   │   └── scripts/
-│   │       ├── watch-pr.sh            # The one PR reader, over every open layer: baseline, then watch
-│   │       ├── query.graphql          # The fragment read on each layer: every PR surface and its stack's entries
-│   │       └── jq/                    # pass, layers, and shared lib filters
-│   ├── gh-stack/
-│   │   └── SKILL.md                   # Stacked PRs, vendored from github/gh-stack
-│   └── inference-tracing/
-│       ├── SKILL.md                   # Trace another session's transcripts into a timing report, published as an Artifact
-│       └── report-template.md         # The report's sections and what each must find, show, and write
 ├── statusline/
 │   └── ccstatusline-config.json       # Three-line ccstatusline layout
-├── docs/
-│   └── skill-anatomy.md               # Ruling for writing and auditing skills
-└── .claude/
-    └── skills/
-        └── reflect/                   # Repo-local: visible only in this checkout
-            ├── SKILL.md               # Triage memories, promote rules via PR, prune after merge
-            └── scripts/
-                ├── inventory.sh       # Every project memory as one JSON stream
-                └── prune.sh           # Delete manifest files and their MEMORY.md lines
+└── docs/
+    └── skill-anatomy.md               # Ruling for writing and auditing skills
 ```
 
 ## License

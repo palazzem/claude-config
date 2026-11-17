@@ -7,20 +7,16 @@
 !LICENSE
 !README.md
 !settings.json
-!agents/
-!agents/**
 !docs/
 !docs/**
+!.claude-plugin/
+!.claude-plugin/**
+!harness/
+!harness/**
 !hooks/
 !hooks/**
 !rules/
 !rules/**
-!skills/
-!skills/**
 !statusline/
 !statusline/**
 
-# Repo-local skills
-!.claude/
-!.claude/skills/
-!.claude/skills/**
