@@ -77,7 +77,11 @@ Commit this to the repository's `.claude/settings.json`, with `ref` set to the `
 }
 ```
 
-The harness's process rules travel with the repository, not with the plugin: commit `rules/agent-skills.md` and `rules/gh-stack.md` from this repository into the team repository's `.claude/rules/`, adjusted to the team.
+The rules travel with the repository, not with the plugin: copy `CLAUDE.md` and `rules/` from this repository into the team repository's `CLAUDE.md` and `.claude/rules/`, adjusted to the team, and commit them. On your own machine, keep the global copies from loading there too, in the team repository's untracked `.claude/settings.local.json`:
+
+```json
+{ "claudeMdExcludes": ["/home/<you>/.claude/CLAUDE.md", "/home/<you>/.claude/rules/**"] }
+```
 
 Each collaborator clones the repository, starts `claude`, trusts the folder, waits for the session to finish loading, exits, and runs:
 
