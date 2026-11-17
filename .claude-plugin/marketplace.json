@@ -11,11 +11,11 @@
     },
     {
       "name": "agent-skills",
-      "description": "addyosmani/agent-skills 0.6.12: the spec, plan, build, review, and ship process.",
+      "description": "addyosmani/agent-skills 0.6.16: the spec, plan, build, review, and ship process.",
       "source": {
         "source": "github",
         "repo": "addyosmani/agent-skills",
-        "sha": "a06bc63b3f8b829c14b0bbf53d99fefc39d58092"
+        "sha": "39b723ceebf81474d0557c1fecd01eddab585563"
       }
     },
     {
