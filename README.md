@@ -80,7 +80,7 @@ Skills also activate on their own: a build task that touches a library is checke
 | Layer | Lives in | Decides |
 | --- | --- | --- |
 | Process | agent-skills plugin, overridden by `rules/agent-skills.md` | How work moves — spec, plan, build, test, review, ship — and which reviewer persona looks at it |
-| Bar | `CLAUDE.md` | What "good" means |
+| Bar | `rules/`, one topic per file | What "good" means |
 | Delivery | `skills/deliver`, `agents/planner.md`, `agents/layer-builder.md` | The order of a run from spec to published PRs — one layer at a time, then a gate over the whole change |
 | PR lifecycle | `skills/shepherd`, `skills/gh-stack`, `rules/gh-stack.md` | What happens after the PR exists |
 | Knowledge | `source-driven-development` from the plugin, `agents/docs-researcher.md` | Where facts about libraries, frameworks, and tools come from |
@@ -92,11 +92,18 @@ Skills also activate on their own: a build task that touches a library is checke
 
 ```text
 ~/.claude/
-├── CLAUDE.md                          # The bar — user-level instructions, loaded into every session
 ├── settings.json                      # Model, effort, permissions, plugin registration, status line
 ├── rules/
 │   ├── agent-skills.md                # agent-skills overrides — artifacts under .claude/specs/<name>/, moved into the worktree when the first layer opens, plans cut into PR layers, model and effort per role, docs lookups via docs-researcher
-│   └── gh-stack.md                    # Stack PR titles and bodies are decided before shipping
+│   ├── gh-stack.md                    # Stack PR titles and bodies are decided before shipping
+│   ├── git.md                         # Ask for the SSH key on an authentication failure
+│   ├── sdlc.md                        # Worktrees, PRs, and who reviews and merges
+│   ├── decisions.md                   # How options are ranked and decisions asked
+│   ├── code-quality.md                # Lint, warnings, naming, pinning
+│   ├── testing.md                     # When a test is worth writing
+│   ├── privacy.md                     # No production personal data in a repository
+│   ├── documentation.md               # What each kind of document states
+│   └── docstrings-and-comments.md     # Docstring contracts; comments only for a non-obvious why
 ├── agents/
 │   ├── docs-researcher.md             # One documentation question per call, Context7-backed, quoted and cited
 │   ├── layer-builder.md               # One PR layer per call: built test-first, simplified, reported

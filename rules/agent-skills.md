@@ -1,6 +1,6 @@
 # Rule: agent-skills Overrides
 
-The `agent-skills` plugin supplies the process; `CLAUDE.md` supplies the bar. This file holds every place this configuration replaces a plugin default, so the bar stays free of plugin mechanics. Wherever a plugin skill or command names a path or behaviour listed here, this file wins. Future overrides of the same kind belong here, one section per concern.
+This file holds every place this configuration replaces an `agent-skills` plugin default. Wherever a plugin skill or command names a path or behaviour listed here, this file wins. Future overrides of the same kind belong here, one section per concern.
 
 ## Artifact paths
 
