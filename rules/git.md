@@ -1,3 +1,3 @@
-# Rule: Git Transport
+# Rule: Git Authentication
 
-Push and fetch over SSH only. When the SSH agent holds no identity, stop and ask me to add the key; never switch the remote, use a token, or push over HTTPS.
+When git fails to authenticate with GitHub, stop and ask me to load my SSH key via ssh-agent. Never work around it with `gh`, HTTPS, or a token.
