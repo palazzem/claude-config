@@ -1,6 +1,6 @@
 ---
 name: reflect
-description: Triages every project's memories under ~/.claude/projects and promotes global lessons into CLAUDE.md or rules/ through a PR, pruning the redundant memories after a human merges it. Use from the ~/.claude checkout to consolidate memories, or with a PR number to resume a run. Not for editing a single memory and not for any other repository.
+description: Triages every project's memories under ~/.claude/projects and promotes global lessons into rules/ through a PR, pruning the redundant memories after a human merges it. Use from the ~/.claude checkout to consolidate memories, or with a PR number to resume a run. Not for editing a single memory and not for any other repository.
 argument-hint: [pr-number]
 disable-model-invocation: true
 ---
@@ -21,7 +21,7 @@ Memories accumulate per project; some of them state a way of working that belong
 
 1. Preconditions: cwd is the `~/.claude` checkout on `main`; `git status --porcelain` is empty; `gh auth status` succeeds. Any failure → stop and report.
 2. `${CLAUDE_SKILL_DIR}/scripts/inventory.sh` — the only memory reader. One JSON object per memory file: `project`, `project_dir`, `file`, `name`, `description`, `type`, `modified`, `body`. `MEMORY.md` files are indexes and never appear. A `type` of `unknown` means no frontmatter; triage it from the body.
-3. Read the bar: `CLAUDE.md` and every `rules/*.md`. These decide `redundant` and `conflict`.
+3. Read the bar: every `rules/*.md`. These decide `redundant` and `conflict`.
 
 ## Triage
 
@@ -30,14 +30,14 @@ Every memory gets exactly one verdict:
 | Verdict | Test | Consequence |
 |---|---|---|
 | `promote` | Its "How to apply" is a way of working that reads correctly in a repository that does not exist yet — no project domain, tool, person, path, issue number, or date — and the bar does not already state it. Recurrence across ≥2 projects is evidence, not a requirement. | Numbered candidate with drafted rule text and a target; the user picks. |
-| `redundant` | `CLAUDE.md` or a `rules/*.md` already states the behavior — cite the section. | Enters the prune manifest; no new rule. |
+| `redundant` | A `rules/*.md` already states the behavior — cite the file. | Enters the prune manifest; no new rule. |
 | `conflict` | Contradicts a statement in the bar — cite it. | Flagged with both sides; no action unless the user decides. |
 | `keep` | Everything else: domain facts, project decisions, tooling gotchas, references. | Listed, untouched. |
 
 - Doubt between `promote` and `keep` resolves to `keep`, with the doubt stated; the user overrides by number.
 - Memories from different projects stating the same lesson are **one** candidate listing every source file.
-- Target: `CLAUDE.md` when the rule is a convention or quality-bar statement that fits an existing section or warrants a new one; `rules/<topic>.md` (the `gh-stack.md` shape: `# Rule: <Title>` and a paragraph or two) when it governs one tool or workflow. Recommend; the user may override.
-- Drafted rule text: one imperative sentence in `CLAUDE.md`'s voice. No prose paragraphs.
+- Target: the `rules/<topic>.md` the rule belongs to, or a new one in the `# Rule: <Title>` shape. Recommend; the user may override.
+- Drafted rule text: one imperative sentence in the rules' voice. No prose paragraphs.
 
 Print the triage in the session — never posted, committed, or saved:
 
