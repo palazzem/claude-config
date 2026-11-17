@@ -17,7 +17,7 @@ harness/skills/
 
 `SKILL.md` is the only required file. Add `scripts/` or `references/` only when the skill actually needs them, and omit them entirely for simpler skills.
 
-A skill is installed as part of the `harness` plugin, which Claude Code loads from `harness/`. At runtime a skill can reach only what lives inside its own directory — never a sibling skill, never a repository-root file. See [Self-Contained Skills](#self-contained-skills).
+A skill is installed as part of the `harness` plugin, which Claude Code loads from `harness/`. A skill reads only what lives inside its own directory — never a sibling skill, never a repository-root file. See [Self-Contained Skills](#self-contained-skills).
 
 ## SKILL.md Format
 
@@ -115,7 +115,7 @@ If a skill does not need runnable helpers, do not create an empty `scripts/` dir
 
 A skill is a self-contained directory, and this repository keeps it that way: nothing a skill reads or runs lives outside `harness/skills/<name>/`. There is no repository-root `references/` for material shared across skills.
 
-The reason is the install model. A team repository installs the plugin from a pinned commit into Claude Code's plugin cache, so a skill reaches it only as its own directory; a file outside it does not travel with it, and a link to one resolves to nothing at runtime.
+Files outside `harness/` never reach a team repository, which installs the plugin from a pinned commit into Claude Code's plugin cache. Within `harness/`, one directory per skill keeps each skill's contract in one place: a skill that needs another's material names that skill instead of reading its files.
 
 When two skills need the same material, one skill owns it and the other refers to that skill by name (see [Cross-Skill References](#cross-skill-references)). Do not copy the material into both — copies drift.
 
