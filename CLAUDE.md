@@ -46,6 +46,7 @@ Skills and plugins supply process; this file supplies the quality bar and conven
 - Write an ADR only for a choice between alternatives with lasting consequences, never for a refactoring that converges on best practice.
 - State each fact once, in the document that owns it — never repeated in an agent instructions file, another doc, or a docstring.
 - An issue opens with the problem and concrete examples, never a description of the current state or a journal line, and closes with a Proposed solutions section.
+- A document that is not code and needs my feedback is a Claude Doc, never a plain artifact: I comment in it, and you answer, edit, and resolve there.
 
 ## Docstrings and Comments
 
