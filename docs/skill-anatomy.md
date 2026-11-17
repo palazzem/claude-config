@@ -4,10 +4,10 @@ This document describes the structure and format of agent-skills skill files. Us
 
 ## File Location
 
-Every skill lives in its own directory under `skills/`:
+Every skill lives in its own directory under `harness/skills/`:
 
 ```
-skills/
+harness/skills/
   skill-name/
     SKILL.md           # Required: The skill definition
     scripts/           # Optional: Runnable helpers used by the skill workflow
@@ -33,11 +33,7 @@ description: Guides agents through [task/workflow]. Use when [specific trigger c
 - `description`: Start with what the skill does in third person, then include one or more clear "Use when" trigger conditions. Include both *what* and *when*. Maximum 1024 characters.
 - Top-level keys are limited to the [Agent Skills specification](https://agentskills.io) fields: `name`, `description`, `license`, `compatibility`, `metadata`, and `allowed-tools`. Vendor or runtime controls such as `model`, `tools`, `max_turns`, or `context` go under `metadata` or in a per-agent adapter file; see [docs/advanced-per-agent-configuration.md](advanced-per-agent-configuration.md). The validator rejects any other top-level key.
 
-Published names are compatibility identifiers. In particular,
-`browser-testing-with-devtools` is the stable upstream name because other
-skills refer to it directly. A downstream catalog may rename it, but that
-catalog owns the alias or migration mapping; downstream-only aliases are not
-maintained in this repository.
+Published names are compatibility identifiers: other skills, rules, and projects refer to a skill as `harness:<name>`, so renaming one means updating every reference.
 
 **Why this matters:** Agents discover skills by reading descriptions. The description is injected into the system prompt, so it must tell the agent both what the skill provides and when to activate it. Do not summarize the workflow — if the description contains process steps, the agent may follow the summary instead of reading the full skill.
 
@@ -117,13 +113,13 @@ If a skill does not need runnable helpers, do not create an empty `scripts/` dir
 
 ## Shared References
 
-Checklists used by more than one skill — testing, security, performance, accessibility, definition-of-done — live in `references/` at the repository root, deliberately *not* inside any skill directory.
+Checklists used by more than one skill — testing, security, performance, accessibility, definition-of-done — live in `harness/references/` at the plugin root, deliberately *not* inside any skill directory.
 
-This is a pack-level design choice. The Agent Skills spec describes a skill as a self-contained directory, but several skills here point at the same checklists. Colocating those would force one of two options: copy the checklist into every skill that uses it, or pick one skill to "own" it and have the others reach into that directory. Both drift over time. A single repo-root copy stays the source of truth.
+This is a pack-level design choice. The Agent Skills spec describes a skill as a self-contained directory, but several skills here point at the same checklists. Colocating those would force one of two options: copy the checklist into every skill that uses it, or pick one skill to "own" it and have the others reach into that directory. Both drift over time. A single plugin-root copy stays the source of truth.
 
-The tradeoff is portability: a whole-repo install (such as the Claude Code marketplace plugin) carries `references/` along, but a per-skill install that copies only `skills/<name>/` leaves the repo-root sibling behind, and those links resolve to nothing. That gap is tracked in [#361](https://github.com/addyosmani/agent-skills/issues/361).
+Claude Code installs the whole `harness/` directory, so `harness/references/` travels with every skill. Anything outside `harness/` does not reach an installed plugin, so a skill never points there.
 
-Current convention: material used by exactly one skill is a supporting file inside that skill's directory; material shared across skills goes in `references/`.
+Current convention: material used by exactly one skill is a supporting file inside that skill's directory; material shared across skills goes in `harness/references/`.
 
 ## Context Efficiency
 
@@ -144,7 +140,7 @@ When a skill ships runnable helpers under `scripts/`, each script follows these 
 - Write status messages to stderr: `echo "Message" >&2`.
 - Write machine-readable output (JSON) to stdout.
 - Include a cleanup trap for temporary files.
-- Reference the script path as `skills/<skill-name>/scripts/<script>.sh` (repo-relative).
+- Reference the script path as `${CLAUDE_SKILL_DIR}/scripts/<script>.sh`; Claude Code substitutes the installed skill directory.
 
 ## Writing Principles
 
@@ -174,16 +170,16 @@ This is about skill *content*; the portability of `references/` *paths* is a sep
 - Skill directories: `lowercase-hyphen-separated`
 - Skill files: `SKILL.md` (always uppercase)
 - Supporting files: `lowercase-hyphen-separated.md`
-- Shared references: stored in the root `references/` directory, not inside skill directories (see [Shared References](#shared-references) for why).
+- Shared references: stored in `harness/references/`, not inside skill directories (see [Shared References](#shared-references) for why).
 - Skill-specific references: a single supporting doc can stay as a loose file in the skill directory (the `Supporting files` entry above); when several related docs travel with the skill, the emerging convention for self-contained, distributable skills is to group them in a `references/` directory inside the skill directory, so the skill carries its own supporting docs.
 
 ## Cross-Skill References
 
-Reference other skills by name:
+Reference other skills and agents by their plugin-prefixed name, `<plugin>:<name>`:
 
 ```markdown
-Follow the `test-driven-development` skill for writing tests.
-If the build breaks, use the `debugging-and-error-recovery` skill.
+Follow the `agent-skills:test-driven-development` skill for writing tests.
+Hand the published PR to the `harness:shepherd` skill.
 ```
 
 Don't duplicate content between skills — reference and link instead.
@@ -192,7 +188,7 @@ Don't duplicate content between skills — reference and link instead.
 
 Required:
 
-- A `skills/<skill-name>/SKILL.md` file
+- A `harness/skills/<skill-name>/SKILL.md` file
 - Valid YAML frontmatter with `name` and `description`
 - A description that includes both what the skill does and when to use it
 

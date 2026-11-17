@@ -136,7 +136,7 @@ Skills also activate on their own: a build task that touches a library is checke
 ├── statusline/
 │   └── ccstatusline-config.json       # Three-line ccstatusline layout
 └── docs/
-    └── skill-anatomy.md               # Ruling for writing and auditing skills, copied from agent-skills 0.6.16
+    └── skill-anatomy.md               # Ruling for writing and auditing skills, adapted from agent-skills 0.6.16
 ```
 
 ## License
