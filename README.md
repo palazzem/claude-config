@@ -87,10 +87,10 @@ To move the project to a newer commit, change `ref`, start `claude` once, then r
 
 ## Ignore the global rules in a project
 
-With this repository installed as `~/.claude`, its `CLAUDE.md` and `rules/` load in every project. To keep them out of a project that has its own rules, add this to that project's untracked `.claude/settings.local.json`, with absolute paths:
+With this repository installed as `~/.claude`, its `rules/` load in every project. To keep them out of a project that has its own rules, add this to that project's untracked `.claude/settings.local.json`, with absolute paths:
 
 ```json
-{ "claudeMdExcludes": ["/home/<you>/.claude/CLAUDE.md", "/home/<you>/.claude/rules/**"] }
+{ "claudeMdExcludes": ["/home/<you>/.claude/rules/**"] }
 ```
 
 ## Commands
