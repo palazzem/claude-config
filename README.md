@@ -92,7 +92,6 @@ Skills also activate on their own: a build task that touches a library is checke
 
 ```text
 ~/.claude/
-├── CLAUDE.md                          # Points at rules/ — user-level instructions, loaded into every session
 ├── settings.json                      # Model, effort, permissions, plugin registration, status line
 ├── rules/
 │   ├── agent-skills.md                # agent-skills overrides — artifacts under .claude/specs/<name>/, moved into the worktree when the first layer opens, plans cut into PR layers, model and effort per role, docs lookups via docs-researcher
