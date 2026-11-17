@@ -1,0 +1,31 @@
+{
+  "name": "palazzem",
+  "owner": {
+    "name": "palazzem"
+  },
+  "description": "The harness plugin and the third-party plugins it depends on, pinned to exact commits.",
+  "plugins": [
+    {
+      "name": "harness",
+      "source": "./harness"
+    },
+    {
+      "name": "agent-skills",
+      "description": "addyosmani/agent-skills 0.6.12: the spec, plan, build, review, and ship process.",
+      "source": {
+        "source": "github",
+        "repo": "addyosmani/agent-skills",
+        "sha": "a06bc63b3f8b829c14b0bbf53d99fefc39d58092"
+      }
+    },
+    {
+      "name": "gh-stack",
+      "description": "github/gh-stack v0.3.0: the stacked pull request skill.",
+      "source": {
+        "source": "github",
+        "repo": "github/gh-stack",
+        "sha": "2a49e6751238633db504655d8a8eba3e433e827d"
+      }
+    }
+  ]
+}

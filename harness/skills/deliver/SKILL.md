@@ -13,14 +13,14 @@ One workflow takes a spec to pull requests under watch, whatever the number of l
 
 - A spec exists and the change should be built and published in one run.
 - A delivery stopped: re-invoke to resume it (see Resuming).
-- Not without a spec: stop and tell the user to run `/spec`. Not for a PR already published, which is `shepherd`; not for one task at a time, which is `/build`.
+- Not without a spec: stop and tell the user to run `/spec`. Not for a PR already published, which is `harness:shepherd`; not for one task at a time, which is `/build`.
 
 ## Definitions
 
 | Term | Meaning |
 |---|---|
 | `<name>` | The spec's name: the spec path given as the skill's argument is `.claude/specs/<name>/spec.md`. |
-| `<spec-dir>` | `.claude/specs/<name>/`: in the main checkout until the first layer opens, in the run's worktree from then on. It holds every artifact, is never staged or committed, and goes with the worktree when `shepherd` removes it. |
+| `<spec-dir>` | `.claude/specs/<name>/`: in the main checkout until the first layer opens, in the run's worktree from then on. It holds every artifact, is never staged or committed, and goes with the worktree when `harness:shepherd` removes it. |
 | `<trunk>` | The repository's default branch. Ranges use `origin/<trunk>`; `gh` commands take `<trunk>`. |
 | `<base>` | The branch a layer builds on: the layer below, or `origin/<trunk>` for the bottom layer. |
 | `<top>` | The branch of the last layer. |
@@ -31,15 +31,15 @@ One workflow takes a spec to pull requests under watch, whatever the number of l
 The session orchestrates: it holds the spec, the plan, and the reports, and never writes the plan or code.
 
 1. **Spec.** Stop without a spec path. A spec in the main checkout is not started; one that is absent is in flight (see Resuming). The spec, the plan, and the approval happen in the main checkout, with no worktree.
-2. **Plan.** Invoke `agent-skills:planning-and-task-breakdown`. A `planner` agent, briefed with the spec, plan, and task list paths, writes the plan. Verify four things, and send what fails back to the same agent, resumed: every requirement is met by a task; no task does work the spec does not ask for; every boundary between adjacent layers has a row in the Boundaries table; every row's fact holds — the kinds are as stated, and an `outcome`'s consumer exists in the spec or the code.
+2. **Plan.** Invoke `agent-skills:planning-and-task-breakdown`. A `harness:planner` agent, briefed with the spec, plan, and task list paths, writes the plan. Verify four things, and send what fails back to the same agent, resumed: every requirement is met by a task; no task does work the spec does not ask for; every boundary between adjacent layers has a row in the Boundaries table; every row's fact holds — the kinds are as stated, and an `outcome`'s consumer exists in the spec or the code.
 3. **Approval.** Present every layer with its title, kind, concern, and tasks, then the Boundaries table, and wait for an unambiguous yes. This is the run's only approval.
 4. **Layers.** Bottom first, one at a time: a layer opens only when the checkpoint of the one below is ticked.
    1. **Open.** Before the first layer, and never earlier, from the main checkout and in this order: `git fetch origin`, then `git worktree add -b <branch> .claude/worktrees/<name> origin/<trunk>`, `<branch>` being the bottom layer's; move `<spec-dir>` to the same relative path inside that worktree, creating the parent directory first; `EnterWorktree` with the worktree's path. It is the run's only worktree, and every artifact is read and written there from then on. Open the layer's branch as One Layer or Several says.
-   2. **Build and simplify.** One `layer-builder` agent per layer, never two at once. Brief it with the layer's branch, title, concern, tasks, and `<base>`; the spec, plan, task list, and PR body paths, all in `<spec-dir>`; and any `docs-researcher` report in hand. It builds, simplifies, and reports `DONE`, `SPLIT`, or `BLOCKED` (see Off the Straight Run).
+   2. **Build and simplify.** One `harness:layer-builder` agent per layer, never two at once. Brief it with the layer's branch, title, concern, tasks, and `<base>`; the spec, plan, task list, and PR body paths, all in `<spec-dir>`; and any `harness:docs-researcher` report in hand. It builds, simplifies, and reports `DONE`, `SPLIT`, or `BLOCKED` (see Off the Straight Run).
    3. **Review.** One review, chosen by the layer's position (see Reviews).
    4. **Fix and tick.** See After a Review.
 5. **Publish.** Never a draft: `<title>` comes from the plan, `<body>` is `<spec-dir>/pr/<branch>.md`. The commands are in One Layer or Several.
-6. **Watch.** In the same turn, invoke `shepherd`: one watch covers every layer published.
+6. **Watch.** In the same turn, invoke `harness:shepherd`: one watch covers every layer published.
 7. **Hand back.** Once the monitor is armed, report to the user: the PRs, each with the size its builder reported; the `agent-skills:ship` decision as returned; what was fixed after it; the commits made after it, which no reviewer saw; any recommended fix not made, and why; any layer added after it.
 
 ## One Layer or Several
@@ -77,7 +77,7 @@ A review receives three things and nothing else — never a list of things to ch
 
 1. Check out the layer that owns the code: `gh stack checkout <branch>` when it is below the top.
 2. That layer's builder, resumed with the findings — a fresh one with the layer's brief when it cannot be resumed — fixes, tests, and commits.
-3. Below the top: `gh stack rebase --upstack --no-trunk`, resolving a conflict with the `gh-stack` skill's conflict workflow.
+3. Below the top: `gh stack rebase --upstack --no-trunk`, resolving a conflict with the `gh-stack:gh-stack` skill's conflict workflow.
 4. Run the full test suite on the fixed layer and on every layer above it, `gh stack up` from one to the next.
 5. Tick the checkpoint of the layer reviewed. The run moves on.
 
@@ -88,7 +88,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 | Event | Then |
 |---|---|
 | The builder reports `SPLIT` | What it built is a complete layer. Add the new layer to the plan directly above it — branch, title, kind, concern, tasks, checkpoint — and the row the builder reported to the Boundaries table. The layer that split is no longer the last: it gets `agent-skills:review`, and the new layer is built next. |
-| `BLOCKED` on a documentation lookup | Run a `docs-researcher` agent with the library, version, and question; resume the builder with its report. |
+| `BLOCKED` on a documentation lookup | Run a `harness:docs-researcher` agent with the library, version, and question; resume the builder with its report. |
 | `BLOCKED` on a change that belongs to a lower layer | Make it there with steps 1 to 4 of After a Review, return to the builder's branch, and resume the builder. |
 | `BLOCKED` on anything else | Put its question to the user; resume the builder with the answer. |
 | The builder reports deviations from the plan | Not a stop. |
@@ -100,7 +100,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 |---|---|
 | The spec is in the main checkout | The run has not started. A plan there was never approved: verify it and present it. |
 | The spec is not in the main checkout | It is in flight: find `.claude/worktrees/<name>` with `git worktree list` and `EnterWorktree` with its path, never a second one. Stop when the spec is in neither place. Continue, without asking again, at the first layer whose checkpoint is unticked. |
-| That layer has unticked tasks | A fresh `layer-builder` with the layer's brief builds them and simplifies; the run goes on from Review. |
+| That layer has unticked tasks | A fresh `harness:layer-builder` with the layer's brief builds them and simplifies; the run goes on from Review. |
 | That layer has every task ticked | Run its review — the one case where a review may repeat — and go on from After a Review. |
 | Every checkpoint ticked | With no PR, Publish. With a PR on the branch, Watch. |
 
@@ -108,7 +108,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 
 | Rationalization | Reality |
 |---|---|
-| "The spec is short and the layer is small; the session can write both." | Planning and building fill the context the run needs for every layer after. A `planner` writes the plan, a `layer-builder` the layer. |
+| "The spec is short and the layer is small; the session can write both." | Planning and building fill the context the run needs for every layer after. A `harness:planner` writes the plan, a `harness:layer-builder` the layer. |
 | "The layers are small; build them all, then review." | A fix in a lower layer rebases every layer built on it. A layer's checkpoint is ticked before the next opens. |
 | "Review first, simplify after — that is the order the plugin lists." | The layer has one review: it reads the code that ships. Simplify, then review. |
 | "Only one task is left after the `SPLIT`; have the builder finish it here." | The builder ended the layer at its boundary. The task left is a layer: open it. |
@@ -125,20 +125,20 @@ Stop for the user on a layer the review reports as too large or as holding two c
 
 - The session writing the plan, building a layer, or fixing a finding itself.
 - A layer cut on size, by the planner or the builder; a boundary with no row in the Boundaries table.
-- A worktree before the first layer opens, or a second one; an artifact written in the main checkout after it opens; two `layer-builder` agents running at once.
+- A worktree before the first layer opens, or a second one; an artifact written in the main checkout after it opens; two `harness:layer-builder` agents running at once.
 - A review brief holding anything beyond the range, the two paths with the layer's heading, and the read-only line.
 - A reviewer resumed, a review command invoked twice on one layer, or `agent-skills:review` on the last layer.
 - A range ending in `HEAD` or starting at the local trunk.
 - `--draft`; `gh stack submit` for a layer of more than one commit.
-- The PRs reported before `shepherd`'s monitor is armed, or a hand-back without the commits made after `agent-skills:ship`.
+- The PRs reported before `harness:shepherd`'s monitor is armed, or a hand-back without the commits made after `agent-skills:ship`.
 
 ## Verification
 
-- [ ] The plan was written by a `planner` and verified against the spec by the session, and every layer was built by a `layer-builder`.
+- [ ] The plan was written by a `harness:planner` and verified against the spec by the session, and every layer was built by a `harness:layer-builder`.
 - [ ] Every boundary between adjacent layers has a row in the plan's Boundaries table, the rows added after a `SPLIT` included, and no layer was cut on size.
 - [ ] Every layer has a ticked checkpoint and a PR body file, and `git log --oneline <base>..<branch>` shows only its tasks, its simplification, and its fixes.
 - [ ] The run shows one `agent-skills:review` per layer but the last and one `agent-skills:ship`, each briefed with its three inputs.
 - [ ] After the last fix, the full test suite passed on every layer from the fixed one to the top.
 - [ ] Every PR is open and not a draft, with the plan's title and the body file's text.
 - [ ] No worktree existed before the first layer opened, `<spec-dir>` is in the worktree and no longer in the main checkout, and `git log --name-only origin/<trunk>..<top>` and `git status --porcelain` show nothing under it.
-- [ ] `shepherd`'s monitor is armed, and the hand-back holds every item of step 7.
+- [ ] `harness:shepherd`'s monitor is armed, and the hand-back holds every item of step 7.

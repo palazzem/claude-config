@@ -9,13 +9,13 @@ disable-model-invocation: true
 
 ## Overview
 
-Memories accumulate per project; some of them state a way of working that belongs to every project. Reflect reads them all, triages each one, lets the user pick what becomes a rule, opens the PR that carries those rules, hands it to `shepherd`, and — once a human has merged — prunes the memories the rules made redundant. Nothing derived from a memory leaves the machine: the repository is public, and only the rules are.
+Memories accumulate per project; some of them state a way of working that belongs to every project. Reflect reads them all, triages each one, lets the user pick what becomes a rule, opens the PR that carries those rules, hands it to `harness:shepherd`, and — once a human has merged — prunes the memories the rules made redundant. Nothing derived from a memory leaves the machine: the repository is public, and only the rules are.
 
 ## When to Use
 
 - From the `~/.claude` checkout, on `main`, clean, with `gh auth status` succeeding — a housekeeping pass, whenever the user asks.
-- With a PR number (`/reflect 42`) → Resume.
-- Not for editing one memory (edit the file), not for any other repository, never on the model's own initiative.
+- With a PR number (`/harness:reflect 42`) → Resume.
+- Not for editing one memory (edit the file), not for any other repository.
 
 ## Inventory
 
@@ -72,18 +72,18 @@ _N memory files across M projects are pruned locally after merge._
 Nothing derived from a memory — slug, filename, description, body, project name — goes in a commit message, the PR title or body, or any tracked file. The drafted rule text is safe by construction: the `promote` test already forbids project domain, tools, people, and paths. Conflicts stay in the session.
 
 6. Write the manifest: `mkdir -p ~/.claude/reflect` and one line per entry into `~/.claude/reflect/<YYYY-MM-DD>.manifest` — the date is the branch's. This file is the only record of what to prune.
-7. Invoke `shepherd`.
+7. Invoke `harness:shepherd`.
 
 ## Prune
 
-Runs after `shepherd` reaches Terminal — after its summary, its cleanup, and its sync of the main checkout.
+Runs after `harness:shepherd` reaches Terminal — after its summary, its cleanup, and its sync of the main checkout.
 
-- `MERGED`: confirm the rule is live — `git -C ~/.claude fetch --quiet && git -C ~/.claude merge-base --is-ancestor origin/main HEAD` — then `${CLAUDE_SKILL_DIR}/scripts/prune.sh < ~/.claude/reflect/<YYYY-MM-DD>.manifest`, print its JSON summary, and `rm` the manifest. A failed sync check → report, prune nothing, tell the user to run `/reflect <number>` once the checkout is synced. A missing manifest → report and stop; never rebuild one from the triage, the session, or the PR.
+- `MERGED`: confirm the rule is live — `git -C ~/.claude fetch --quiet && git -C ~/.claude merge-base --is-ancestor origin/main HEAD` — then `${CLAUDE_SKILL_DIR}/scripts/prune.sh < ~/.claude/reflect/<YYYY-MM-DD>.manifest`, print its JSON summary, and `rm` the manifest. A failed sync check → report, prune nothing, tell the user to run `/harness:reflect <number>` once the checkout is synced. A missing manifest → report and stop; never rebuild one from the triage, the session, or the PR.
 - `CLOSED`: nothing under `~/.claude/projects/` changes; `rm` the manifest. Report.
 
 ## Resume
 
-`/reflect <number>` → `gh pr view <number> --json state,headRefName`; the head branch `reflect/<YYYY-MM-DD>` names the manifest. `MERGED` → Prune (idempotent: files already gone are `skipped`). `OPEN` → `shepherd` on the PR's branch. `CLOSED` → Prune's `CLOSED` branch.
+`/harness:reflect <number>` → `gh pr view <number> --json state,headRefName`; the head branch `reflect/<YYYY-MM-DD>` names the manifest. `MERGED` → Prune (idempotent: files already gone are `skipped`). `OPEN` → `harness:shepherd` on the PR's branch. `CLOSED` → Prune's `CLOSED` branch.
 
 ## Common Rationalizations
 
@@ -106,7 +106,6 @@ Runs after `shepherd` reaches Terminal — after its summary, its cleanup, and i
 - `rm`, `sed`, or an edit on a memory file or a `MEMORY.md` outside `prune.sh`.
 - A PR opened without a passing `prune.sh --dry-run`; a draft PR.
 - A selection inferred from "sounds good", "whatever you think", or silence.
-- A `reflect` directory under `~/.claude/skills/` — a personal skill of the same name shadows this one.
 - `gh pr merge`, `gh pr review --approve`, or `gh pr close` from the session.
 
 ## Verification

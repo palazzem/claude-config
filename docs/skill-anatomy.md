@@ -4,10 +4,10 @@ This document describes the structure and format of the skills in this repositor
 
 ## File Location
 
-Every skill lives in its own directory under `skills/`:
+Every skill lives in its own directory under `harness/skills/`:
 
 ```
-skills/
+harness/skills/
   skill-name/
     SKILL.md           # Required: The skill definition
     scripts/           # Optional: Runnable helpers used by the skill workflow
@@ -17,7 +17,7 @@ skills/
 
 `SKILL.md` is the only required file. Add `scripts/` or `references/` only when the skill actually needs them, and omit them entirely for simpler skills.
 
-A skill is installed by placing `skills/<name>/` under `~/.claude/skills/`, as a copy or a symlink. At runtime a skill can reach only what lives inside its own directory — never a sibling skill, never a repository-root file. See [Self-Contained Skills](#self-contained-skills).
+A skill is installed as part of the `harness` plugin, which Claude Code loads from `harness/`. A skill reads only what lives inside its own directory — never a sibling skill, never a repository-root file. See [Self-Contained Skills](#self-contained-skills).
 
 ## SKILL.md Format
 
@@ -113,9 +113,9 @@ If a skill does not need runnable helpers, do not create an empty `scripts/` dir
 
 ## Self-Contained Skills
 
-A skill is a self-contained directory, and this repository keeps it that way: nothing a skill reads or runs lives outside `skills/<name>/`. There is no repository-root `references/` for material shared across skills.
+A skill is a self-contained directory, and this repository keeps it that way: nothing a skill reads or runs lives outside `harness/skills/<name>/`. There is no repository-root `references/` for material shared across skills.
 
-The reason is the install model. A skill reaches the harness as its own directory under `~/.claude/skills/`; a repository-root sibling does not travel with it, and a link to one resolves to nothing at runtime.
+Files outside `harness/` never reach a team repository, which installs the plugin from a pinned commit into Claude Code's plugin cache. Within `harness/`, one directory per skill keeps each skill's contract in one place: a skill that needs another's material names that skill instead of reading its files.
 
 When two skills need the same material, one skill owns it and the other refers to that skill by name (see [Cross-Skill References](#cross-skill-references)). Do not copy the material into both — copies drift.
 
@@ -158,11 +158,11 @@ When a skill ships runnable helpers under `scripts/`, each script follows these 
 
 ## Cross-Skill References
 
-Reference other skills and agents by name:
+Reference other skills and agents by their plugin-prefixed name, `<plugin>:<name>`:
 
 ```markdown
-Use the `find-docs` skill to fetch current library documentation.
-Hand the proposal to the `skeptic` agent before implementation begins.
+Use the `harness:docs-researcher` agent to fetch current library documentation.
+Hand the published PR to the `harness:shepherd` skill.
 ```
 
 Don't duplicate content between skills — reference and link instead.
@@ -171,7 +171,7 @@ Don't duplicate content between skills — reference and link instead.
 
 Required:
 
-- A `skills/<skill-name>/SKILL.md` file
+- A `harness/skills/<skill-name>/SKILL.md` file
 - Valid YAML frontmatter with `name` and `description`
 - A description that includes both what the skill does and when to use it
 

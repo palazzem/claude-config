@@ -12,7 +12,7 @@ This file holds every place this configuration replaces an `agent-skills` plugin
 - PR body → `<spec-dir>/pr/<branch>.md`, one per layer, written when the layer is built.
 - `tasks/` is never created or written by these commands; in `~/.claude` it is Claude Code's own state directory.
 
-`/plan`, `/build`, `/build auto`, and `deliver` take the spec path as their argument; `<spec-dir>` is its directory. Without one, stop and ask for it.
+`/plan`, `/build`, `/build auto`, and `harness:deliver` take the spec path as their argument; `<spec-dir>` is its directory. Without one, stop and ask for it.
 
 The check for an existing incomplete plan looks only at `<spec-dir>`.
 
@@ -55,7 +55,7 @@ Each row's work runs in its subagent type, never inline. None means the subagent
 
 | Work | Subagent type | Model | Effort |
 |---|---|---|---|
-| Plan | `planner` | None | None |
+| Plan | `harness:planner` | None | None |
 | Layer review (`agent-skills:review`) | `agent-skills:code-reviewer` | `fable` | `high` |
 | Final review (`agent-skills:ship`) | `agent-skills:code-reviewer` | `fable` | `high` |
 | Final review (`agent-skills:ship`) | `agent-skills:security-auditor` | `fable` | `high` |
@@ -65,7 +65,7 @@ Each row's work runs in its subagent type, never inline. None means the subagent
 ## `source-driven-development`
 
 - `/build` and `/build auto` invoke it alongside `incremental-implementation` and `test-driven-development`; its own "When NOT to use" decides whether a task needs a lookup.
-- Its fetch step runs in the `docs-researcher` agent, never inline: one agent per question, briefed with the library, the version from the dependency file, the question, and what is out of scope.
+- Its fetch step runs in the `harness:docs-researcher` agent, never inline: one agent per question, briefed with the library, the version from the dependency file, the question, and what is out of scope.
 - One lookup per library, version, and question per session; reuse the earlier report.
 - Citations go in the conversation and the PR body, never in code comments.
 - A research request from the user uses the same agent and brief, without the skill.
@@ -76,4 +76,4 @@ A directory under `.claude/specs/` other than `<spec-dir>` is other work queued;
 
 ## Published PRs
 
-A PR the session publishes is not the end of a command; the merge is. In the same turn as `gh pr create`, `gh pr ready`, `gh stack submit`, or `gh stack link`, invoke the `shepherd` skill. Report the PR to the user only once shepherd's monitor is armed. A draft is still in flight: it is shepherded when `gh pr ready` hands it over.
+A PR the session publishes is not the end of a command; the merge is. In the same turn as `gh pr create`, `gh pr ready`, `gh stack submit`, or `gh stack link`, invoke the `harness:shepherd` skill. Report the PR to the user only once shepherd's monitor is armed. A draft is still in flight: it is shepherded when `gh pr ready` hands it over.
