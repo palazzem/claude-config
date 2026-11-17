@@ -15,7 +15,7 @@ Memories accumulate per project; some of them state a way of working that belong
 
 - From the `~/.claude` checkout, on `main`, clean, with `gh auth status` succeeding — a housekeeping pass, whenever the user asks.
 - With a PR number (`/harness:reflect 42`) → Resume.
-- Not for editing one memory (edit the file), not for any other repository, never on the model's own initiative.
+- Not for editing one memory (edit the file), not for any other repository.
 
 ## Inventory
 

@@ -53,7 +53,7 @@ claude
 | Plugin | Source | Pinned to |
 | --- | --- | --- |
 | `harness` | `harness/` in this repository | The checkout itself |
-| `agent-skills` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | `1401c8b`, four documentation commits after 0.6.12 |
+| `agent-skills` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | 0.6.12, `a06bc63` |
 | `gh-stack` | [github/gh-stack](https://github.com/github/gh-stack) | v0.3.0, `2a49e67` |
 
 A third-party pin moves only by editing its `sha` in `.claude-plugin/marketplace.json`; once that change is pulled, `claude plugin update agent-skills@palazzem` or `claude plugin update gh-stack@palazzem` installs it.

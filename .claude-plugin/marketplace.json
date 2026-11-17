@@ -11,11 +11,11 @@
     },
     {
       "name": "agent-skills",
-      "description": "addyosmani/agent-skills at 1401c8b, four documentation commits after 0.6.12: the spec, plan, build, review, and ship process.",
+      "description": "addyosmani/agent-skills 0.6.12: the spec, plan, build, review, and ship process.",
       "source": {
         "source": "github",
         "repo": "addyosmani/agent-skills",
-        "sha": "1401c8b8030e023baeebb31781a6653fe8e93026"
+        "sha": "a06bc63b3f8b829c14b0bbf53d99fefc39d58092"
       }
     },
     {
