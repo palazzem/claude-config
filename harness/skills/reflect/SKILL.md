@@ -28,9 +28,9 @@ Resolve a memory's repository from the working directory its project's transcrip
 
 ## Inventory
 
-1. Precondition: `gh auth status` succeeds. A failure → stop and report.
+1. Preconditions: `gh auth status` succeeds, and the session is not inside a worktree (`git rev-parse --git-dir` equals `--git-common-dir`, or there is no repository). A failure → stop and report.
 2. `${CLAUDE_SKILL_DIR}/scripts/inventory.sh` — the only memory reader. One JSON object per memory file: `project`, `project_dir`, `file`, `name`, `description`, `type`, `modified`, `body`. `MEMORY.md` files are indexes and never appear. A `type` of `unknown` means no frontmatter; triage it from the body.
-3. Read the bar: every `~/.claude/rules/*.md`, and for each resolved project its `CLAUDE.md` and `.claude/rules/*.md`. These decide `redundant` and `conflict`.
+3. Read the bar: every `~/.claude/rules/*.md`, and for each resolved project its `CLAUDE.md` and `.claude/rules/*.md`, read from `<default>` with `git -C <repo> show origin/<default>:<file>` after a `git -C <repo> fetch --quiet`. These decide `redundant` and `conflict`.
 
 ## Triage
 
@@ -57,7 +57,7 @@ Print the triage in the session — never posted, committed, or saved:
 ## Promotion candidates
 | # | Drafted rule | Target | File | Sources |
 
-## Redundant (pruned after merge unless you say `keep <n>`)
+## Redundant (pruned once you confirm, unless you say `keep <n>`)
 ## Conflicts (your call)
 ```
 
@@ -85,7 +85,7 @@ Nothing derived from a memory — slug, filename, description, body, project nam
 
 7. Write the manifest: `mkdir -p ~/.claude/reflect` and one line per entry into `~/.claude/reflect/<owner>-<repo>-<YYYY-MM-DD>.manifest` — the repository is the PR's, the date is the branch's — and the absolute path of `<repo>` into the `.checkout` file of the same name. These files are the only record of what to prune and where.
 
-Once every repository has its PR, invoke `harness:shepherd` on the first, with its commands run from that PR's `<wt>`; arm the next when that watch ends, one watch at a time.
+Once every repository has its PR, invoke `harness:shepherd` on the first, with its commands run from that PR's `<wt>`; arm the next when that watch ends, one watch at a time. At the terminal, the worktree step for these watches is `git -C <repo> worktree remove --force <wt>` only, never `ExitWorktree`, which acts on the session's own worktree instead.
 
 ## Prune
 
@@ -97,7 +97,7 @@ Runs per PR after `harness:shepherd` reaches Terminal — after its summary, its
 
 ## Resume
 
-`/harness:reflect <pr-url>` → `gh pr view <pr-url> --json state,headRefName`; the PR's repository and its head branch `reflect/<YYYY-MM-DD>` name the manifest and its `.checkout`. `MERGED` → Prune (idempotent: files already gone are `skipped`). `OPEN` → `harness:shepherd` on the PR's branch. `CLOSED` → Prune's `CLOSED` branch.
+`/harness:reflect <pr-url>` → `gh pr view <pr-url> --json state,headRefName`; the PR's repository and its head branch `reflect/<YYYY-MM-DD>` name the manifest and its `.checkout`. `MERGED` → Prune (idempotent: files already gone are `skipped`). `OPEN` → `harness:shepherd` on the PR's branch, from its `<wt>`: `<repo>/.claude/worktrees/reflect-<YYYY-MM-DD>`, `<repo>` read from the `.checkout` file. `CLOSED` → Prune's `CLOSED` branch.
 
 ## Common Rationalizations
 
@@ -115,7 +115,7 @@ Runs per PR after `harness:shepherd` reaches Terminal — after its summary, its
 
 ## Red Flags
 
-- A deletion under `~/.claude/projects/` before this PR's merge commit is in its repository's checkout; a merge check on any other signal.
+- A deletion of a memory in a PR manifest before that PR's merge commit is in its repository's checkout; a merge check on any other signal; a redundant memory pruned before the user confirmed the list.
 - A memory slug, filename, description, or project name in a commit message, a PR title or body, or a tracked file.
 - A manifest rebuilt from the triage, the session, or the PR; a manifest kept anywhere but `~/.claude/reflect/`.
 - `rm`, `sed`, or an edit on a memory file or a `MEMORY.md` outside `prune.sh`.
@@ -129,6 +129,7 @@ Before ending a run:
 
 - [ ] The triage listed every project and every memory `inventory.sh` printed, each with a verdict and a reason.
 - [ ] The selection named every candidate's target explicitly or accepted the recommended one by number; nothing was written before it.
+- [ ] Redundant memories were pruned only after the user confirmed the list and `prune.sh --dry-run` accepted it.
 - [ ] Each target repository got one PR, `prune.sh --dry-run` accepted its manifest before `gh pr create`, and the leak guard printed nothing.
 - [ ] Each PR is ready, its body matches the contract exactly, and its manifest exists under `~/.claude/reflect/`.
 - [ ] After `MERGED`: the sync check passed, `prune.sh` ran on the manifest, its `deleted` list matches, and the manifest is gone. After `CLOSED`: nothing under `~/.claude/projects/` changed, and the manifest is gone.
