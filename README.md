@@ -29,7 +29,7 @@ A versioned `~/.claude` that turns Claude Code into a disciplined engineer. Its 
 
 ## Quick Start
 
-On a machine where Claude Code has no `~/.claude` yet:
+To install globally, on a machine where Claude Code has no `~/.claude` yet:
 
 ```bash
 git clone git@github.com:palazzem/claude-config.git ~/.claude
@@ -58,9 +58,9 @@ claude
 
 A third-party pin moves only by editing its `sha` in `.claude-plugin/marketplace.json`; once that change is pulled, `claude plugin update agent-skills@palazzem` or `claude plugin update gh-stack@palazzem` installs it.
 
-## Use the harness in a team repository
+## Install in a project
 
-Commit this to the repository's `.claude/settings.json`, with `ref` set to the `claude-config` commit the team runs:
+To enable the plugins for everyone who works in a repository, commit this to its `.claude/settings.json`, with `ref` set to a `claude-config` commit:
 
 ```json
 {
@@ -77,19 +77,21 @@ Commit this to the repository's `.claude/settings.json`, with `ref` set to the `
 }
 ```
 
-The rules travel with the repository, not with the plugin: copy `CLAUDE.md` and `rules/` from this repository into the team repository's `CLAUDE.md` and `.claude/rules/`, adjusted to the team, and commit them. On your own machine, keep the global copies from loading there too, in the team repository's untracked `.claude/settings.local.json`:
-
-```json
-{ "claudeMdExcludes": ["/home/<you>/.claude/CLAUDE.md", "/home/<you>/.claude/rules/**"] }
-```
-
-Each collaborator clones the repository, starts `claude`, trusts the folder, waits for the session to finish loading, exits, and runs:
+In a clone of that repository, start `claude` once and trust the folder, then run:
 
 ```bash
 claude plugin install harness@palazzem --scope project
 ```
 
-Moving the team to a newer harness is a PR that changes `ref`. After pulling it, each collaborator starts `claude` once, so the marketplace moves to the new `ref`, then runs `claude plugin update harness@palazzem --scope project`, and the same for `agent-skills@palazzem` and `gh-stack@palazzem` when their pins moved.
+To move the project to a newer commit, change `ref`, start `claude` once, then run `claude plugin update harness@palazzem --scope project`, and the same for `agent-skills@palazzem` and `gh-stack@palazzem` when their pins moved.
+
+## Ignore the global rules in a project
+
+With this repository installed as `~/.claude`, its `CLAUDE.md` and `rules/` load in every project. To keep them out of a project that has its own rules, add this to that project's untracked `.claude/settings.local.json`, with absolute paths:
+
+```json
+{ "claudeMdExcludes": ["/home/<you>/.claude/CLAUDE.md", "/home/<you>/.claude/rules/**"] }
+```
 
 ## Commands
 
