@@ -1,13 +1,13 @@
 # Skill Anatomy
 
-This document describes the structure and format of the skills in this repository. Use it as the ruling when writing a new skill or auditing an existing one.
+This document describes the structure and format of agent-skills skill files. Use this as a guide when contributing new skills or understanding existing ones.
 
 ## File Location
 
-Every skill lives in its own directory under `harness/skills/`:
+Every skill lives in its own directory under `skills/`:
 
 ```
-harness/skills/
+skills/
   skill-name/
     SKILL.md           # Required: The skill definition
     scripts/           # Optional: Runnable helpers used by the skill workflow
@@ -16,8 +16,6 @@ harness/skills/
 ```
 
 `SKILL.md` is the only required file. Add `scripts/` or `references/` only when the skill actually needs them, and omit them entirely for simpler skills.
-
-A skill is installed as part of the `harness` plugin, which Claude Code loads from `harness/`. A skill reads only what lives inside its own directory — never a sibling skill, never a repository-root file. See [Self-Contained Skills](#self-contained-skills).
 
 ## SKILL.md Format
 
@@ -31,9 +29,15 @@ description: Guides agents through [task/workflow]. Use when [specific trigger c
 ```
 
 **Rules:**
-- `name`: 1–64 characters; lowercase letters, digits, and single hyphens; no leading or trailing hyphen. Must match the directory name.
-- `description`: Third person. Start with what the skill does, then one or more clear "Use when" trigger conditions and the exclusions ("not for"). Include both *what* and *when*. Maximum 1024 characters.
-- Optional fields Claude Code recognizes (`argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `disallowed-tools`, `model`, `effort`, `context`) are allowed when the skill needs the behavior they control. A field that does not change how the skill runs is noise.
+- `name`: Lowercase, hyphen-separated. Must match the directory name.
+- `description`: Start with what the skill does in third person, then include one or more clear "Use when" trigger conditions. Include both *what* and *when*. Maximum 1024 characters.
+- Top-level keys are limited to the [Agent Skills specification](https://agentskills.io) fields: `name`, `description`, `license`, `compatibility`, `metadata`, and `allowed-tools`. Vendor or runtime controls such as `model`, `tools`, `max_turns`, or `context` go under `metadata` or in a per-agent adapter file; see [docs/advanced-per-agent-configuration.md](advanced-per-agent-configuration.md). The validator rejects any other top-level key.
+
+Published names are compatibility identifiers. In particular,
+`browser-testing-with-devtools` is the stable upstream name because other
+skills refer to it directly. A downstream catalog may rename it, but that
+catalog owns the alias or migration mapping; downstream-only aliases are not
+maintained in this repository.
 
 **Why this matters:** Agents discover skills by reading descriptions. The description is injected into the system prompt, so it must tell the agent both what the skill provides and when to activate it. Do not summarize the workflow — if the description contains process steps, the agent may follow the summary instead of reading the full skill.
 
@@ -107,17 +111,19 @@ Create supporting files only when:
 - Code tools or scripts are needed
 - Checklists are long enough to justify separate files
 
-Keep patterns, principles, and templates inline when under 50 lines.
+Keep patterns and principles inline when under 50 lines.
 
 If a skill does not need runnable helpers, do not create an empty `scripts/` directory just to mirror other skills. Empty directories add noise without changing how the skill works.
 
-## Self-Contained Skills
+## Shared References
 
-A skill is a self-contained directory, and this repository keeps it that way: nothing a skill reads or runs lives outside `harness/skills/<name>/`. There is no repository-root `references/` for material shared across skills.
+Checklists used by more than one skill — testing, security, performance, accessibility, definition-of-done — live in `references/` at the repository root, deliberately *not* inside any skill directory.
 
-Files outside `harness/` never reach a team repository, which installs the plugin from a pinned commit into Claude Code's plugin cache. Within `harness/`, one directory per skill keeps each skill's contract in one place: a skill that needs another's material names that skill instead of reading its files.
+This is a pack-level design choice. The Agent Skills spec describes a skill as a self-contained directory, but several skills here point at the same checklists. Colocating those would force one of two options: copy the checklist into every skill that uses it, or pick one skill to "own" it and have the others reach into that directory. Both drift over time. A single repo-root copy stays the source of truth.
 
-When two skills need the same material, one skill owns it and the other refers to that skill by name (see [Cross-Skill References](#cross-skill-references)). Do not copy the material into both — copies drift.
+The tradeoff is portability: a whole-repo install (such as the Claude Code marketplace plugin) carries `references/` along, but a per-skill install that copies only `skills/<name>/` leaves the repo-root sibling behind, and those links resolve to nothing. That gap is tracked in [#361](https://github.com/addyosmani/agent-skills/issues/361).
+
+Current convention: material used by exactly one skill is a supporting file inside that skill's directory; material shared across skills goes in `references/`.
 
 ## Context Efficiency
 
@@ -133,12 +139,12 @@ Skills load on demand: only the skill name and description sit in context at sta
 
 When a skill ships runnable helpers under `scripts/`, each script follows these conventions:
 
-- Use a `#!/usr/bin/env bash` shebang and stay compatible with bash 3.2: macOS ships that version at `/bin/bash`, so bash 4+ features (`mapfile`, associative arrays, `${var,,}`) are unavailable on the platform this harness runs on.
-- Use `set -euo pipefail` for fail-fast behavior. A long-running script that must survive a transient failure — a poller whose `gh` call times out — guards that one call explicitly (`out=$(cmd) || out=""`) and says why; it does not drop `-e` for the whole script.
-- Write status messages and diagnostics to stderr: `echo "Message" >&2`.
-- Write machine-readable output to stdout: a JSON document for a one-shot result, one JSON object per line for a stream of events.
-- When the script creates temporary files, include a cleanup trap for them.
-- Reference the script from `SKILL.md` as `${CLAUDE_SKILL_DIR}/scripts/<script>.sh`. Claude Code substitutes the installed skill directory; a repository-relative path does not resolve at runtime.
+- Use a `#!/bin/bash` shebang.
+- Use `set -e` for fail-fast behavior.
+- Write status messages to stderr: `echo "Message" >&2`.
+- Write machine-readable output (JSON) to stdout.
+- Include a cleanup trap for temporary files.
+- Reference the script path as `skills/<skill-name>/scripts/<script>.sh` (repo-relative).
 
 ## Writing Principles
 
@@ -148,21 +154,36 @@ When a skill ships runnable helpers under `scripts/`, each script follows these 
 4. **Anti-rationalization.** Every skip-worthy step needs a counter-argument in the rationalizations table.
 5. **Progressive disclosure.** Main SKILL.md is the entry point. Supporting files are loaded only when needed.
 6. **Token-conscious.** Every section must justify its inclusion. If removing it wouldn't change agent behavior, remove it.
+7. **Model-neutral.** Write the procedure, not the workaround. See [Write the Procedure, Not the Workaround](#write-the-procedure-not-the-workaround).
+
+## Write the Procedure, Not the Workaround
+
+Skills in this pack run on many agents and model generations. A step that exists because one model gets a specific call wrong is a liability on every other model: it constrains agents that would have solved the task directly, and it spends turns that stronger models need for the actual work. Cross-model transfer measurements ([WikiSkill, arXiv:2608.27454](https://arxiv.org/abs/2608.27454)) show skills authored against one model's execution failures can leave a stronger model performing *worse than with no skill at all*.
+
+**The rule:** if a step cannot be justified without naming a model, a model version, or one agent's private tool name, it belongs in an issue, not in a skill. Describe the capability ("run the focused test command", "write the file"), not the mechanism one runtime happens to expose (`run_command`, `write_to_file`).
+
+Two smells to check for before proposing skill content:
+
+- **Over-specified mechanics.** Prescribing an exact command form or serialization detail where stating the goal alone would do. If the justification is "model X gets this wrong otherwise", it's a workaround, not a procedure.
+- **Fragmented diagnostics.** A multi-step inspection sequence where one step would confirm the same thing. Every extra step spends turns, and turn budget is finite.
+
+This is about skill *content*; the portability of `references/` *paths* is a separate concern (see [Shared References](#shared-references)).
 
 ## Naming Conventions
 
 - Skill directories: `lowercase-hyphen-separated`
 - Skill files: `SKILL.md` (always uppercase)
 - Supporting files: `lowercase-hyphen-separated.md`
-- Skill-specific references: a single supporting doc stays as a loose file in the skill directory; when several related docs travel with the skill, group them in a `references/` directory inside the skill directory, so the skill carries its own supporting docs.
+- Shared references: stored in the root `references/` directory, not inside skill directories (see [Shared References](#shared-references) for why).
+- Skill-specific references: a single supporting doc can stay as a loose file in the skill directory (the `Supporting files` entry above); when several related docs travel with the skill, the emerging convention for self-contained, distributable skills is to group them in a `references/` directory inside the skill directory, so the skill carries its own supporting docs.
 
 ## Cross-Skill References
 
-Reference other skills and agents by their plugin-prefixed name, `<plugin>:<name>`:
+Reference other skills by name:
 
 ```markdown
-Use the `harness:docs-researcher` agent to fetch current library documentation.
-Hand the published PR to the `harness:shepherd` skill.
+Follow the `test-driven-development` skill for writing tests.
+If the build breaks, use the `debugging-and-error-recovery` skill.
 ```
 
 Don't duplicate content between skills — reference and link instead.
@@ -171,7 +192,7 @@ Don't duplicate content between skills — reference and link instead.
 
 Required:
 
-- A `harness/skills/<skill-name>/SKILL.md` file
+- A `skills/<skill-name>/SKILL.md` file
 - Valid YAML frontmatter with `name` and `description`
 - A description that includes both what the skill does and when to use it
 
