@@ -44,12 +44,12 @@
   "timeFormat": "12-hour",
   "skipWorkflowUsageWarning": true,
   "verbose": false,
+  "idleCompaction": false,
   "switchModelsOnFlag": false,
   "autoContinueAtUsageLimit": true,
   "remoteControlAtStartup": false,
   "crossSessionInbound": "refuse",
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "useAutoModeDuringPlan": true,
-  "idleCompaction": false
+  "useAutoModeDuringPlan": true
 }
