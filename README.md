@@ -46,13 +46,13 @@ cp ~/.claude/statusline/ccstatusline-config.json ~/.config/ccstatusline/settings
 claude
 ```
 
-`claude plugin install harness@palazzem` also installs `agent-skills` and `gh-stack`, its dependencies. The `palazzem` marketplace is this checkout, but Claude Code loads `harness` from a copy it makes at install. After a change to `harness` is merged and pulled into `~/.claude`, `claude plugin update harness@palazzem` refreshes that copy, and the next session loads it.
+`claude plugin install harness@palazzem` also installs `agent-skills` and `gh-stack`, its dependencies. The `palazzem` marketplace is this repository's default branch on GitHub, the same source every project that installs the harness uses, so every session runs the published harness. After a change to `harness` is merged, `claude plugin update harness@palazzem` installs it, and the next session loads it.
 
 ## Plugins
 
 | Plugin | Source | Pinned to |
 | --- | --- | --- |
-| `harness` | `harness/` in this repository | The checkout itself |
+| `harness` | `harness/` in this repository | The default branch |
 | `agent-skills` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | 0.6.16, `39b723c` |
 | `gh-stack` | [github/gh-stack](https://github.com/github/gh-stack) | v0.3.0, `2a49e67` |
 
@@ -60,13 +60,17 @@ A third-party pin moves only by editing its `sha` in `.claude-plugin/marketplace
 
 ## Install in a project
 
-To enable the plugins for everyone who works in a repository, commit this to its `.claude/settings.json`, with `ref` set to a `claude-config` commit:
+To enable the plugins and keep each user's global rules out for everyone who works in a repository, commit this to its `.claude/settings.json`:
 
 ```json
 {
+  "claudeMdExcludes": [
+    "/home/*/.claude/rules/**",
+    "/Users/*/.claude/rules/**"
+  ],
   "extraKnownMarketplaces": {
     "palazzem": {
-      "source": { "source": "github", "repo": "palazzem/claude-config", "ref": "<40-character commit sha>" }
+      "source": { "source": "github", "repo": "palazzem/claude-config" }
     }
   },
   "enabledPlugins": {
@@ -83,15 +87,19 @@ In a clone of that repository, start `claude` once and trust the folder, then ru
 claude plugin install harness@palazzem --scope project
 ```
 
-To move the project to a newer commit, change `ref`, start `claude` once, then run `claude plugin update harness@palazzem --scope project`, and the same for `agent-skills@palazzem` and `gh-stack@palazzem` when their pins moved.
+The marketplace declaration is identical to the one in this repository's `settings.json`, so a project never re-points it. After a change to the harness is merged, run `claude plugin update harness@palazzem --scope project`, and the same for `agent-skills@palazzem` and `gh-stack@palazzem` when their pins moved.
 
-## Ignore the global rules in a project
+`claudeMdExcludes` matches absolute paths, so the two globs drop `~/.claude/rules/` on Linux and macOS for every user, while the project's own `.claude/rules/` still loads. The project carries the rules it follows in its own `.claude/rules/`. Check what loads with `/memory`.
 
-With this repository installed as `~/.claude`, its `rules/` load in every project. To keep them out of a project that has its own rules, add this to that project's untracked `.claude/settings.local.json`, with absolute paths:
+## Develop the harness
 
-```json
-{ "claudeMdExcludes": ["/home/<you>/.claude/rules/**"] }
+Sessions load the published harness. To try a change before it is merged, start a session with the checkout's copy:
+
+```bash
+claude --plugin-dir ~/.claude/harness
 ```
+
+For that session it replaces the installed `harness`, in any project. Run `/reload-plugins` after each edit.
 
 ## Commands
 
