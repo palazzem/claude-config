@@ -7,7 +7,7 @@ This file holds every place this configuration replaces an `agent-skills` plugin
 - `/spec` writes the spec as a Claude Doc named after the change, never `SPEC.md`. Module specs from a capability map are tabs of that doc. Diagrams and charts are Docs widgets.
 - The user reviews it through doc comments; answer and edit in the doc.
 - Confirmation is the user's unambiguous yes in chat once every comment thread is resolved. It is the run's only approval.
-- On confirmation, publish the spec as a GitHub issue labelled `spec`, titled with the spec's title. Its body is the doc's Markdown with each widget converted to a Mermaid block carrying the same nodes, edges, labels, and data; a widget no Mermaid diagram type carries goes to the user before publishing. A spec over the 65,536-character issue body limit becomes a parent issue holding the capability map, with one sub-issue per module.
+- On confirmation, publish the spec as a GitHub issue labelled `spec` — creating the label where the repository lacks it — titled with the spec's title. Its body is the doc's Markdown with each widget converted to a Mermaid block carrying the same nodes, edges, labels, and data; a widget no Mermaid diagram type carries goes to the user before publishing. A spec over the 65,536-character issue body limit becomes a parent issue holding the capability map, with one sub-issue per module.
 - A spec written for an existing issue is a new issue whose body opens with `Solves #<n>`.
 - Delete the doc once the issue exists.
 - Every success criterion names the command, test, or observation that proves it.
