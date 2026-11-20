@@ -23,8 +23,8 @@
   "extraKnownMarketplaces": {
     "palazzem": {
       "source": {
-        "source": "directory",
-        "path": "~/.claude"
+        "source": "github",
+        "repo": "palazzem/claude-config"
       }
     }
   },
