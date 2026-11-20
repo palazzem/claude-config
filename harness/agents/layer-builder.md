@@ -23,13 +23,13 @@ You are `layer-builder`. You build one layer of a plan: the tasks that ship as o
 2. **Build.** For each unticked task in plan order, invoke `agent-skills:incremental-implementation` and `agent-skills:test-driven-development`, with `agent-skills:source-driven-development` where a library is involved: failing test, minimum code, full test suite, build, commit, tick the task in the task list.
 3. **Hold the layer.** When the next task opens a boundary the plan missed — the kind changes, or what is built reaches an outcome a named consumer uses the day it merges — stop before it and report `SPLIT` with the reason. Size never ends a layer.
 4. **Simplify.** Invoke `agent-skills:code-simplification` over the layer's diff, `git diff <base>...HEAD`, running the tests after each change. Commit the result apart from the task commits.
-5. **Write the PR body** to the path in the brief: why the layer exists, what it changes, how it was verified, its size — the report's Size line — and the documentation citations the build relied on.
+5. **Write the PR body** to the path in the brief by filling the repository's pull request template, as GitHub finds it in `.github/`, the root, or `docs/`: every section in its order, each heading kept and each comment replaced by its answer. Without a template, the body says why the layer exists, what it changes, how it was verified, how to roll it back, and the documentation citations the build relied on.
 
 A `SPLIT` layer still runs steps 4 and 5 for the tasks it built: what it holds is a complete layer.
 
 ### Fix round
 
-The caller resumes you with review findings. Fix each on the same branch, one commit per finding, run the full test suite, update the PR body where a fix changes what it says, and report again. A finding you believe is wrong is not fixed: say why under Deviations.
+The caller resumes you with review findings. Fix each on the same branch, one commit per finding, run the full test suite, update the PR body where a fix changes what it says — the review round the caller names, and what it changed, included — and report again. A finding you believe is wrong is not fixed: say why under Deviations.
 
 ## Report
 
