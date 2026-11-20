@@ -20,7 +20,7 @@ This file holds every place this configuration replaces an `agent-skills` plugin
 
 - Plan → `<run-dir>/plan.md`. Replaces `tasks/plan.md`. It is never presented for approval: the session verifies it against the spec and the run goes on.
 - Task list → `<run-dir>/todo.md`. Replaces `tasks/todo.md` as the task list target.
-- PR body → `<run-dir>/pr/<branch>.md`, one per layer, written when the layer is built.
+- PR body → `<run-dir>/pr/<branch>.md`, one per layer, written when the layer is built, filling the repository's pull request template.
 - `tasks/` is never created or written by these commands; in `~/.claude` it is Claude Code's own state directory.
 
 A repository whose `.gitignore` lacks `.claude/runs/` gets it in a one-time `chore: ignore agent run artifacts` PR, from its own worktree, before the run writes its first artifact. The run does not wait for that PR to merge.
@@ -51,7 +51,7 @@ The plan ends with a **Boundaries** table, one row per boundary between adjacent
 - A plan with more than one layer always ships as a `gh-stack` stack, bottom first in dependency order — never one branch carrying several concerns. A single layer ships from the worktree's own branch.
 - `/build` and `/build auto` open the worktree before the first layer's first task, never earlier, from the main checkout: `git fetch origin` and `git worktree add -b <branch> .claude/worktrees/<name> origin/<trunk>`, `<branch>` being the bottom layer's; move `<run-dir>` to the same relative path inside it; `EnterWorktree` with its path. They commit each task on its layer's branch. In a stack, `gh stack init <branch>` opens the bottom layer and `gh stack add <branch>` each layer above it, before that layer's first task.
 - The builder cuts again only where it finds a boundary the plan missed: it ends the layer before the task that opens one and reports `SPLIT` with the row for the Boundaries table. The tasks left become the layer directly above, and the plan is updated to match.
-- Size is measured, `git diff --shortstat <base>...HEAD` against the branch the layer builds on, and reported in the PR body and the hand-back. It never cuts.
+- Size is measured, `git diff --shortstat <base>...HEAD` against the branch the layer builds on, and reported in the hand-back. It never cuts.
 - A review that still finds a layer too large, or holding two concerns, goes to the user: an oversized PR is an exception.
 - The top layer's PR body ends with `Closes #<spec>`, plus `Closes #<n>` for the issue the spec solves; every other layer's ends with `Part of #<spec>`. Both issues close when the whole stack reaches the trunk.
 - The hand-back reports each success criterion of the spec as met or unmet, with its evidence.

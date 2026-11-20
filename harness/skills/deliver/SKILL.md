@@ -76,10 +76,11 @@ A review receives three things and nothing else — never a list of things to ch
 | `agent-skills:ship` | Blockers and recommended fixes, each on the layer that owns the code | Acknowledged risks |
 
 1. Check out the layer that owns the code: `gh stack checkout <branch>` when it is below the top.
-2. That layer's builder, resumed with the findings — a fresh one with the layer's brief when it cannot be resumed — fixes, tests, and commits.
+2. That layer's builder, resumed with the findings and the name of the review that raised them — a fresh one with the layer's brief when it cannot be resumed — fixes, tests, and commits.
 3. Below the top: `gh stack rebase --upstack --no-trunk`, resolving a conflict with the `gh-stack:gh-stack` skill's conflict workflow.
 4. Run the full test suite on the fixed layer and on every layer above it, `gh stack up` from one to the next.
-5. Tick the checkpoint of the layer reviewed. The run moves on.
+5. After `agent-skills:ship`, its rollback plan becomes the rollback section of the PR bodies: each step goes in the body of the layer whose code it undoes.
+6. Tick the checkpoint of the layer reviewed. The run moves on.
 
 Stop for the user on a layer the review reports as too large or as holding two concerns, and on a finding the builder disputes or cannot fix. A `NO-GO` alone is not a stop: its findings are fixed and the PRs are published.
 

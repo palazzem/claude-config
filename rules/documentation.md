@@ -6,5 +6,5 @@
 - An ADR states the decision and how the system behaves, never the diff from an earlier ADR or the current state of the code; code that disagrees with an ADR gets a reconciliation issue.
 - Write an ADR only for a choice between alternatives with lasting consequences, never for a refactoring that converges on best practice.
 - State each fact once, in the document that owns it — never repeated in an agent instructions file, another doc, or a docstring.
-- An issue other than a spec opens with the problem and concrete examples, never a description of the current state or a journal line, and closes with a Proposed solutions section.
+- An issue other than a spec fills the repository's issue form for its type: each field's label as a `### ` heading, in the form's order, with the labels the form applies. Where the repository has no form, it opens with the problem and concrete examples, never a description of the current state or a journal line, and closes with a Proposed solutions section.
 - A document that is not code and needs my feedback is a Claude Doc, never a plain artifact: I comment in it, and you answer, edit, and resolve there.
