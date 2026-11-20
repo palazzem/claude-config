@@ -93,11 +93,12 @@ Report first, cleanup second — always both. Cleanup ignores every failure, so 
 - **Open:** _threads or questions left unresolved at the terminal_
 ```
 
-3. The printed watermark still holds a layer — the watch goes on, and steps 4–5 wait:
+3. The printed watermark still holds a layer — the watch goes on, and steps 4–6 wait:
    - Any `CLOSED` line in the wake: stop for the user, before handling a `MERGED` line of the same wake. Reset nothing, clean nothing, arm nothing.
    - Otherwise, `MERGED`: resolve the merged layer's `<branch>` as in A change step 1. Push nothing — GitHub restacks the remaining layers itself. `git fetch --prune`, reset each open local layer to its remote (`git branch -f <b> origin/<b>`, `git reset --hard origin/<b>` on the one checked out), switch to the new bottom, and `git branch -D <branch>`. A `BEHIND` or `DIRTY` printed for an upper layer in the same wake is Drift's. Then `git push origin --delete <branch>` (GitHub may already have), the wake's other lines, and a re-arm with the printed watermark — never a new `baseline`.
 4. The printed watermark is `{}` — once, after the last layer. First the open-layer check under Handling a wake: a layer the watch never covered stops the run here, with nothing cleaned. Then resolve the `<branch>` of each layer of this wake as in A change step 1, while the worktree is there, and clean up without confirmation — the PR is the record, the worktree is not. If the checkout is a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`): `ExitWorktree(action: "remove", discard_changes: true)`, then from the main checkout `git worktree remove --force <worktree>`. Then `git branch -D <branch>` for each layer of this wake. MERGED: `git push origin --delete <branch>` (GitHub may already have). CLOSED unmerged: the remote branch stays — pushed work is recoverable and the PR can be reopened.
-5. Once the worktree is deleted, sync the main checkout. Any layer of the watch `MERGED`, whatever the last terminal was: `git pull -p` on the default branch, `git fetch --prune` on any other branch (say so — never pull into a branch the user has checked out). No layer merged: `git fetch --prune`. A pull the working tree refuses: report it, don't stash.
+5. Any layer of the watch `MERGED`: delete each Claude Doc written for my feedback on the work it carries, as the documentation rule says. A watch that ended only `CLOSED` keeps it.
+6. Once the worktree is deleted, sync the main checkout. Any layer of the watch `MERGED`, whatever the last terminal was: `git pull -p` on the default branch, `git fetch --prune` on any other branch (say so — never pull into a branch the user has checked out). No layer merged: `git fetch --prune`. A pull the working tree refuses: report it, don't stash.
 
 ## Common Rationalizations
 
@@ -144,4 +145,5 @@ At every terminal, before ending:
 - [ ] Each layer merged while another was open pushed nothing, the open local layers were reset to their remotes, and the watch was re-armed with the watermark printed beside its `MERGED`.
 - [ ] Cleanup ran once, after the summary of the last layer, with the printed watermark `{}`, in order — worktree (if any), local branch, and on MERGED the remote branch; on CLOSED the remote branch and the PR were not touched.
 - [ ] The main checkout synced after `ExitWorktree` — `git pull -p` on the default branch after a merge, `git fetch --prune` otherwise — and a skipped or refused pull was reported.
+- [ ] After a merge, each Claude Doc written for my feedback on the work is deleted.
 - [ ] After the last layer no monitor is armed for the watch, and no summary was posted or saved.
