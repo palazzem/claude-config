@@ -46,7 +46,7 @@ cp ~/.claude/statusline/ccstatusline-config.json ~/.config/ccstatusline/settings
 claude
 ```
 
-`claude plugin install harness@palazzem` also installs `agent-skills` and `gh-stack`, its dependencies. The `palazzem` marketplace is this checkout, read in place: a change to `harness` merged and pulled into `~/.claude` loads at the next session or after `/reload-plugins`.
+`claude plugin install harness@palazzem` also installs `agent-skills` and `gh-stack`, its dependencies. The `palazzem` marketplace is this checkout, but Claude Code loads `harness` from a copy it makes at install. After a change to `harness` is merged and pulled into `~/.claude`, `claude plugin update harness@palazzem` refreshes that copy, and the next session loads it.
 
 ## Plugins
 
