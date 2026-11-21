@@ -40,7 +40,7 @@ The session orchestrates: it holds the spec, the plan, and the reports, and neve
    4. **Fix and tick.** See After a Review.
 4. **Publish.** Never a draft: `<title>` comes from the plan, `<body>` is `<run-dir>/pr/<branch>.md`, ending with the issue references the Layers rule names. The commands are in One Layer or Several.
 5. **Watch.** In the same turn, invoke `harness:shepherd`: one watch covers every layer published.
-6. **Hand back.** Once the monitor is armed, report to the user: each success criterion of the spec, met or unmet, with its evidence; the PRs, each with the size its builder reported; the `agent-skills:ship` decision as returned; what was fixed after it; the commits made after it, which no reviewer saw; any recommended fix not made, and why; any layer added after it.
+6. **Hand back.** Once the monitor is armed, report to the user: each success criterion of the spec, met or unmet, with its evidence; the PRs, each with the size its builder reported; the final review's ship decision; what was fixed after it; the commits made after it, which no reviewer saw; any recommended fix not made, and why; any layer added after it.
 
 ## One Layer or Several
 
@@ -55,31 +55,31 @@ A stack of one is a stack in concept, but `gh-stack` needs two layers. This tabl
 
 | Layer | Review | Range |
 |---|---|---|
-| Every layer but the last | `agent-skills:review`, once | `<base>...<branch>` |
-| The last layer | `agent-skills:ship`, once | `origin/<trunk>...<top>` |
+| Every layer but the last | The layer review, once: `agent-skills:code-review-and-quality` in an `agent-skills:code-reviewer` agent | `<base>...<branch>` |
+| The last layer | The final review, once: `agent-skills:shipping-and-launch`, with its `code-reviewer`, `security-auditor`, and `test-engineer` agents started in one turn and merged into the ship decision | `origin/<trunk>...<top>` |
 
-The last layer gets no `agent-skills:review` of its own: a stack of one runs `agent-skills:ship` only. Ranges name branches, never `HEAD`, and the whole-stack range never starts at the local trunk. Both commands run as they are defined: deliver adds no rule to them and removes none.
+The last layer gets no layer review of its own: a stack of one runs the final review only. Ranges name branches, never `HEAD`, and the whole-stack range never starts at the local trunk. Each review runs as its skill and agents define it: deliver adds no rule and removes none.
 
 A review receives three things and nothing else — never a list of things to check or verify, the builder's report, the session's reasoning, or another review's findings:
 
 1. The range.
-2. `<spec>` and the plan path, in `<run-dir>`; for `agent-skills:review`, also the layer's heading in the plan.
+2. `<spec>` and the plan path, in `<run-dir>`; for the layer review, also the layer's heading in the plan.
 3. This line: "The review is read-only: no edits, commits, branch switches, or pushes."
 
 ## After a Review
 
-**Each review runs once.** This is deliberate: a human reviews every PR. No reviewer is resumed and no review command is invoked a second time, also after fixes; Resuming holds the one exception. To restore a re-check after fixes, change this rule and nothing else.
+**Each review runs once.** This is deliberate: a human reviews every PR. No reviewer is resumed and no review runs a second time, also after fixes; Resuming holds the one exception. To restore a re-check after fixes, change this rule and nothing else.
 
 | After | Fix | Leave |
 |---|---|---|
-| `agent-skills:review` | Critical and Required findings (`/review` names the second tier Important) | Optional, Nit, Suggestion |
-| `agent-skills:ship` | Blockers and recommended fixes, each on the layer that owns the code | Acknowledged risks |
+| The layer review | Critical and Required findings | Optional and Nit findings |
+| The final review | Blockers and recommended fixes, each on the layer that owns the code | Acknowledged risks |
 
 1. Check out the layer that owns the code: `gh stack checkout <branch>` when it is below the top.
 2. That layer's builder, resumed with the findings and the name of the review that raised them — a fresh one with the layer's brief when it cannot be resumed — fixes, tests, and commits.
 3. Below the top: `gh stack rebase --upstack --no-trunk`, resolving a conflict with the `gh-stack:gh-stack` skill's conflict workflow.
 4. Run the full test suite on the fixed layer and on every layer above it, `gh stack up` from one to the next.
-5. After `agent-skills:ship`, its rollback plan becomes the rollback section of the PR bodies: each step goes in the body of the layer whose code it undoes.
+5. After the final review, its rollback plan becomes the rollback section of the PR bodies: each step goes in the body of the layer whose code it undoes.
 6. Tick the checkpoint of the layer reviewed. The run moves on.
 
 Stop for the user on a layer the review reports as too large or as holding two concerns, and on a finding the builder disputes or cannot fix. A `NO-GO` alone is not a stop: its findings are fixed and the PRs are published.
@@ -88,12 +88,12 @@ Stop for the user on a layer the review reports as too large or as holding two c
 
 | Event | Then |
 |---|---|
-| The builder reports `SPLIT` | What it built is a complete layer. Add the new layer to the plan directly above it — branch, title, kind, concern, tasks, checkpoint — and the row the builder reported to the Boundaries table. The layer that split is no longer the last: it gets `agent-skills:review`, and the new layer is built next. |
+| The builder reports `SPLIT` | What it built is a complete layer. Add the new layer to the plan directly above it — branch, title, kind, concern, tasks, checkpoint — and the row the builder reported to the Boundaries table. The layer that split is no longer the last: it gets the layer review, and the new layer is built next. |
 | `BLOCKED` on a documentation lookup | Run a `harness:docs-researcher` agent with the library, version, and question; resume the builder with its report. |
 | `BLOCKED` on a change that belongs to a lower layer | Make it there with steps 1 to 4 of After a Review, return to the builder's branch, and resume the builder. |
 | `BLOCKED` on anything else | Put its question to the user; resume the builder with the answer. |
 | The builder reports deviations from the plan | Not a stop. |
-| A layer is added after `agent-skills:ship` | Publish it with no review and name it in the hand-back. |
+| A layer is added after the final review | Publish it with no review and name it in the hand-back. |
 
 ## Resuming
 
@@ -117,8 +117,8 @@ Stop for the user on a layer the review reports as too large or as holding two c
 | "This layer will run long; cut it now so the PRs stay small." | Size is a fact, not a reason: a boundary needs a kind change or an outcome. The size goes in the hand-back, and an oversized PR is the user's exception to grant. |
 | "These two layers don't touch; run both builders at once." | They share one worktree. One builder at a time. |
 | "Resume the reviewer to confirm the fix, to be safe." | Each review runs once, deliberately: the test suite guards against regressions, and the human who reviews the PR checks the fix. |
-| "A code review on the last layer first — or `/review` then `/ship` on a single PR." | `agent-skills:ship` is the last layer's review. Anything before it reads the same code twice. |
-| "Tell the reviewer what to check; it saves time." | The command decides the method. A check list narrows the review to what the session already thought of. |
+| "A code review on the last layer first — or a layer review then the final review on a single PR." | The final review is the last layer's review. Anything before it reads the same code twice. |
+| "Tell the reviewer what to check; it saves time." | The reviewer's agent and skill decide the method. A check list narrows the review to what the session already thought of. |
 | "`NO-GO`: stop and ask the user." | A `NO-GO` is findings. Fix them and publish; the decision is in the hand-back. |
 | "Publish drafts now and finish the fixes on the PR." | A PR handed to a human is ready for review. Fix, then publish. |
 
@@ -129,17 +129,17 @@ Stop for the user on a layer the review reports as too large or as holding two c
 - A worktree before the first layer opens, or a second one; an artifact written in the main checkout after it opens; two `harness:layer-builder` agents running at once.
 - A review brief holding anything beyond the range, the spec issue and the plan path with the layer's heading, and the read-only line.
 - The plan presented to the user, or a wait for approval after the spec's confirmation.
-- A reviewer resumed, a review command invoked twice on one layer, or `agent-skills:review` on the last layer.
+- A reviewer resumed, a review run twice on one layer, or a layer review on the last layer.
 - A range ending in `HEAD` or starting at the local trunk.
 - `--draft`; `gh stack submit` for a layer of more than one commit.
-- The PRs reported before `harness:shepherd`'s monitor is armed, or a hand-back without the commits made after `agent-skills:ship`.
+- The PRs reported before `harness:shepherd`'s monitor is armed, or a hand-back without the commits made after the final review.
 
 ## Verification
 
 - [ ] The plan was written by a `harness:planner` and verified against the spec by the session, and every layer was built by a `harness:layer-builder`.
 - [ ] Every boundary between adjacent layers has a row in the plan's Boundaries table, the rows added after a `SPLIT` included, and no layer was cut on size.
 - [ ] Every layer has a ticked checkpoint and a PR body file, and `git log --oneline <base>..<branch>` shows only its tasks, its simplification, and its fixes.
-- [ ] The run shows one `agent-skills:review` per layer but the last and one `agent-skills:ship`, each briefed with its three inputs.
+- [ ] The run shows one layer review per layer but the last and one final review, each briefed with its three inputs, the final review's three reviewers started in one turn.
 - [ ] After the last fix, the full test suite passed on every layer from the fixed one to the top.
 - [ ] Every PR is open and not a draft, with the plan's title and the body file's text; the top layer's body closes `<spec>`, and every other layer's names it.
 - [ ] No worktree existed before the first layer opened, `<run-dir>` is in the worktree and no longer in the main checkout, and `git log --name-only origin/<trunk>..<top>` and `git status --porcelain` show nothing under it.
