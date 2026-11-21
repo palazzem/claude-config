@@ -7,7 +7,7 @@ description: Delivers an approved spec as pull requests ready for a human to rev
 
 ## Overview
 
-One workflow takes a spec to pull requests under watch, whatever the number of layers: a delivery is a stack of layers — one PR, one concern each — and every layer is reviewed exactly once, by its position. The human who merges gets small PRs, and no review is paid for twice.
+One workflow takes a spec to pull requests under watch, whatever the number of layers: a delivery is a stack of layers, one PR and one concern each, so the human who merges gets small PRs.
 
 ## When to Use
 
@@ -104,7 +104,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 | No worktree `.claude/worktrees/<name>` | The run has not started. A plan in `<run-dir>` in the main checkout: verify it and go on from Layers. |
 | The worktree exists | It is in flight: find it with `git worktree list` and `EnterWorktree` with its path, never a second one. Continue, without asking again, at the first layer whose checkpoint is unticked. |
 | That layer has unticked tasks | A fresh `harness:layer-builder` with the layer's brief builds them and simplifies; the run goes on from Review. |
-| That layer has every task ticked | Run its review — the one case where a review may repeat — and go on from After a Review. |
+| That layer has every task ticked | Run its review and go on from After a Review. |
 | Every checkpoint ticked | With no PR, Publish. With a PR on the branch, Watch. |
 
 ## Common Rationalizations
@@ -115,10 +115,9 @@ Stop for the user on a layer the review reports as too large or as holding two c
 | "The layers are small; build them all, then review." | A fix in a lower layer rebases every layer built on it. A layer's checkpoint is ticked before the next opens. |
 | "Review first, simplify after — that is the order the plugin lists." | The layer has one review: it reads the code that ships. Simplify, then review. |
 | "Only one task is left after the `SPLIT`; have the builder finish it here." | The builder ended the layer at its boundary. The task left is a layer: open it. |
-| "The review calls it too large, but it is one concern." | An oversized PR is an exception, and exceptions are the user's to grant. |
-| "This layer will run long; cut it now so the PRs stay small." | Size is a fact, not a reason: a boundary needs a kind change or an outcome. The size goes in the hand-back, and an oversized PR is the user's exception to grant. |
+| "This layer will run long; cut it now so the PRs stay small — or the review calls it too large, but it is one concern." | Size is a fact, not a reason: a boundary needs a kind change or an outcome. The size goes in the hand-back, and an oversized PR is the user's exception to grant. |
 | "These two layers don't touch; run both builders at once." | They share one worktree. One builder at a time. |
-| "Resume the reviewer to confirm the fix, to be safe." | Each review runs once, deliberately: the test suite guards against regressions, and the human who reviews the PR checks the fix. |
+| "Resume the reviewer to confirm the fix, to be safe." | After a fix, the full test suite guards against regressions. |
 | "A code review on the last layer first — or a layer review then the final review on a single PR." | The final review is the last layer's review. Anything before it reads the same code twice. |
 | "Tell the reviewer what to check; it saves time." | The reviewer's agent and skill decide the method. A check list narrows the review to what the session already thought of. |
 | "It is only Optional; the reviewer said so." | A finding that simplifies is fixed whatever its label: severity measures risk, not cost, and a simpler design is nearly always labelled Optional. |
@@ -127,19 +126,14 @@ Stop for the user on a layer the review reports as too large or as holding two c
 
 ## Red Flags
 
-- The session writing the plan, building a layer, or fixing a finding itself.
-- A layer cut on size, by the planner or the builder; a boundary with no row in the Boundaries table.
-- A worktree before the first layer opens, or a second one; an artifact written in the main checkout after it opens; two `harness:layer-builder` agents running at once.
-- A review brief holding anything beyond the range, the spec issue and the plan path with the layer's heading, and the read-only line.
+- A second worktree, or two `harness:layer-builder` agents running at once.
 - The plan presented to the user, or a wait for approval after the spec's confirmation.
-- A reviewer resumed, a review run twice on one layer, or a layer review on the last layer.
 - A range ending in `HEAD` or starting at the local trunk.
-- `--draft`; `gh stack submit` for a layer of more than one commit.
-- The PRs reported before `harness:shepherd`'s monitor is armed, or a hand-back without the commits made after the final review.
+- `gh stack submit` for a layer of more than one commit.
 
 ## Verification
 
-- [ ] The plan was written by a `harness:planner` and verified against the spec by the session, and every layer was built by a `harness:layer-builder`.
+- [ ] The plan was written by a `harness:planner` and verified against the spec by the session, and every layer was built, and every finding fixed, by a `harness:layer-builder`.
 - [ ] Every boundary between adjacent layers has a row in the plan's Boundaries table, the rows added after a `SPLIT` included, and no layer was cut on size.
 - [ ] Every layer has a ticked checkpoint and a PR body file, and `git log --oneline <base>..<branch>` shows only its tasks, its simplification, and its fixes.
 - [ ] The run shows one layer review per layer but the last and one final review, each briefed with its three inputs, the final review's three reviewers started in one turn.
