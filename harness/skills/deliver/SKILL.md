@@ -40,7 +40,7 @@ The session orchestrates: it holds the spec, the plan, and the reports, and neve
    4. **Fix and tick.** See After a Review.
 4. **Publish.** Never a draft: `<title>` comes from the plan, `<body>` is `<run-dir>/pr/<branch>.md`, ending with the issue references the Layers rule names. The commands are in One Layer or Several.
 5. **Watch.** In the same turn, invoke `harness:shepherd`: one watch covers every layer published.
-6. **Hand back.** Once the monitor is armed, report to the user: each success criterion of the spec, met or unmet, with its evidence; the PRs, each with the size its builder reported; the final review's ship decision; what was fixed after it; the commits made after it, which no reviewer saw; any recommended fix not made, and why; any layer added after it.
+6. **Hand back.** Once the monitor is armed, report to the user: each success criterion of the spec, met or unmet, with its evidence; the PRs, each with the size its builder reported; the final review's ship decision; what was fixed after it; the commits made after it, which no reviewer saw; any recommended fix not made, and why; any layer added after it; and, per layer, every simplification its builder logged — from its simplify step and from every review round — applied with its commit, or left with the reason.
 
 ## One Layer or Several
 
@@ -72,8 +72,10 @@ A review receives three things and nothing else — never a list of things to ch
 
 | After | Fix | Leave |
 |---|---|---|
-| The layer review | Critical and Required findings | Optional and Nit findings |
-| The final review | Blockers and recommended fixes, each on the layer that owns the code | Acknowledged risks |
+| The layer review | Critical and Required findings, and every finding that simplifies | Other Optional and Nit findings |
+| The final review | Blockers, recommended fixes, and every finding that simplifies, each on the layer that owns the code | Acknowledged risks |
+
+A finding simplifies when its fix removes code, a module, a mode, a thread, a dependency, or a configuration entry, with no loss of what the spec requires, whatever severity the reviewer gave it. The builder applies it as its simplify step would, or leaves it with the reason, and logs it either way.
 
 1. Check out the layer that owns the code: `gh stack checkout <branch>` when it is below the top.
 2. That layer's builder, resumed with the findings and the name of the review that raised them — a fresh one with the layer's brief when it cannot be resumed — fixes, tests, and commits.
@@ -119,6 +121,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 | "Resume the reviewer to confirm the fix, to be safe." | Each review runs once, deliberately: the test suite guards against regressions, and the human who reviews the PR checks the fix. |
 | "A code review on the last layer first — or a layer review then the final review on a single PR." | The final review is the last layer's review. Anything before it reads the same code twice. |
 | "Tell the reviewer what to check; it saves time." | The reviewer's agent and skill decide the method. A check list narrows the review to what the session already thought of. |
+| "It is only Optional; the reviewer said so." | A finding that simplifies is fixed whatever its label: severity measures risk, not cost, and a simpler design is nearly always labelled Optional. |
 | "`NO-GO`: stop and ask the user." | A `NO-GO` is findings. Fix them and publish; the decision is in the hand-back. |
 | "Publish drafts now and finish the fixes on the PR." | A PR handed to a human is ready for review. Fix, then publish. |
 
@@ -130,6 +133,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 - A review brief holding anything beyond the range, the spec issue and the plan path with the layer's heading, and the read-only line.
 - The plan presented to the user, or a wait for approval after the spec's confirmation.
 - A reviewer resumed, a review run twice on one layer, or a layer review on the last layer.
+- A finding that simplifies left without a reason, or a layer's simplifications missing from the hand-back.
 - A range ending in `HEAD` or starting at the local trunk.
 - `--draft`; `gh stack submit` for a layer of more than one commit.
 - The PRs reported before `harness:shepherd`'s monitor is armed, or a hand-back without the commits made after the final review.
@@ -140,6 +144,7 @@ Stop for the user on a layer the review reports as too large or as holding two c
 - [ ] Every boundary between adjacent layers has a row in the plan's Boundaries table, the rows added after a `SPLIT` included, and no layer was cut on size.
 - [ ] Every layer has a ticked checkpoint and a PR body file, and `git log --oneline <base>..<branch>` shows only its tasks, its simplification, and its fixes.
 - [ ] The run shows one layer review per layer but the last and one final review, each briefed with its three inputs, the final review's three reviewers started in one turn.
+- [ ] Every finding that simplifies was applied or left with a reason, and the hand-back lists every layer's simplifications, applied and left.
 - [ ] After the last fix, the full test suite passed on every layer from the fixed one to the top.
 - [ ] Every PR is open and not a draft, with the plan's title and the body file's text; the top layer's body closes `<spec>`, and every other layer's names it.
 - [ ] No worktree existed before the first layer opened, `<run-dir>` is in the worktree and no longer in the main checkout, and `git log --name-only origin/<trunk>..<top>` and `git status --porcelain` show nothing under it.

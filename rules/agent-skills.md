@@ -6,6 +6,7 @@ This file holds every place this configuration replaces an `agent-skills` plugin
 
 - `/spec` writes the spec as a Claude Doc named after the change, never `SPEC.md`. Module specs from a capability map are tabs of that doc. Diagrams and charts are Docs widgets.
 - The user reviews it through doc comments; answer and edit in the doc.
+- Before asking for confirmation, ask the user whether they want a simplification review. When they do, a fresh agent that receives only the doc reviews every requirement against one test: it stays only when this version's objective, one of its success criteria, or an open issue the spec names needs it. A requirement whose only consumers are its own tests, or failures nobody has reported, is a proposed cut. Each proposed cut is a doc comment anchored on that requirement, naming what it costs and why it fails the test; the user answers in the thread, and an accepted cut is an edit to the doc.
 - Confirmation is the user's unambiguous yes in chat once every comment thread is resolved. It is the run's only approval.
 - On confirmation, publish the spec as a GitHub issue labelled `spec` — creating the label where the repository lacks it — titled with the spec's title. Its body is the doc's Markdown with each widget converted to a Mermaid block carrying the same nodes, edges, labels, and data; a widget no Mermaid diagram type carries goes to the user before publishing. A spec over the 65,536-character issue body limit becomes a parent issue holding the capability map, with one sub-issue per module.
 - A spec written for an existing issue is a new issue whose body opens with `Solves #<n>`.
@@ -70,6 +71,7 @@ Each row's work runs in its subagent type, never inline. None means the subagent
 | Work | Subagent type | Model | Effort |
 |---|---|---|---|
 | Plan | `harness:planner` | None | None |
+| Spec simplification review | `general-purpose` | `fable` | `high` |
 | Layer review (`harness:deliver`) | `agent-skills:code-reviewer` | `fable` | `high` |
 | Final review (`harness:deliver`) | `agent-skills:code-reviewer` | `fable` | `high` |
 | Final review (`harness:deliver`) | `agent-skills:security-auditor` | `fable` | `high` |
