@@ -133,7 +133,6 @@ Stop for the user on a layer the review reports as too large or as holding two c
 - A review brief holding anything beyond the range, the spec issue and the plan path with the layer's heading, and the read-only line.
 - The plan presented to the user, or a wait for approval after the spec's confirmation.
 - A reviewer resumed, a review run twice on one layer, or a layer review on the last layer.
-- A finding that simplifies left without a reason, or a layer's simplifications missing from the hand-back.
 - A range ending in `HEAD` or starting at the local trunk.
 - `--draft`; `gh stack submit` for a layer of more than one commit.
 - The PRs reported before `harness:shepherd`'s monitor is armed, or a hand-back without the commits made after the final review.
@@ -144,7 +143,6 @@ Stop for the user on a layer the review reports as too large or as holding two c
 - [ ] Every boundary between adjacent layers has a row in the plan's Boundaries table, the rows added after a `SPLIT` included, and no layer was cut on size.
 - [ ] Every layer has a ticked checkpoint and a PR body file, and `git log --oneline <base>..<branch>` shows only its tasks, its simplification, and its fixes.
 - [ ] The run shows one layer review per layer but the last and one final review, each briefed with its three inputs, the final review's three reviewers started in one turn.
-- [ ] Every finding that simplifies was applied or left with a reason, and the hand-back lists every layer's simplifications, applied and left.
 - [ ] After the last fix, the full test suite passed on every layer from the fixed one to the top.
 - [ ] Every PR is open and not a draft, with the plan's title and the body file's text; the top layer's body closes `<spec>`, and every other layer's names it.
 - [ ] No worktree existed before the first layer opened, `<run-dir>` is in the worktree and no longer in the main checkout, and `git log --name-only origin/<trunk>..<top>` and `git status --porcelain` show nothing under it.
