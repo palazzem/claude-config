@@ -55,17 +55,10 @@ A stack of one is a stack in concept, but `gh-stack` needs two layers. This tabl
 
 | Layer | Review | Range |
 |---|---|---|
-| Every layer but the last | The layer review, once | `<base>...<branch>` |
-| The last layer | The final review, once | `origin/<trunk>...<top>` |
+| Every layer but the last | The layer review, once: `agent-skills:code-review-and-quality` in an `agent-skills:code-reviewer` agent | `<base>...<branch>` |
+| The last layer | The final review, once: `agent-skills:shipping-and-launch`, with its `code-reviewer`, `security-auditor`, and `test-engineer` agents started in one turn and merged into the ship decision | `origin/<trunk>...<top>` |
 
-The last layer gets no layer review of its own: a stack of one runs the final review only. Ranges name branches, never `HEAD`, and the whole-stack range never starts at the local trunk.
-
-The `/review` and `/ship` commands start only from the user, so the run carries out what they define:
-
-- **Layer review.** One `agent-skills:code-reviewer` agent invokes `agent-skills:code-review-and-quality` over the range and returns its review, each finding labelled Critical, Required, Optional, or Nit.
-- **Final review.** The session invokes `agent-skills:shipping-and-launch`, then starts `agent-skills:code-reviewer`, `agent-skills:security-auditor`, and `agent-skills:test-engineer` agents in one turn, each reviewing the range with its own method. The session merges their reports into the ship decision: `GO` or `NO-GO`, blockers, recommended fixes, acknowledged risks, and a rollback plan.
-
-Each reviewer runs as its agent and skill define it: deliver adds no rule to them and removes none.
+The last layer gets no layer review of its own: a stack of one runs the final review only. Ranges name branches, never `HEAD`, and the whole-stack range never starts at the local trunk. Each review runs as its skill and agents define it: deliver adds no rule and removes none.
 
 A review receives three things and nothing else — never a list of things to check or verify, the builder's report, the session's reasoning, or another review's findings:
 
@@ -126,7 +119,6 @@ Stop for the user on a layer the review reports as too large or as holding two c
 | "Resume the reviewer to confirm the fix, to be safe." | Each review runs once, deliberately: the test suite guards against regressions, and the human who reviews the PR checks the fix. |
 | "A code review on the last layer first — or a layer review then the final review on a single PR." | The final review is the last layer's review. Anything before it reads the same code twice. |
 | "Tell the reviewer what to check; it saves time." | The reviewer's agent and skill decide the method. A check list narrows the review to what the session already thought of. |
-| "`/ship` starts only from the user, so skip the final review or ask for it." | The run carries out what `/ship` defines: `shipping-and-launch` and the three reviewers in parallel, merged into the ship decision. |
 | "`NO-GO`: stop and ask the user." | A `NO-GO` is findings. Fix them and publish; the decision is in the hand-back. |
 | "Publish drafts now and finish the fixes on the PR." | A PR handed to a human is ready for review. Fix, then publish. |
 
